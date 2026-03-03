@@ -14,7 +14,9 @@ export default function PaymentSuccess() {
     const randomNum = Math.floor(10000000 + Math.random() * 90000000);
     setOrderNumber(`#ZARA-${randomNum}`);
   }, []);
-
+  useEffect(() => {
+    localStorage.removeItem('reviewOrder');
+  }, []);
   return (
     <>
       <Header />

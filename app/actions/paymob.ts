@@ -3,7 +3,6 @@
 
 import axios from 'axios';
 
-
 const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY?.trim();
 const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID?.trim();
 const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID?.trim();
@@ -11,25 +10,31 @@ const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID?.trim();
 const PAYMOB_API_URL = 'https://accept.paymob.com/api';
 
 export async function createPaymobOrder(amount: number, items: any[]) {
-  console.log('createPaymobOrder called with amount:', amount);
-  console.log('Env vars check:');
-  console.log('  API_KEY exists?', !!PAYMOB_API_KEY);
-  console.log('  INTEGRATION_ID exists?', !!PAYMOB_INTEGRATION_ID);
-  console.log('  IFRAME_ID exists?', !!PAYMOB_IFRAME_ID);
+  console.log('🔹 Starting Paymob order creation...');
+  console.log('   Total amount:', amount);
+  console.log('   Items received:', items);
 
-  if (!PAYMOB_API_KEY) throw new Error('PAYMOB_API_KEY missing');
-  if (!PAYMOB_INTEGRATION_ID) throw new Error('PAYMOB_INTEGRATION_ID missing');
-  if (!PAYMOB_IFRAME_ID) throw new Error('PAYMOB_IFRAME_ID missing');
+  if (!PAYMOB_API_KEY || !PAYMOB_INTEGRATION_ID || !PAYMOB_IFRAME_ID) {
+    throw new Error('❌ Paymob credentials missing in .env.local');
+  }
 
   try {
+    // 1. Auth token
     console.log('Step 1: Getting auth token...');
     const authRes = await axios.post(`${PAYMOB_API_URL}/auth/tokens`, {
       api_key: PAYMOB_API_KEY,
     });
     const authToken = authRes.data.token;
-    console.log('Auth token received');
+    console.log('✅ Auth token OK');
 
-    console.log('Step 2: Creating order...');
+    // 2. Create order - FIX items format here
+    const formattedItems = items.map(item => ({
+      name: item.name,
+      amount_cents: Math.round(item.price * 100),   // ← Paymob requires this
+      quantity: item.quantity || 1,
+    }));
+
+    console.log('Step 2: Creating order with formatted items...');
     const orderRes = await axios.post(
       `${PAYMOB_API_URL}/ecommerce/orders`,
       {
@@ -37,13 +42,13 @@ export async function createPaymobOrder(amount: number, items: any[]) {
         delivery_needed: false,
         amount_cents: Math.round(amount * 100),
         currency: 'EGP',
-        items,
-      },
-      { headers: { Authorization: `Bearer ${authToken}` } }
+        items: formattedItems,
+      }
     );
     const orderId = orderRes.data.id;
-    console.log('Order created, ID:', orderId);
+    console.log('✅ Order created, ID:', orderId);
 
+    // 3. Payment key
     console.log('Step 3: Getting payment key...');
     const paymentRes = await axios.post(
       `${PAYMOB_API_URL}/acceptance/payment_keys`,
@@ -67,30 +72,29 @@ export async function createPaymobOrder(amount: number, items: any[]) {
           country: 'EGY',
           state: 'Giza',
         },
-      },
-      { headers: { Authorization: `Bearer ${authToken}` } }
+      }
     );
 
     const paymentKey = paymentRes.data.token;
-    console.log('Payment key received');
+    console.log('✅ Payment key received');
 
     const iframeUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentKey}`;
-    console.log('Iframe URL generated:', iframeUrl);
+    console.log('✅ Iframe URL ready');
 
-    return {
-      paymentKey,
-      orderId,
-      iframeUrl,
-    };
+    return { iframeUrl };
+
   } catch (error: any) {
-    console.error('Paymob request failed:', {
-      message: error.message,
-      responseData: error.response?.data,
-      status: error.response?.status,
-      config: error.config?.url,
-    });
-    throw new Error(
-      `Paymob failed: ${error.response?.data?.message || error.message || 'Unknown error'}`
-    );
+    console.error('🚨 PAYMOB FULL ERROR (status 500):');
+    console.error('   Status:', error.response?.status);
+    console.error('   Full response data:', JSON.stringify(error.response?.data, null, 2));
+    console.error('   Message:', error.message);
+
+    const errorMsg = error.response?.data?.message 
+      || error.response?.data?.detail 
+      || JSON.stringify(error.response?.data) 
+      || error.message 
+      || 'Unknown Paymob error';
+
+    throw new Error(`Paymob failed: ${errorMsg}`);
   }
 }
