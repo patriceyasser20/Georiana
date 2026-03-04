@@ -72,7 +72,34 @@ export default function Home() {
           )}
         </div>
       </section>
+      {/* ==================== ABOUT US SECTION ==================== */}
+      <section className="py-24 bg-white border-t">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <h2 className="text-5xl font-light tracking-widest mb-8">About ZARA</h2>
+          
+          <div className="max-w-2xl mx-auto mb-16">
+            <p className="text-xl text-gray-600 leading-relaxed">
+              ZARA is a global fashion brand that brings the latest trends to life with exceptional quality 
+              and timeless elegance.
+            </p>
+          </div>
 
+          {/* Perfectly centered icons */}
+          <div className="flex justify-center gap-16">
+            <div className="text-center max-w-[220px]">
+              <div className="text-7xl mb-6">👗</div>
+              <h3 className="font-medium text-2xl mb-2">Timeless Style</h3>
+              <p className="text-gray-500">Modern silhouettes with classic appeal</p>
+            </div>
+
+            <div className="text-center max-w-[220px]">
+              <div className="text-7xl mb-6">♻️</div>
+              <h3 className="font-medium text-2xl mb-2">Sustainable Future</h3>
+              <p className="text-gray-500">Committed to responsible and ethical fashion</p>
+            </div>
+          </div>
+        </div>
+      </section>  
       <Footer />
     </>
   );
