@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, User, LogOut, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Search, User, LogOut, ShoppingBag, ArrowLeft, Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
@@ -12,6 +12,7 @@ export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviewCount, setReviewCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Auth listener
   useEffect(() => {
@@ -46,14 +47,20 @@ export default function Header() {
     router.push('/');
   };
 
-  const showBackButton = pathname !== '/';
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const showBackButton = pathname !== '/' && pathname !== '/shop';
 
   return (
     <header className="top-bar bg-white/95 backdrop-blur-md border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
       <div className="max-w-7xl mx-auto px-6 h-70px flex items-center justify-between">
         
         <div className="flex items-center gap-4">
-          {/* Back Button - appears on every page except home */}
           {showBackButton && (
             <button 
               onClick={() => router.back()} 
@@ -68,22 +75,46 @@ export default function Header() {
         </div>
 
         <nav className="hidden md:flex gap-10 text-sm font-medium uppercase tracking-widest">
+          <Link href="/shop">SHOP</Link>
           <Link href="#">WOMAN</Link>
           <Link href="#">MAN</Link>
           <Link href="#">KIDS</Link>
           <Link href="#" className="text-red-600">SALE</Link>
         </nav>
 
-        <div className="flex items-center gap-8 text-xl">
-          <button><Search /></button>
+        {/* Search Bar - Hidden only on /shop page */}
+        {pathname !== '/shop' && (
+          <form onSubmit={handleSearch} className="flex-1 max-w-md mx-8">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search products..."
+                className="w-full border border-gray-300 rounded-full py-3 px-5 pl-12 focus:outline-none focus:border-black text-sm"
+              />
+              <Search className="absolute left-5 top-3.5 text-gray-400" size={20} />
+            </div>
+          </form>
+        )}
 
+        <div className="flex items-center gap-8 text-xl">
           {/* User Section */}
           {loading ? (
             <span>...</span>
           ) : user ? (
             <div className="flex items-center gap-6">
               <Link href="/account" className="text-sm hover:text-gray-600">Account</Link>
-              <button onClick={handleSignOut} className="flex items-center gap-2 text-sm hover:text-gray-600">
+              
+              {/* Wishlist Icon - Only visible when logged in */}
+              <Link href="/wishlist" className="relative hover:text-gray-600 transition">
+                <Heart size={22} />
+              </Link>
+
+              <button 
+                onClick={handleSignOut} 
+                className="flex items-center gap-2 text-sm hover:text-gray-600 transition"
+              >
                 <LogOut size={22} />
               </button>
             </div>
@@ -91,7 +122,7 @@ export default function Header() {
             <Link href="/login"><User size={22} /></Link>
           )}
 
-          {/* Shopping Bag */}
+          {/* Review Order Bag */}
           {reviewCount > 0 && (
             <Link href="/review-order" className="relative">
               <ShoppingBag size={22} />

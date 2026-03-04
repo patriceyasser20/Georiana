@@ -1,77 +1,73 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import QuickViewModal from './QuickViewModal';
-import { supabaseClient } from '../../lib/supabaseClient';
+import Link from 'next/link';
 
 interface ProductCardProps {
   id: string;
   name: string;
-  price: string;
+  price: string | number;
   img: string;
   sizes?: string[];
   colors?: string[];
 }
 
-export default function ProductCard({ 
-  id, 
-  name, 
-  price, 
-  img, 
-  sizes = ['S','M','L','XL'], 
-  colors = ['Black','Brown','Navy'] 
-}: ProductCardProps) {
-  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+export default function ProductCard({ id, name, price, img, sizes = [], colors = [] }: ProductCardProps) {
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
-  const toggleWishlist = async () => {
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      alert("Please sign in to use wishlist");
-      return;
+  useEffect(() => {
+    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+    setIsInWishlist(wishlist.some((item: any) => item.id === id));
+  }, [id]);
+
+  const toggleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation
+
+    let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
+
+    if (isInWishlist) {
+      wishlist = wishlist.filter((item: any) => item.id !== id);
+    } else {
+      wishlist.push({
+        id,
+        name,
+        price: Number(price),
+        image_url: img,
+        sizes,
+        colors
+      });
     }
-    setIsWishlisted(!isWishlisted);
+
+    localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    setIsInWishlist(!isInWishlist);
   };
 
   return (
-    <>
-      <div className="product-card group cursor-pointer">
-        <div className="relative overflow-hidden">
-          <img 
-            src={img} 
-            alt={name} 
-            className="w-full aspect-3/4 object-cover transition-transform duration-500 group-hover:scale-105" 
+    <Link href={`/product/${id}`} className="group block">
+      <div className="relative overflow-hidden rounded-3xl bg-white border">
+        <img 
+          src={img} 
+          alt={name} 
+          className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" 
+        />
+
+        {/* Heart Button */}
+        <button 
+          onClick={toggleWishlist}
+          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:scale-110 transition"
+        >
+          <Heart 
+            size={22} 
+            className={isInWishlist ? "fill-red-500 text-red-500" : "text-gray-700"} 
           />
-          
-          <button onClick={toggleWishlist} className="absolute top-4 right-4 z-10">
-            <Heart size={24} fill={isWishlisted ? "red" : "none"} stroke={isWishlisted ? "red" : "white"} />
-          </button>
+        </button>
 
-          <button 
-            onClick={() => setIsQuickViewOpen(true)} 
-            className="quick-view absolute bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-8 py-3 text-xs tracking-widest opacity-0 group-hover:opacity-100 transition-all duration-300"
-          >
-            QUICK VIEW
-          </button>
-        </div>
-
-        <div className="pt-5 text-center">
-          <p className="font-medium text-sm">{name}</p>
-          <p className="text-sm mt-1 text-gray-600">{price}</p>
+        <div className="p-4">
+          <p className="font-medium text-lg">{name}</p>
+          <p className="text-xl font-medium">EGP {price}</p>
         </div>
       </div>
-
-      <QuickViewModal
-        id={id}
-        name={name}
-        price={price}
-        img={img}
-        sizes={sizes}
-        colors={colors}
-        isOpen={isQuickViewOpen}
-        onClose={() => setIsQuickViewOpen(false)}
-      />
-    </>
+    </Link>
   );
 }

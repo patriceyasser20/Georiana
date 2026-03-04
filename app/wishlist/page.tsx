@@ -3,57 +3,56 @@
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import ProductCard from '../components/ProductCard';
-import { supabaseClient } from '../../lib/supabaseClient';
+import { Trash2, Heart } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Wishlist() {
-  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [wishlist, setWishlist] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchWishlist = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-
-      const { data } = await supabaseClient
-        .from('wishlist')
-        .select(`
-          id,
-          product:products (*)
-        `)
-        .eq('user_id', user.id);
-
-      setWishlistItems(data || []);
-      setLoading(false);
-    };
-
-    fetchWishlist();
+    const saved = localStorage.getItem('wishlist');
+    if (saved) setWishlist(JSON.parse(saved));
   }, []);
 
-  if (loading) return <div className="text-center py-20">Loading wishlist...</div>;
+  const removeFromWishlist = (id: string) => {
+    const updated = wishlist.filter(item => item.id !== id);
+    setWishlist(updated);
+    localStorage.setItem('wishlist', JSON.stringify(updated));
+  };
 
   return (
     <>
       <Header />
       <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-4xl font-light tracking-widest mb-10">My Wishlist</h1>
+        <div className="max-w-6xl mx-auto px-6">
+          <h1 className="text-4xl font-light tracking-widest mb-10 flex items-center gap-3">
+            <Heart size={32} /> My Wishlist
+          </h1>
 
-          {wishlistItems.length === 0 ? (
-            <p className="text-center text-xl text-gray-500">Your wishlist is empty</p>
+          {wishlist.length === 0 ? (
+            <div className="text-center py-20">
+              <Heart size={80} className="mx-auto text-gray-300 mb-6" />
+              <p className="text-2xl text-gray-500">Your wishlist is empty</p>
+              <Link href="/shop" className="mt-6 inline-block bg-black text-white px-10 py-4 rounded-full text-sm tracking-widest">
+                Browse Products
+              </Link>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {wishlistItems.map(item => (
-                <ProductCard
-                  key={item.product.id}
-                  id={item.product.id}
-                  name={item.product.name}
-                  price={`EGP ${item.product.price}`}
-                  img={item.product.image_url}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {wishlist.map(item => (
+                <div key={item.id} className="bg-white rounded-3xl overflow-hidden border">
+                  <img src={item.image_url} alt={item.name} className="w-full h-80 object-cover" />
+                  <div className="p-6">
+                    <h3 className="font-medium text-lg mb-1">{item.name}</h3>
+                    <p className="text-xl font-medium">EGP {item.price}</p>
+                    <button 
+                      onClick={() => removeFromWishlist(item.id)}
+                      className="mt-6 flex items-center gap-2 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 size={18} /> Remove from Wishlist
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
           )}
