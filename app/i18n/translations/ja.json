@@ -1,0 +1,144 @@
+{
+  "header": {
+    "shop": "ショップ",
+    "woman": "レディース",
+    "man": "メンズ",
+    "kids": "キッズ",
+    "sale": "セール",
+    "account": "アカウント",
+    "wishlist": "ウィッシュリスト",
+    "language": "言語"
+  },
+  "hero": {
+    "spring2026": "2026年春",
+    "discover": "新しいコレクションを発見",
+    "shopNow": "今すぐ購入"
+  },
+  "home": {
+    "newThisWeek": "今週の新着",
+    "aboutTitle": "Pawloについて",
+    "aboutText": "Pawloは最新トレンドを卓越した品質とタイムレスなエレガンスで届けるグローバルファッションブランドです。",
+    "timelessStyle": "タイムレススタイル",
+    "timelessStyleDesc": "モダンなシルエットとクラシックな魅力",
+    "sustainableFuture": "サステナブルフューチャー",
+    "sustainableFutureDesc": "責任ある倫理的ファッションに取り組んでいます"
+  },
+  "shop": {
+    "allProducts": "すべての製品",
+    "search": "製品を検索..."
+  },
+  "product": {
+    "selectSize": "サイズを選択",
+    "selectColor": "色を選択",
+    "quantity": "数量",
+    "addToReviewOrder": "レビュー注文に追加",
+    "addedToReviewOrder": "レビュー注文に追加されました！",
+    "outOfStock": "このサイズと色の組み合わせは在庫切れです",
+    "only": "残り",
+    "itemsAvailable": "個"
+  },
+  "checkout": {
+    "title": "チェックアウト",
+    "contactInfo": "連絡先情報",
+    "shippingAddress": "配送先住所",
+    "paymentMethod": "支払い方法",
+    "orderSummary": "注文概要",
+    "total": "合計",
+    "pay": "支払う",
+    "firstName": "名 *",
+    "lastName": "姓 *",
+    "email": "メールアドレス *",
+    "phone": "電話番号 *",
+    "street": "住所 *",
+    "apartment": "アパートメント/スイート",
+    "postalCode": "郵便番号",
+    "city": "市区町村",
+    "country": "国 *",
+    "selectCountry": "国を選択",
+    "stripe": "クレジット/デビットカード (Stripe)",
+    "cod": "代金引換"
+  },
+  "reviewOrder": {
+    "title": "注文の確認",
+    "empty": "注文がありません",
+    "total": "合計：",
+    "proceed": "チェックアウトに進む",
+    "pleaseSignIn": "注文を完了するにはログインしてください",
+    "orderSaved": "✅ 注文が保存されました！チェックアウトに移動します...",
+    "errorSaving": "注文の保存中にエラーが発生しました："
+  },
+  "contact": {
+    "title": "お問い合わせ",
+    "getInTouch": "お問い合わせ",
+    "getInTouchText": "いつでもご連絡ください。",
+    "ourOffice": "オフィス",
+    "address": "ニューヨーク、アメリカ"
+  },
+  "sizeGuide": {
+    "title": "サイズガイド",
+    "text": "詳細なサイズ表で最適なサイズを見つけてください。"
+  },
+  "returnExchange": {
+    "title": "返品・交換",
+    "text": "購入後30日以内に無料返品可能です。商品は未着用でタグ付きである必要があります。"
+  },
+  "login": {
+    "title": "ログイン",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "button": "ログイン",
+    "noAccount": "アカウントをお持ちでないですか？",
+    "signUp": "登録",
+    "invalidCredentials": "ログイン情報が正しくありません"
+  },
+  "signup": {
+    "title": "アカウント作成",
+    "email": "メールアドレス",
+    "password": "パスワード",
+    "button": "アカウントを作成",
+    "haveAccount": "すでにアカウントをお持ちですか？",
+    "login": "ログイン",
+    "success": "✅ アカウントが作成されました！ログインしてください。"
+  },
+  "footer": {
+    "shop": "ショップ",
+    "woman": "レディース",
+    "man": "メンズ",
+    "kids": "キッズ",
+    "newCollection": "新コレクション",
+    "sale": "セール",
+    "help": "ヘルプ",
+    "aboutUs": "会社概要",
+    "trackOrder": "注文追跡",
+    "customerService": "カスタマーサービス",
+    "returns": "返品・交換",
+    "sizeGuide": "サイズガイド",
+    "contactUs": "お問い合わせ",
+    "aboutZara": "Zaraについて",
+    "ourStory": "私たちのストーリー",
+    "careers": "キャリア",
+    "press": "プレス",
+    "sustainability": "サステナビリティ",
+    "newsletter": "ニュースレター",
+    "newsletterText": "購読すると初回注文10%オフ + 限定オファー。",
+    "emailPlaceholder": "メールアドレス",
+    "subscribe": "購読する",
+    "copyright": "© 2026 Pawlo • 全著作権所有",
+    "madeInEgypt": "エジプト製 ❤️"
+  },
+  "common": {
+    "loading": "読み込み中...",
+    "notFound": "見つかりません",
+    "noShipment": "この国への発送はありません",
+    "continueShopping": "ショッピングを続ける",
+    "noResults": "製品が見つかりません",
+    "processing": "処理中...",
+    "back": "戻る"
+  },
+  "customerService": {
+  "title": "カスタマーサービス",
+  "text": "24時間いつでもお手伝いします。",
+  "emailSupport": "メールサポート",
+  "phoneSupport": "電話サポート"
+}
+}

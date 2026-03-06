@@ -1,0 +1,144 @@
+{
+  "header": {
+    "shop": "تسوق",
+    "woman": "نساء",
+    "man": "رجال",
+    "kids": "أطفال",
+    "sale": "تخفيضات",
+    "account": "الحساب",
+    "wishlist": "قائمة الرغبات",
+    "language": "اللغة"
+  },
+  "hero": {
+    "spring2026": "ربيع ٢٠٢٦",
+    "discover": "اكتشف المجموعة الجديدة",
+    "shopNow": "تسوق الآن"
+  },
+  "home": {
+    "newThisWeek": "الجديد هذا الأسبوع",
+    "aboutTitle": "عن باولو",
+    "aboutText": "باولو هو علامة أزياء عالمية تجلب أحدث الصيحات بجودة استثنائية وأناقة خالدة.",
+    "timelessStyle": "أسلوب خالد",
+    "timelessStyleDesc": "تصاميم عصرية بجاذبية كلاسيكية",
+    "sustainableFuture": "مستقبل مستدام",
+    "sustainableFutureDesc": "ملتزمون بالأزياء المسؤولة والأخلاقية"
+  },
+  "shop": {
+    "allProducts": "جميع المنتجات",
+    "search": "ابحث عن المنتجات..."
+  },
+  "product": {
+    "selectSize": "اختر المقاس",
+    "selectColor": "اختر اللون",
+    "quantity": "الكمية",
+    "addToReviewOrder": "إضافة إلى مراجعة الطلب",
+    "addedToReviewOrder": "تمت الإضافة إلى مراجعة الطلب!",
+    "outOfStock": "هذا المقاس واللون غير متوفر",
+    "only": "فقط",
+    "itemsAvailable": "قطع متوفرة"
+  },
+  "checkout": {
+    "title": "الدفع",
+    "contactInfo": "معلومات الاتصال",
+    "shippingAddress": "عنوان الشحن",
+    "paymentMethod": "طريقة الدفع",
+    "orderSummary": "ملخص الطلب",
+    "total": "المجموع",
+    "pay": "ادفع",
+    "firstName": "الاسم الأول *",
+    "lastName": "اسم العائلة *",
+    "email": "البريد الإلكتروني *",
+    "phone": "رقم الهاتف *",
+    "street": "عنوان الشارع *",
+    "apartment": "الشقة / الجناح",
+    "postalCode": "الرمز البريدي",
+    "city": "المدينة",
+    "country": "الدولة *",
+    "selectCountry": "اختر الدولة",
+    "stripe": "بطاقة ائتمان / خصم (Stripe)",
+    "cod": "الدفع عند الاستلام"
+  },
+  "reviewOrder": {
+    "title": "مراجعة طلبك",
+    "empty": "طلبك فارغ",
+    "total": "المجموع:",
+    "proceed": "المتابعة للدفع",
+    "pleaseSignIn": "يرجى تسجيل الدخول لإتمام الطلب",
+    "orderSaved": "✅ تم حفظ الطلب! جاري التوجه للدفع...",
+    "errorSaving": "خطأ في حفظ الطلب: "
+  },
+  "contact": {
+    "title": "اتصل بنا",
+    "getInTouch": "تواصل معنا",
+    "getInTouchText": "يسعدنا التواصل معك في أي وقت.",
+    "ourOffice": "مكتبنا",
+    "address": "نيويورك، الولايات المتحدة"
+  },
+  "sizeGuide": {
+    "title": "دليل المقاسات",
+    "text": "ابحث عن المقاس المثالي باستخدام جداولنا التفصيلية."
+  },
+  "returnExchange": {
+    "title": "الإرجاع والتبادل",
+    "text": "نقدم إرجاع مجاني خلال 30 يومًا من الشراء. يجب أن تكون القطع غير مستعملة مع الملصقات."
+  },
+  "login": {
+    "title": "تسجيل الدخول",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "button": "تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟",
+    "signUp": "إنشاء حساب",
+    "invalidCredentials": "بيانات الدخول غير صحيحة"
+  },
+  "signup": {
+    "title": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "button": "إنشاء الحساب",
+    "haveAccount": "لديك حساب بالفعل؟",
+    "login": "تسجيل الدخول",
+    "success": "✅ تم إنشاء الحساب! يمكنك الآن تسجيل الدخول."
+  },
+  "footer": {
+    "shop": "تسوق",
+    "woman": "نساء",
+    "man": "رجال",
+    "kids": "أطفال",
+    "newCollection": "المجموعة الجديدة",
+    "sale": "تخفيضات",
+    "help": "مساعدة",
+    "aboutUs": "من نحن",
+    "trackOrder": "تتبع الطلب",
+    "customerService": "خدمة العملاء",
+    "returns": "الإرجاع والتبادل",
+    "sizeGuide": "دليل المقاسات",
+    "contactUs": "اتصل بنا",
+    "aboutZara": "عن زارا",
+    "ourStory": "قصتنا",
+    "careers": "الوظائف",
+    "press": "الصحافة",
+    "sustainability": "الاستدامة",
+    "newsletter": "النشرة الإخبارية",
+    "newsletterText": "اشترك واحصل على خصم 10% على طلبك الأول + عروض حصرية.",
+    "emailPlaceholder": "بريدك الإلكتروني",
+    "subscribe": "اشترك",
+    "copyright": "© ٢٠٢٦ باولو • جميع الحقوق محفوظة",
+    "madeInEgypt": "صُنع في مصر مع ❤️"
+  },
+    "customerService": {
+    "title": "خدمة العملاء",
+    "text": "نحن هنا للمساعدة 24/7.",
+    "emailSupport": "الدعم عبر البريد ",
+    "phoneSupport": "الدعم الهاتفي"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "notFound": "غير موجود",
+    "noShipment": "لا يوجد شحن إلى هذا البلد",
+    "continueShopping": "متابعة التسوق",
+    "noResults": "لم يتم العثور على منتجات",
+    "processing": "جاري المعالجة...",
+    "back": "رجوع"
+  }
+}

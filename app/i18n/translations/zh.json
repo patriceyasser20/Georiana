@@ -1,0 +1,144 @@
+{
+  "header": {
+    "shop": "商店",
+    "woman": "女士",
+    "man": "男士",
+    "kids": "儿童",
+    "sale": "特卖",
+    "account": "账户",
+    "wishlist": "心愿单",
+    "language": "语言"
+  },
+  "hero": {
+    "spring2026": "两千零二十六春季",
+    "discover": "探索新系列",
+    "shopNow": "立即购物"
+  },
+  "home": {
+    "newThisWeek": "本周新品",
+    "aboutTitle": "关于Pawlo",
+    "aboutText": "Pawlo 是一个全球时尚品牌，以卓越品质和永恒优雅呈现最新潮流。",
+    "timelessStyle": "永恒风格",
+    "timelessStyleDesc": "现代剪裁与经典魅力",
+    "sustainableFuture": "可持续未来",
+    "sustainableFutureDesc": "致力于负责任和道德时尚"
+  },
+  "shop": {
+    "allProducts": "所有产品",
+    "search": "搜索产品..."
+  },
+  "product": {
+    "selectSize": "选择尺码",
+    "selectColor": "选择颜色",
+    "quantity": "数量",
+    "addToReviewOrder": "添加到审核订单",
+    "addedToReviewOrder": "已添加到审核订单！",
+    "outOfStock": "此尺码和颜色组合已售罄",
+    "only": "仅剩",
+    "itemsAvailable": "件可用"
+  },
+  "checkout": {
+    "title": "结账",
+    "contactInfo": "联系信息",
+    "shippingAddress": "收货地址",
+    "paymentMethod": "支付方式",
+    "orderSummary": "订单摘要",
+    "total": "总计",
+    "pay": "支付",
+    "firstName": "名字 *",
+    "lastName": "姓氏 *",
+    "email": "电子邮件 *",
+    "phone": "电话号码 *",
+    "street": "街道地址 *",
+    "apartment": "公寓/套房",
+    "postalCode": "邮政编码",
+    "city": "城市",
+    "country": "国家 *",
+    "selectCountry": "选择国家",
+    "stripe": "信用卡/借记卡 (Stripe)",
+    "cod": "货到付款"
+  },
+  "reviewOrder": {
+    "title": "审核您的订单",
+    "empty": "您的订单为空",
+    "total": "总计：",
+    "proceed": "继续结账",
+    "pleaseSignIn": "请登录以完成订单",
+    "orderSaved": "✅ 订单已保存！正在前往结账...",
+    "errorSaving": "保存订单时出错："
+  },
+  "contact": {
+    "title": "联系我们",
+    "getInTouch": "联系我们",
+    "getInTouchText": "我们很乐意听到您的声音。",
+    "ourOffice": "我们的办公室",
+    "address": "纽约，美国"
+  },
+  "sizeGuide": {
+    "title": "尺码指南",
+    "text": "使用我们的详细尺码表找到完美尺寸。"
+  },
+  "returnExchange": {
+    "title": "退货与换货",
+    "text": "我们提供30天内免费退货。商品必须未穿戴并带有标签。"
+  },
+  "login": {
+    "title": "登录",
+    "email": "电子邮件地址",
+    "password": "密码",
+    "button": "登录",
+    "noAccount": "还没有账号？",
+    "signUp": "注册",
+    "invalidCredentials": "登录凭证无效"
+  },
+  "signup": {
+    "title": "注册",
+    "email": "电子邮件地址",
+    "password": "密码",
+    "button": "创建账号",
+    "haveAccount": "已有账号？",
+    "login": "登录",
+    "success": "✅ 账号已创建！现在可以登录。"
+  },
+  "footer": {
+    "shop": "商店",
+    "woman": "女士",
+    "man": "男士",
+    "kids": "儿童",
+    "newCollection": "新系列",
+    "sale": "特卖",
+    "help": "帮助",
+    "aboutUs": "关于我们",
+    "trackOrder": "追踪订单",
+    "customerService": "客服",
+    "returns": "退货与换货",
+    "sizeGuide": "尺码指南",
+    "contactUs": "联系我们",
+    "aboutZara": "关于Zara",
+    "ourStory": "我们的故事",
+    "careers": "职业机会",
+    "press": "新闻",
+    "sustainability": "可持续发展",
+    "newsletter": "通讯",
+    "newsletterText": "订阅并获得首次订单10%折扣 + 独家优惠。",
+    "emailPlaceholder": "您的电子邮件地址",
+    "subscribe": "订阅",
+    "copyright": "© 两千零二十六 Pawlo • 版权所有",
+    "madeInEgypt": "埃及制造 ❤️"
+  },
+  "common": {
+    "loading": "加载中...",
+    "notFound": "未找到",
+    "noShipment": "该国家/地区不发货",
+    "continueShopping": "继续购物",
+    "noResults": "没有找到产品",
+    "processing": "处理中...",
+    "back": "返回"
+  },
+  "customerService": {
+  "title": "客户服务",
+  "text": "我们全天候为您服务。",
+  "emailSupport": "邮件支持",
+  "phoneSupport": "电话支持"
+}
+}

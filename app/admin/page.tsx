@@ -5,42 +5,44 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { RefreshCw } from 'lucide-react';
-import { X } from 'lucide-react';
+import { RefreshCw, X, Plus, Trash2, Check } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function AdminPanel() {
   const router = useRouter();
-  const [tab, setTab] = useState<'products' | 'orders'>('products');
+  const { formatPrice } = useCurrency();
+
+  const [tab, setTab] = useState<'products' | 'orders' | 'shipping'>('products');
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [supportedCountries, setSupportedCountries] = useState<any[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Form for adding product
+  // Product form
   const [form, setForm] = useState({
     name: '',
     price: '',
     description: '',
-    sizes: '',
-    colors: '',
-    stock: '50',
-    image: null as File | null,
+    images: [] as File[],
   });
+
+  // Dynamic variants (Color + Size + Stock)
+  const [variants, setVariants] = useState<any[]>([]);
 
   useEffect(() => {
     if (localStorage.getItem('isAdmin') !== 'true') {
       router.push('/admin/login');
       return;
     }
-
     loadData();
   }, [router]);
 
   const loadData = async () => {
     setLoading(true);
 
-    const [productsRes, ordersRes] = await Promise.all([
+    const [productsRes, ordersRes, countriesRes] = await Promise.all([
       supabaseClient.from('products').select('*'),
       supabaseClient.from('orders').select(`
         *,
@@ -52,49 +54,83 @@ export default function AdminPanel() {
           price,
           image_url
         )
-      `).order('created_at', { ascending: false })
+      `).order('created_at', { ascending: false }),
+      supabaseClient.from('supported_countries').select('*').order('name')
     ]);
 
     setProducts(productsRes.data || []);
     setOrders(ordersRes.data || []);
+    setSupportedCountries(countriesRes.data || []);
     setLoading(false);
   };
 
+  const addVariant = () => {
+    setVariants([...variants, { color: '', size: '', stock: 0 }]);
+  };
+
+  const updateVariant = (index: number, field: string, value: any) => {
+    const newVariants = [...variants];
+    newVariants[index][field] = value;
+    setVariants(newVariants);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
   const addProduct = async () => {
-    if (!form.name || !form.price || !form.image) {
-      alert('Name, price and image are required');
+    if (!form.name || !form.price || form.images.length === 0 || variants.length === 0) {
+      alert('Name, price, at least one image, and at least one variant are required');
       return;
     }
 
     setUploading(true);
 
     try {
-      const fileExt = form.image.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
+      const imageUrls: string[] = [];
 
-      const { error: uploadError } = await supabaseClient.storage
-        .from('product-images')
-        .upload(fileName, form.image);
+      for (const file of form.images) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-      if (uploadError) throw uploadError;
+        const { error: uploadError } = await supabaseClient.storage
+          .from('product-images')
+          .upload(fileName, file);
 
-      const { data: urlData } = supabaseClient.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
+        if (uploadError) throw uploadError;
 
-      await supabaseClient.from('products').insert({
-        name: form.name,
-        price: Number(form.price),
-        description: form.description,
-        sizes: form.sizes.split(',').map(s => s.trim()).filter(Boolean),
-        colors: form.colors.split(',').map(c => c.trim()).filter(Boolean),
-        stock: Number(form.stock),
-        image_url: urlData.publicUrl,
-      });
+        const { data: urlData } = supabaseClient.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
 
-      alert('✅ Product added successfully!');
+        imageUrls.push(urlData.publicUrl);
+      }
+
+      const { data: newProduct } = await supabaseClient
+        .from('products')
+        .insert({
+          name: form.name,
+          price: Number(form.price),
+          description: form.description,
+          images: imageUrls,
+        })
+        .select()
+        .single();
+
+      // Insert all variants
+      const variantData = variants.map(v => ({
+        product_id: newProduct.id,
+        color: v.color,
+        size: v.size,
+        stock: Number(v.stock),
+      }));
+
+      await supabaseClient.from('product_variants').insert(variantData);
+
+      alert('✅ Product added with variants!');
       setShowAddModal(false);
-      setForm({ name: '', price: '', description: '', sizes: '', colors: '', stock: '50', image: null });
+      setForm({ name: '', price: '', description: '', images: [] });
+      setVariants([]);
       loadData();
     } catch (err: any) {
       alert('Upload failed: ' + (err.message || err));
@@ -110,6 +146,14 @@ export default function AdminPanel() {
     }
   };
 
+  const toggleCountry = async (code: string, currentEnabled: boolean) => {
+    await supabaseClient
+      .from('supported_countries')
+      .update({ enabled: !currentEnabled })
+      .eq('code', code);
+    loadData();
+  };
+
   return (
     <>
       <Header />
@@ -120,6 +164,7 @@ export default function AdminPanel() {
           <div className="flex gap-4 mb-8 border-b pb-4">
             <button onClick={() => setTab('products')} className={`px-8 py-3 rounded-full ${tab === 'products' ? 'bg-black text-white' : 'bg-white border'}`}>Products</button>
             <button onClick={() => setTab('orders')} className={`px-8 py-3 rounded-full ${tab === 'orders' ? 'bg-black text-white' : 'bg-white border'}`}>Orders</button>
+            <button onClick={() => setTab('shipping')} className={`px-8 py-3 rounded-full ${tab === 'shipping' ? 'bg-black text-white' : 'bg-white border'}`}>Shipping Countries</button>
           </div>
 
           {loading && <p className="text-center py-20">Loading...</p>}
@@ -140,13 +185,12 @@ export default function AdminPanel() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products.map(p => (
                     <div key={p.id} className="bg-white rounded-3xl overflow-hidden border">
-                      {p.image_url && (
-                        <img src={p.image_url} alt={p.name} className="w-full h-64 object-cover" />
+                      {p.images && p.images.length > 0 && (
+                        <img src={p.images[0]} alt={p.name} className="w-full h-64 object-cover" />
                       )}
                       <div className="p-6">
                         <h3 className="font-medium text-lg mb-1">{p.name}</h3>
-                        <p className="text-2xl font-medium">EGP {p.price}</p>
-                        <p className="text-sm text-gray-500 mt-1">Stock: {p.stock}</p>
+                        <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
                         <button 
                           onClick={() => deleteProduct(p.id)}
                           className="mt-6 text-red-600 hover:text-red-700 text-sm font-medium"
@@ -161,7 +205,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* ORDERS TAB - REAL ADDRESS + PRODUCTS */}
+          {/* ORDERS TAB */}
           {tab === 'orders' && !loading && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -188,12 +232,16 @@ export default function AdminPanel() {
                           {new Date(order.created_at).toLocaleString()}
                         </p>
                       </div>
-                      <span className={`px-6 py-2 rounded-full text-sm ${order.payment_method === 'cod' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {order.payment_method === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card'}
+                      <span className={`px-6 py-2 rounded-full text-sm font-medium ${
+                        (order.payment_method || '').toLowerCase().includes('cash') ||
+                        (order.payment_method || '').toLowerCase().includes('delivery')
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {order.payment_method || 'Credit / Debit Card'}
                       </span>
                     </div>
 
-                    {/* Real Shipping Address from user input */}
                     <div className="mb-8 bg-gray-50 p-6 rounded-2xl">
                       <p className="font-medium mb-2">📍 Shipping Address</p>
                       <p>{order.street || '—'}</p>
@@ -209,26 +257,54 @@ export default function AdminPanel() {
                             Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
                           </p>
                         </div>
-                        <p className="font-medium">EGP {item.price}</p>
+                        <p className="font-medium">{formatPrice(item.price)}</p>
                       </div>
                     ))}
 
                     <div className="mt-10 flex justify-between text-2xl font-medium border-t pt-8">
                       <span>Total</span>
-                      <span>EGP {order.total}</span>
+                      <span>{formatPrice(order.total)}</span>
                     </div>
                   </div>
                 ))
               )}
             </div>
           )}
+
+          {/* SHIPPING COUNTRIES TAB */}
+          {tab === 'shipping' && !loading && (
+            <div>
+              <h2 className="text-3xl font-light mb-8">Shipping Countries</h2>
+              <p className="text-gray-600 mb-6">Select the countries you want to sell and ship to:</p>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {supportedCountries.map(country => (
+                  <div 
+                    key={country.code}
+                    onClick={() => toggleCountry(country.code, country.enabled)}
+                    className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${
+                      country.enabled ? 'border-black bg-green-50' : 'border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${country.enabled ? 'border-green-600 bg-green-600' : 'border-gray-400'}`}>
+                      {country.enabled && <Check size={16} className="text-white" />}
+                    </div>
+                    <div>
+                      <p className="font-medium">{country.name}</p>
+                      <p className="text-xs text-gray-500">{country.code}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* Add Product Modal with Variants */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-10 relative">
+          <div className="bg-white rounded-3xl w-full max-w-2xl p-10 relative max-h-[90vh] overflow-y-auto">
             <button onClick={() => setShowAddModal(false)} className="absolute top-6 right-6">
               <X size={28} />
             </button>
@@ -237,22 +313,57 @@ export default function AdminPanel() {
 
             <div className="space-y-6">
               <input type="text" placeholder="Product Name *" className="border rounded-2xl px-5 py-4 w-full" onChange={e => setForm({...form, name: e.target.value})} />
-              <input type="number" placeholder="Price (EGP) *" className="border rounded-2xl px-5 py-4 w-full" onChange={e => setForm({...form, price: e.target.value})} />
+              <input type="number" placeholder="Price *" className="border rounded-2xl px-5 py-4 w-full" onChange={e => setForm({...form, price: e.target.value})} />
               <textarea placeholder="Description" className="border rounded-2xl px-5 py-4 w-full h-24" onChange={e => setForm({...form, description: e.target.value})} />
 
-              <input type="text" placeholder="Sizes (S,M,L,XL)" className="border rounded-2xl px-5 py-4 w-full" onChange={e => setForm({...form, sizes: e.target.value})} />
-              <input type="text" placeholder="Colors (Black,Brown,Navy)" className="border rounded-2xl px-5 py-4 w-full" onChange={e => setForm({...form, colors: e.target.value})} />
-
-              <input type="number" placeholder="Stock Quantity" defaultValue="50" className="border rounded-2xl px-5 py-4 w-full" onChange={e => setForm({...form, stock: e.target.value})} />
-
               <div>
-                <label className="block text-sm mb-2">Product Image *</label>
+                <label className="block text-sm mb-2">Product Images * (multiple allowed)</label>
                 <input 
                   type="file" 
                   accept="image/*"
-                  onChange={e => setForm({...form, image: e.target.files?.[0] || null})}
+                  multiple
+                  onChange={e => setForm({...form, images: Array.from(e.target.files || [])})}
                   className="border rounded-2xl px-5 py-4 w-full" 
                 />
+              </div>
+
+              {/* Variants Section */}
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="block text-sm font-medium">Variants (Color + Size + Stock)</label>
+                  <button onClick={addVariant} className="text-sm bg-black text-white px-4 py-1 rounded-full flex items-center gap-1">
+                    <Plus size={16} /> Add Variant
+                  </button>
+                </div>
+
+                {variants.map((variant, index) => (
+                  <div key={index} className="flex gap-3 mb-4 items-end border p-4 rounded-2xl">
+                    <input 
+                      type="text" 
+                      placeholder="Color (e.g. Black)" 
+                      value={variant.color}
+                      onChange={(e) => updateVariant(index, 'color', e.target.value)}
+                      className="border rounded-2xl px-5 py-4 flex-1"
+                    />
+                    <input 
+                      type="text" 
+                      placeholder="Size (e.g. M)" 
+                      value={variant.size}
+                      onChange={(e) => updateVariant(index, 'size', e.target.value)}
+                      className="border rounded-2xl px-5 py-4 w-24"
+                    />
+                    <input 
+                      type="number" 
+                      placeholder="Stock" 
+                      value={variant.stock}
+                      onChange={(e) => updateVariant(index, 'stock', e.target.value)}
+                      className="border rounded-2xl px-5 py-4 w-28"
+                    />
+                    <button onClick={() => removeVariant(index)} className="text-red-600">
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
               </div>
 
               <button 
@@ -260,14 +371,12 @@ export default function AdminPanel() {
                 disabled={uploading}
                 className="w-full bg-black text-white py-4 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-70"
               >
-                {uploading ? 'Uploading Image...' : 'Add Product'}
+                {uploading ? 'Uploading...' : 'Add Product'}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <Footer />
     </>
   );
 }

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Heart } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Heart } from 'lucide-react';
+import { supabaseClient } from '../../lib/supabaseClient';
+import { useCurrency } from '../context/CurrencyContext';   // ← Added
 
 interface ProductCardProps {
   id: string;
@@ -13,34 +15,20 @@ interface ProductCardProps {
   colors?: string[];
 }
 
-export default function ProductCard({ id, name, price, img, sizes = [], colors = [] }: ProductCardProps) {
-  const [isInWishlist, setIsInWishlist] = useState(false);
+export default function ProductCard({ id, name, price, img }: ProductCardProps) {
+  const router = useRouter();
+  const { formatPrice } = useCurrency();   // ← Added (auto-detects USD/EUR/EGP/etc.)
 
-  useEffect(() => {
-    const wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-    setIsInWishlist(wishlist.some((item: any) => item.id === id));
-  }, [id]);
+  const handleHeartClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
 
-  const toggleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation
+    const { data: { user } } = await supabaseClient.auth.getUser();
 
-    let wishlist = JSON.parse(localStorage.getItem('wishlist') || '[]');
-
-    if (isInWishlist) {
-      wishlist = wishlist.filter((item: any) => item.id !== id);
+    if (!user) {
+      router.push('/login');
     } else {
-      wishlist.push({
-        id,
-        name,
-        price: Number(price),
-        image_url: img,
-        sizes,
-        colors
-      });
+      alert('Wishlist feature coming soon!');
     }
-
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-    setIsInWishlist(!isInWishlist);
   };
 
   return (
@@ -52,20 +40,17 @@ export default function ProductCard({ id, name, price, img, sizes = [], colors =
           className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" 
         />
 
-        {/* Heart Button */}
+        {/* Heart Button - Redirects to Login */}
         <button 
-          onClick={toggleWishlist}
+          onClick={handleHeartClick}
           className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:scale-110 transition"
         >
-          <Heart 
-            size={22} 
-            className={isInWishlist ? "fill-red-500 text-red-500" : "text-gray-700"} 
-          />
+          <Heart size={22} className="text-gray-700" />
         </button>
 
         <div className="p-4">
           <p className="font-medium text-lg">{name}</p>
-          <p className="text-xl font-medium">EGP {price}</p>
+          <p className="text-xl font-medium">{formatPrice(Number(price))}</p>   {/* ← Now dynamic currency */}
         </div>
       </div>
     </Link>

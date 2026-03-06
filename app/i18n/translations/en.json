@@ -1,0 +1,144 @@
+{
+  "header": {
+    "shop": "SHOP",
+    "woman": "WOMAN",
+    "man": "MAN",
+    "kids": "KIDS",
+    "sale": "SALE",
+    "account": "Account",
+    "wishlist": "Wishlist",
+    "language": "Language"
+  },
+  "hero": {
+    "spring2026": "SPRING 2026",
+    "discover": "Discover the new collection",
+    "shopNow": "SHOP NOW"
+  },
+  "home": {
+    "newThisWeek": "New This Week",
+    "aboutTitle": "About Pawlo",
+    "aboutText": "Pawlo is a global fashion brand that brings the latest trends to life with exceptional quality and timeless elegance.",
+    "timelessStyle": "Timeless Style",
+    "timelessStyleDesc": "Modern silhouettes with classic appeal",
+    "sustainableFuture": "Sustainable Future",
+    "sustainableFutureDesc": "Committed to responsible and ethical fashion"
+  },
+  "shop": {
+    "allProducts": "All Products",
+    "search": "Search products..."
+  },
+  "product": {
+    "selectSize": "Select Size",
+    "selectColor": "Select Color",
+    "quantity": "Quantity",
+    "addToReviewOrder": "ADD TO REVIEW ORDER",
+    "addedToReviewOrder": "Added to Review Order!",
+    "outOfStock": "This size and color combination is out of stock",
+    "only": "Only",
+    "itemsAvailable": "items available"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "contactInfo": "Contact Information",
+    "shippingAddress": "Shipping Address",
+    "paymentMethod": "Payment Method",
+    "orderSummary": "Order Summary",
+    "total": "Total",
+    "pay": "PAY",
+    "firstName": "First name *",
+    "lastName": "Last name *",
+    "email": "Email address *",
+    "phone": "Phone number *",
+    "street": "Street address *",
+    "apartment": "Apartment / Suite",
+    "postalCode": "Postal code",
+    "city": "City",
+    "country": "Country *",
+    "selectCountry": "Select Country",
+    "stripe": "Credit / Debit Card (Stripe)",
+    "cod": "Cash on Delivery"
+  },
+  "reviewOrder": {
+    "title": "Review Your Order",
+    "empty": "Your order is empty",
+    "total": "Total:",
+    "proceed": "PROCEED TO CHECKOUT",
+    "pleaseSignIn": "Please sign in to complete the order",
+    "orderSaved": "✅ Order saved! Going to checkout...",
+    "errorSaving": "Error saving order: "
+  },
+  "contact": {
+    "title": "Contact Us",
+    "getInTouch": "Get In Touch",
+    "getInTouchText": "We'd love to hear from you. Reach out anytime.",
+    "ourOffice": "Our Office",
+    "address": "New York, United States"
+  },
+  "sizeGuide": {
+    "title": "Size Guide",
+    "text": "Find your perfect fit with our detailed size charts."
+  },
+  "returnExchange": {
+    "title": "Return & Exchange",
+    "text": "We offer free returns within 30 days of purchase. Items must be unworn with tags attached."
+  },
+  "login": {
+    "title": "Log in",
+    "email": "Email address",
+    "password": "Password",
+    "button": "LOG IN",
+    "noAccount": "Don’t have an account?",
+    "signUp": "Sign up",
+    "invalidCredentials": "Invalid login credentials"
+  },
+  "signup": {
+    "title": "Sign up",
+    "email": "Email address",
+    "password": "Password",
+    "button": "CREATE ACCOUNT",
+    "haveAccount": "Already have an account?",
+    "login": "Log in",
+    "success": "✅ Account created! You can now log in."
+  },
+  "footer": {
+    "shop": "Shop",
+    "woman": "Woman",
+    "man": "Man",
+    "kids": "Kids",
+    "newCollection": "New Collection",
+    "sale": "Sale",
+    "help": "Help",
+    "aboutUs": "About us",
+    "trackOrder": "Track Order",
+    "customerService": "Customer Service",
+    "returns": "Returns & Exchanges",
+    "sizeGuide": "Size Guide",
+    "contactUs": "Contact Us",
+    "aboutZara": "About Zara",
+    "ourStory": "Our Story",
+    "careers": "Careers",
+    "press": "Press",
+    "sustainability": "Sustainability",
+    "newsletter": "Newsletter",
+    "newsletterText": "Subscribe and get 10% off your first order + exclusive offers.",
+    "emailPlaceholder": "Your email address",
+    "subscribe": "SUBSCRIBE",
+    "copyright": "© 2026 Pawlo • All Rights Reserved",
+    "madeInEgypt": "Made in Egypt with ❤️"
+  },
+  "common": {
+    "loading": "Loading...",
+    "notFound": "Not found",
+    "noShipment": "No shipment to this country",
+    "continueShopping": "Continue Shopping",
+    "noResults": "No products found",
+    "processing": "Processing...",
+    "back": "Back"
+  },
+  "customerService": {
+  "title": "Customer Service",
+  "text": "We're here to help 24/7.",
+  "emailSupport": "Email Support",
+  "phoneSupport": "Phone Support"
+}
+}

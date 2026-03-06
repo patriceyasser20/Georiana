@@ -1,18 +1,31 @@
 'use client';
 
 import Link from 'next/link';
-import { Search, User, LogOut, ShoppingBag, ArrowLeft, Heart } from 'lucide-react';
+import { User, LogOut, ShoppingBag, ArrowLeft, Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
+import { useTranslation } from '../context/LanguageContext';
+
+const languages = [
+  { code: 'en', name: 'English' },
+  { code: 'ar', name: 'Arabic' },
+  { code: 'zh', name: 'Chinese' },
+  { code: 'ja', name: 'Japanese' },
+  { code: 'ru', name: 'Russian' },
+  { code: 'es', name: 'Spanish' },
+  { code: 'fr', name: 'French' },
+  { code: 'nl', name: 'Dutch' },
+];
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
+  const { t, language, changeLanguage } = useTranslation();
+
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviewCount, setReviewCount] = useState(0);
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Auth listener
   useEffect(() => {
@@ -47,13 +60,6 @@ export default function Header() {
     router.push('/');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      router.push(`/shop?search=${encodeURIComponent(searchTerm.trim())}`);
-    }
-  };
-
   const showBackButton = pathname !== '/' && pathname !== '/shop';
 
   return (
@@ -67,7 +73,7 @@ export default function Header() {
               className="flex items-center gap-1 text-sm text-gray-600 hover:text-black transition"
             >
               <ArrowLeft size={20} />
-              <span className="hidden md:inline">Back</span>
+              <span className="hidden md:inline">{t('common.back')}</span>
             </button>
           )}
 
@@ -75,38 +81,34 @@ export default function Header() {
         </div>
 
         <nav className="hidden md:flex gap-10 text-sm font-medium uppercase tracking-widest">
-          <Link href="/shop">SHOP</Link>
-          <Link href="#">WOMAN</Link>
-          <Link href="#">MAN</Link>
-          <Link href="#">KIDS</Link>
-          <Link href="#" className="text-red-600">SALE</Link>
+          <Link href="/shop">{t('header.shop')}</Link>
+          <Link href="#">{t('header.woman')}</Link>
+          <Link href="#">{t('header.man')}</Link>
+          <Link href="#">{t('header.kids')}</Link>
+          <Link href="#" className="text-red-600">{t('header.sale')}</Link>
         </nav>
 
-        {/* Search Bar - Hidden only on /shop page */}
-        {pathname !== '/shop' && (
-          <form onSubmit={handleSearch} className="flex-1 max-w-md mx-8">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search products..."
-                className="w-full border border-gray-300 rounded-full py-3 px-5 pl-12 focus:outline-none focus:border-black text-sm"
-              />
-              <Search className="absolute left-5 top-3.5 text-gray-400" size={20} />
-            </div>
-          </form>
-        )}
-
         <div className="flex items-center gap-8 text-xl">
+          {/* Language Selector */}
+          <select
+            value={language}
+            onChange={(e) => changeLanguage(e.target.value as any)}
+            className="bg-transparent border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none cursor-pointer"
+          >
+            {languages.map(lang => (
+              <option key={lang.code} value={lang.code}>
+                {lang.name}
+              </option>
+            ))}
+          </select>
+
           {/* User Section */}
           {loading ? (
             <span>...</span>
           ) : user ? (
             <div className="flex items-center gap-6">
-              <Link href="/account" className="text-sm hover:text-gray-600">Account</Link>
+              <Link href="/account" className="text-sm hover:text-gray-600">{t('header.account')}</Link>
               
-              {/* Wishlist Icon - Only visible when logged in */}
               <Link href="/wishlist" className="relative hover:text-gray-600 transition">
                 <Heart size={22} />
               </Link>

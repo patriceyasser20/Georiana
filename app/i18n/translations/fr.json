@@ -1,0 +1,143 @@
+{
+  "header": {
+    "shop": "BOUTIQUE",
+    "woman": "FEMME",
+    "man": "HOMME",
+    "kids": "ENFANTS",
+    "sale": "PROMOTIONS",
+    "account": "Compte",
+    "wishlist": "Liste de souhaits",
+    "language": "Langue"
+  },
+  "hero": {
+    "spring2026": "PRINTEMPS 2026",
+    "discover": "Découvrez la nouvelle collection",
+    "shopNow": "ACHETER MAINTENANT"
+  },
+  "home": {
+    "newThisWeek": "Nouveautés cette semaine",
+    "aboutTitle": "À propos de Pawlo",
+    "aboutText": "Pawlo est une marque de mode globale qui apporte les dernières tendances avec une qualité exceptionnelle et une élégance intemporelle.",
+    "timelessStyle": "Style Intemporel",
+    "timelessStyleDesc": "Silhouettes modernes avec un attrait classique",
+    "sustainableFuture": "Avenir Durable",
+    "sustainableFutureDesc": "Engagés dans une mode responsable et éthique"
+  },
+  "shop": {
+    "allProducts": "Tous les produits",
+    "search": "Rechercher des produits..."
+  },
+  "product": {
+    "selectSize": "Choisir la taille",
+    "selectColor": "Choisir la couleur",
+    "quantity": "Quantité",
+    "addToReviewOrder": "AJOUTER À LA RÉVISION DE COMMANDE",
+    "addedToReviewOrder": "Ajouté à la révision de commande !",
+    "outOfStock": "Cette combinaison de taille et couleur est en rupture de stock",
+    "only": "Seulement",
+    "itemsAvailable": "articles disponibles"
+  },
+  "checkout": {
+    "title": "Paiement",
+    "contactInfo": "Coordonnées",
+    "shippingAddress": "Adresse de livraison",
+    "paymentMethod": "Mode de paiement",
+    "orderSummary": "Résumé de la commande",
+    "total": "Total",
+    "pay": "PAYER",
+    "firstName": "Prénom *",
+    "lastName": "Nom *",
+    "email": "Adresse email *",
+    "phone": "Numéro de téléphone *",
+    "street": "Adresse *",
+    "apartment": "Appartement / Suite",
+    "postalCode": "Code postal",
+    "city": "Ville",
+    "country": "Pays *",
+    "selectCountry": "Sélectionner le pays",
+    "stripe": "Carte de crédit/débit (Stripe)",
+    "cod": "Paiement à la livraison"
+  },
+  "reviewOrder": {
+    "title": "Vérifier votre commande",
+    "empty": "Votre commande est vide",
+    "total": "Total :",
+    "proceed": "CONTINUER VERS LE PAIEMENT",
+    "pleaseSignIn": "Veuillez vous connecter pour finaliser la commande",
+    "orderSaved": "✅ Commande enregistrée ! Redirection vers le paiement...",
+    "errorSaving": "Erreur lors de l'enregistrement de la commande : "
+  },
+  "contact": {
+    "title": "Contactez-nous",
+    "getInTouch": "Contactez-nous",
+    "getInTouchText": "Nous serions ravis de vous entendre.",
+    "ourOffice": "Notre bureau",
+    "address": "New York, États-Unis"
+  },
+  "sizeGuide": {
+    "title": "Guide des tailles",
+    "text": "Trouvez votre taille parfaite avec nos tableaux détaillés."
+  },
+  "returnExchange": {
+    "title": "Retours et Échanges",
+    "text": "Nous offrons des retours gratuits dans les 30 jours. Les articles doivent être non portés avec les étiquettes."
+  },
+  "login": {
+    "title": "Connexion",
+    "email": "Adresse email",
+    "password": "Mot de passe",
+    "button": "SE CONNECTER",
+    "noAccount": "Vous n'avez pas de compte ?",
+    "signUp": "S'inscrire",
+    "invalidCredentials": "Identifiants incorrects"
+  },
+  "signup": {
+    "title": "Créer un compte",
+    "email": "Adresse email",
+    "password": "Mot de passe",
+    "button": "CRÉER UN COMPTE",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "login": "Se connecter",
+    "success": "✅ Compte créé ! Vous pouvez maintenant vous connecter."
+  },
+  "footer": {
+    "shop": "Boutique",
+    "woman": "Femme",
+    "man": "Homme",
+    "kids": "Enfants",
+    "newCollection": "Nouvelle Collection",
+    "sale": "Promotions",
+    "help": "Aide",
+    "aboutUs": "À propos de nous",
+    "trackOrder": "Suivre la commande",
+    "customerService": "Service client",
+    "returns": "Retours et Échanges",
+    "sizeGuide": "Guide des tailles",
+    "contactUs": "Contactez-nous",
+    "aboutZara": "À propos de Zara",
+    "ourStory": "Notre histoire",
+    "careers": "Carrières",
+    "press": "Presse",
+    "sustainability": "Durabilité",
+    "newsletter": "Newsletter",
+    "newsletterText": "Abonnez-vous et obtenez 10% de réduction sur votre première commande + offres exclusives.",
+    "emailPlaceholder": "Votre adresse email",
+    "subscribe": "S'ABONNER",
+    "copyright": "© 2026 Pawlo • Tous droits réservés",
+    "madeInEgypt": "Fabriqué en Égypte avec ❤️"
+  },
+  "common": {
+    "loading": "Chargement...",
+    "notFound": "Non trouvé",
+    "noShipment": "Pas de livraison dans ce pays",
+    "continueShopping": "Continuer mes achats",
+    "noResults": "Aucun produit trouvé",
+    "processing": "Traitement en cours..."
+  },
+  "customerService": {
+  "title": "Service Client",
+  "text": "Nous sommes là pour vous aider 24/7.",
+  "emailSupport": "Support par email",
+  "phoneSupport": "Support téléphonique"
+}
+}

@@ -1,0 +1,144 @@
+{
+  "header": {
+    "shop": "WINKEL",
+    "woman": "VROUW",
+    "man": "MAN",
+    "kids": "KINDEREN",
+    "sale": "AANBIEDINGEN",
+    "account": "Account",
+    "wishlist": "Verlanglijst",
+    "language": "Taal"
+  },
+  "hero": {
+    "spring2026": "LENTE 2026",
+    "discover": "Ontdek de nieuwe collectie",
+    "shopNow": "NU WINKELEN"
+  },
+  "home": {
+    "newThisWeek": "Nieuw deze week",
+    "aboutTitle": "Over Pawlo",
+    "aboutText": "Pawlo is een wereldwijd modemerk dat de nieuwste trends brengt met uitzonderlijke kwaliteit en tijdloze elegantie.",
+    "timelessStyle": "Tijdloze Stijl",
+    "timelessStyleDesc": "Moderne silhouetten met klassieke aantrekkingskracht",
+    "sustainableFuture": "Duurzame Toekomst",
+    "sustainableFutureDesc": "Toegewijd aan verantwoorde en ethische mode"
+  },
+  "shop": {
+    "allProducts": "Alle producten",
+    "search": "Producten zoeken..."
+  },
+  "product": {
+    "selectSize": "Kies maat",
+    "selectColor": "Kies kleur",
+    "quantity": "Aantal",
+    "addToReviewOrder": "TOEVOEGEN AAN BESTELLING REVIEW",
+    "addedToReviewOrder": "Toegevoegd aan bestelling review!",
+    "outOfStock": "Deze maat- en kleurcombinatie is niet op voorraad",
+    "only": "Alleen",
+    "itemsAvailable": "stuks beschikbaar"
+  },
+  "checkout": {
+    "title": "Afrekenen",
+    "contactInfo": "Contactgegevens",
+    "shippingAddress": "Verzendadres",
+    "paymentMethod": "Betaalmethode",
+    "orderSummary": "Besteloverzicht",
+    "total": "Totaal",
+    "pay": "BETALEN",
+    "firstName": "Voornaam *",
+    "lastName": "Achternaam *",
+    "email": "E-mailadres *",
+    "phone": "Telefoonnummer *",
+    "street": "Adres *",
+    "apartment": "Appartement / Suite",
+    "postalCode": "Postcode",
+    "city": "Stad",
+    "country": "Land *",
+    "selectCountry": "Selecteer land",
+    "stripe": "Credit / Debit Card (Stripe)",
+    "cod": "Betaling bij levering"
+  },
+  "reviewOrder": {
+    "title": "Controleer je bestelling",
+    "empty": "Je bestelling is leeg",
+    "total": "Totaal:",
+    "proceed": "DOORGAAN NAAR BETALING",
+    "pleaseSignIn": "Log in om de bestelling te voltooien",
+    "orderSaved": "✅ Bestelling opgeslagen! Door naar checkout...",
+    "errorSaving": "Fout bij opslaan van bestelling: "
+  },
+  "contact": {
+    "title": "Contacteer ons",
+    "getInTouch": "Neem contact op",
+    "getInTouchText": "We horen graag van je.",
+    "ourOffice": "Ons kantoor",
+    "address": "New York, Verenigde Staten"
+  },
+  "sizeGuide": {
+    "title": "Maatgids",
+    "text": "Vind je perfecte maat met onze gedetailleerde maattabellen."
+  },
+  "returnExchange": {
+    "title": "Retourneren & Omruilen",
+    "text": "We bieden gratis retour binnen 30 dagen. Artikelen moeten ongebruikt zijn met labels."
+  },
+  "login": {
+    "title": "Inloggen",
+    "email": "E-mailadres",
+    "password": "Wachtwoord",
+    "button": "INLOGGEN",
+    "noAccount": "Heb je nog geen account?",
+    "signUp": "Registreren",
+    "invalidCredentials": "Ongeldige inloggegevens"
+  },
+  "signup": {
+    "title": "Account aanmaken",
+    "email": "E-mailadres",
+    "password": "Wachtwoord",
+    "button": "ACCOUNT AANMAKEN",
+    "haveAccount": "Heb je al een account?",
+    "login": "Inloggen",
+    "success": "✅ Account aangemaakt! Je kunt nu inloggen."
+  },
+  "footer": {
+    "shop": "Winkel",
+    "woman": "Vrouw",
+    "man": "Man",
+    "kids": "Kinderen",
+    "newCollection": "Nieuwe Collectie",
+    "sale": "Aanbiedingen",
+    "help": "Help",
+    "aboutUs": "Over ons",
+    "trackOrder": "Bestelling volgen",
+    "customerService": "Klantenservice",
+    "returns": "Retourneren & Omruilen",
+    "sizeGuide": "Maatgids",
+    "contactUs": "Contacteer ons",
+    "aboutZara": "Over Zara",
+    "ourStory": "Ons verhaal",
+    "careers": "Carrières",
+    "press": "Pers",
+    "sustainability": "Duurzaamheid",
+    "newsletter": "Nieuwsbrief",
+    "newsletterText": "Abonneer je en krijg 10% korting op je eerste bestelling + exclusieve aanbiedingen.",
+    "emailPlaceholder": "Je e-mailadres",
+    "subscribe": "ABONNEREN",
+    "copyright": "© 2026 Pawlo • Alle rechten voorbehouden",
+    "madeInEgypt": "Gemaakt in Egypte met ❤️"
+  },
+  "common": {
+    "loading": "Laden...",
+    "notFound": "Niet gevonden",
+    "noShipment": "Geen verzending naar dit land",
+    "continueShopping": "Doorgaan met winkelen",
+    "noResults": "Geen producten gevonden",
+    "processing": "Bezig met verwerken...",
+    "back": "Terug"
+  },
+  "customerService": {
+  "title": "Klantenservice",
+  "text": "We zijn er 24/7 om je te helpen.",
+  "emailSupport": "E-mail ondersteuning",
+  "phoneSupport": "Telefoon ondersteuning"
+}
+}

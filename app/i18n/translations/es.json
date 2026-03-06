@@ -1,0 +1,144 @@
+{
+  "header": {
+    "shop": "TIENDA",
+    "woman": "MUJER",
+    "man": "HOMBRE",
+    "kids": "NIÑOS",
+    "sale": "REBAJAS",
+    "account": "Cuenta",
+    "wishlist": "Lista de deseos",
+    "language": "Idioma"
+  },
+  "hero": {
+    "spring2026": "PRIMAVERA 2026",
+    "discover": "Descubre la nueva colección",
+    "shopNow": "COMPRA AHORA"
+  },
+  "home": {
+    "newThisWeek": "Nuevo esta semana",
+    "aboutTitle": "Sobre Pawlo",
+    "aboutText": "Pawlo es una marca de moda global que trae las últimas tendencias con calidad excepcional y elegancia atemporal.",
+    "timelessStyle": "Estilo Atemporal",
+    "timelessStyleDesc": "Siluetas modernas con atractivo clásico",
+    "sustainableFuture": "Futuro Sostenible",
+    "sustainableFutureDesc": "Comprometidos con la moda responsable y ética"
+  },
+  "shop": {
+    "allProducts": "Todos los productos",
+    "search": "Buscar productos..."
+  },
+  "product": {
+    "selectSize": "Seleccionar talla",
+    "selectColor": "Seleccionar color",
+    "quantity": "Cantidad",
+    "addToReviewOrder": "AÑADIR A REVISIÓN DE PEDIDO",
+    "addedToReviewOrder": "¡Añadido a revisión de pedido!",
+    "outOfStock": "Esta combinación de talla y color está agotada",
+    "only": "Solo",
+    "itemsAvailable": "unidades disponibles"
+  },
+  "checkout": {
+    "title": "Checkout",
+    "contactInfo": "Información de contacto",
+    "shippingAddress": "Dirección de envío",
+    "paymentMethod": "Método de pago",
+    "orderSummary": "Resumen del pedido",
+    "total": "Total",
+    "pay": "PAGAR",
+    "firstName": "Nombre *",
+    "lastName": "Apellido *",
+    "email": "Correo electrónico *",
+    "phone": "Teléfono *",
+    "street": "Dirección *",
+    "apartment": "Apartamento / Suite",
+    "postalCode": "Código postal",
+    "city": "Ciudad",
+    "country": "País *",
+    "selectCountry": "Seleccionar país",
+    "stripe": "Tarjeta de crédito/débito (Stripe)",
+    "cod": "Pago contra entrega"
+  },
+  "reviewOrder": {
+    "title": "Revisar tu pedido",
+    "empty": "Tu pedido está vacío",
+    "total": "Total:",
+    "proceed": "CONTINUAR AL PAGO",
+    "pleaseSignIn": "Inicia sesión para completar el pedido",
+    "orderSaved": "✅ ¡Pedido guardado! Yendo a checkout...",
+    "errorSaving": "Error al guardar el pedido: "
+  },
+  "contact": {
+    "title": "Contáctanos",
+    "getInTouch": "Ponte en contacto",
+    "getInTouchText": "Nos encantaría saber de ti.",
+    "ourOffice": "Nuestra oficina",
+    "address": "Nueva York, Estados Unidos"
+  },
+  "sizeGuide": {
+    "title": "Guía de tallas",
+    "text": "Encuentra tu talla perfecta con nuestras tablas detalladas."
+  },
+  "returnExchange": {
+    "title": "Devoluciones y Cambios",
+    "text": "Ofrecemos devoluciones gratuitas en 30 días. Los artículos deben estar sin usar con etiquetas."
+  },
+  "login": {
+    "title": "Iniciar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "button": "INICIAR SESIÓN",
+    "noAccount": "¿No tienes cuenta?",
+    "signUp": "Registrarse",
+    "invalidCredentials": "Credenciales incorrectas"
+  },
+  "signup": {
+    "title": "Crear cuenta",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "button": "CREAR CUENTA",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "login": "Iniciar sesión",
+    "success": "✅ ¡Cuenta creada! Ahora puedes iniciar sesión."
+  },
+  "footer": {
+    "shop": "Tienda",
+    "woman": "Mujer",
+    "man": "Hombre",
+    "kids": "Niños",
+    "newCollection": "Nueva Colección",
+    "sale": "Rebajas",
+    "help": "Ayuda",
+    "aboutUs": "Sobre nosotros",
+    "trackOrder": "Seguir pedido",
+    "customerService": "Servicio al cliente",
+    "returns": "Devoluciones y Cambios",
+    "sizeGuide": "Guía de tallas",
+    "contactUs": "Contáctanos",
+    "aboutZara": "Sobre Zara",
+    "ourStory": "Nuestra historia",
+    "careers": "Carreras",
+    "press": "Prensa",
+    "sustainability": "Sostenibilidad",
+    "newsletter": "Boletín",
+    "newsletterText": "Suscríbete y obtén 10% de descuento en tu primer pedido + ofertas exclusivas.",
+    "emailPlaceholder": "Tu correo electrónico",
+    "subscribe": "SUSCRIBIRSE",
+    "copyright": "© 2026 Pawlo • Todos los derechos reservados",
+    "madeInEgypt": "Hecho en Egipto con ❤️"
+  },
+  "common": {
+    "loading": "Cargando...",
+    "notFound": "No encontrado",
+    "noShipment": "No hay envío a este país",
+    "continueShopping": "Seguir comprando",
+    "noResults": "No se encontraron productos",
+    "processing": "Procesando...",
+    "back": "Atrás"
+  },
+  "customerService": {
+  "title": "Servicio al Cliente",
+  "text": "Estamos aquí para ayudarte 24/7.",
+  "emailSupport": "Soporte por Email",
+  "phoneSupport": "Soporte por Teléfono"
+}
+}

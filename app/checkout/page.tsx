@@ -3,59 +3,98 @@
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { createPaymobOrder } from '../actions/paymob';
+import { createStripeCheckout } from '../actions/stripe';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Phone, Truck } from 'lucide-react';
+import { CreditCard, Truck } from 'lucide-react';
+import { useCurrency } from '../context/CurrencyContext';
+import { useTranslation } from '../context/LanguageContext';
+import { supabaseClient } from '../../lib/supabaseClient';
 
-type PaymentMethod = 'paymob' | 'fawry' | 'cod';
+type PaymentMethod = 'stripe' | 'fawry' | 'cod';
 
 export default function Checkout() {
   const router = useRouter();
+  const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
+
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paymob');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
 
-  // Load items from Review Order
+  // Shipping
+  const [country, setCountry] = useState('');
+  const [allCountries, setAllCountries] = useState<any[]>([]);
+  const [isCountrySupported, setIsCountrySupported] = useState(true);
+
   useEffect(() => {
     const saved = localStorage.getItem('reviewOrder');
-    if (saved) setItems(JSON.parse(saved));
+    if (saved) {
+      const parsed = JSON.parse(saved).map((item: any) => ({
+        ...item,
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1,
+      }));
+      setItems(parsed);
+    }
   }, []);
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Load ALL countries
+  useEffect(() => {
+    const fetchCountries = async () => {
+      const { data } = await supabaseClient
+        .from('supported_countries')
+        .select('*')
+        .order('name');
+      setAllCountries(data || []);
+    };
+    fetchCountries();
+  }, []);
+
+  // Check if selected country is enabled
+  useEffect(() => {
+    if (!country) {
+      setIsCountrySupported(true);
+      return;
+    }
+    const selected = allCountries.find(c => c.code === country);
+    setIsCountrySupported(selected?.enabled || false);
+  }, [country, allCountries]);
+
+  const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
 
   const handlePayment = async () => {
     if (items.length === 0) return;
+    if (!isCountrySupported) {
+      setError(t('common.noShipment'));
+      return;
+    }
 
     setLoading(true);
     setError('');
 
-    if (paymentMethod === 'paymob') {
+    if (paymentMethod === 'stripe') {
       try {
-        const paymobItems = items.map(item => ({
+        const stripeItems = items.map(item => ({
           name: item.name,
-          price: item.price,
-          quantity: item.quantity
+          price: Number(item.price),
+          quantity: Number(item.quantity)
         }));
 
-        const result = await createPaymobOrder(total, paymobItems);
+        const result = await createStripeCheckout(total, stripeItems);
 
-        if (result?.iframeUrl) {
-          // ✅ Clear the review order bucket BEFORE going to Paymob
+        if (result?.url) {
           localStorage.removeItem('reviewOrder');
-          window.location.href = result.iframeUrl;
+          window.location.href = result.url;
         }
       } catch (err: any) {
-        console.error('Checkout error:', err);
-        setError(err.message || 'Paymob failed');
+        setError(err.message || 'Stripe failed');
       }
     } else if (paymentMethod === 'cod') {
-      // ✅ COD now goes to success page + clears bucket
       localStorage.removeItem('reviewOrder');
       router.push('/checkout/success');
     } else {
-      // Fawry
-      alert("Fawry coming soon – we will contact you with the code.");
+      alert("Fawry coming soon");
     }
 
     setLoading(false);
@@ -69,73 +108,55 @@ export default function Checkout() {
 
           {/* Left: Form */}
           <div className="md:col-span-3">
-            <h1 className="text-4xl font-light tracking-widest mb-10">Checkout</h1>
+            <h1 className="text-4xl font-light tracking-widest mb-10">{t('checkout.title')}</h1>
 
             <div className="bg-white rounded-3xl p-8">
-              <h2 className="text-2xl font-medium mb-6">Contact Information</h2>
+              <h2 className="text-2xl font-medium mb-6">{t('checkout.contactInfo')}</h2>
               <div className="grid grid-cols-2 gap-4">
-                <input type="text" placeholder="First name *" className="border rounded-2xl px-5 py-4 w-full" />
-                <input type="text" placeholder="Last name *" className="border rounded-2xl px-5 py-4 w-full" />
+                <input type="text" placeholder={t('checkout.firstName')} className="border rounded-2xl px-5 py-4 w-full" />
+                <input type="text" placeholder={t('checkout.lastName')} className="border rounded-2xl px-5 py-4 w-full" />
               </div>
-              <input type="email" placeholder="Email address *" className="border rounded-2xl px-5 py-4 w-full mt-4" />
-              <input type="tel" placeholder="Phone number *" className="border rounded-2xl px-5 py-4 w-full mt-4" />
+              <input type="email" placeholder={t('checkout.email')} className="border rounded-2xl px-5 py-4 w-full mt-4" />
+              <input type="tel" placeholder={t('checkout.phone')} className="border rounded-2xl px-5 py-4 w-full mt-4" />
 
-              <h2 className="text-2xl font-medium mt-12 mb-6">Shipping Address</h2>
-              <input type="text" placeholder="Street address / Building number *" className="border rounded-2xl px-5 py-4 w-full" />
+              <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.shippingAddress')}</h2>
+              <input type="text" placeholder={t('checkout.street')} className="border rounded-2xl px-5 py-4 w-full" />
               <div className="grid grid-cols-2 gap-4 mt-4">
-                <input type="text" placeholder="Apartment / Suite / Floor *" className="border rounded-2xl px-5 py-4" />
-                <input type="text" placeholder="Postal code (optional)" className="border rounded-2xl px-5 py-4" />
+                <input type="text" placeholder={t('checkout.apartment')} className="border rounded-2xl px-5 py-4" />
+                <input type="text" placeholder={t('checkout.postalCode')} className="border rounded-2xl px-5 py-4" />
               </div>
-              <input type="text" placeholder="City / District *" className="border rounded-2xl px-5 py-4 w-full mt-4" />
-              <select className="border rounded-2xl px-5 py-4 w-full mt-4">
-                <option>Select Governorate *</option>
-                <option>Cairo</option>
-                <option>Giza</option>
-                <option>Alexandria</option>
-                <option>Aswan</option>
-                <option>Asyut</option>
-                <option>Beheira</option>
-                <option>Beni Suef	</option>
-                <option>Damietta</option>
-                <option>Faiyum</option>
-                <option>Gharbia</option>
-                <option>Ismailia</option>
-                <option>Kafr El Sheikh	</option>
-                <option>Luxor</option>
-                <option>Matrouh</option>
-                <option>Minya</option>
-                <option>Monufia</option>
-                <option>New Valley	</option>
-                <option>North Sinai	</option>
-                <option>Port Said	</option>
-                <option>Qalyubia</option>
-                <option>Qena</option>
-                <option>Red Sea	</option>
-                <option>Sharqia</option>
-                <option>Sohag</option>
-                <option>South Sinai	</option>
-                <option>Suez</option>
-                <option>Dakahlia</option>
-              </select>
+              <input type="text" placeholder={t('checkout.city')} className="border rounded-2xl px-5 py-4 w-full mt-4" />
 
-              {/* Payment Methods */}
-              <h2 className="text-2xl font-medium mt-12 mb-6">Payment Method</h2>
+              {/* Country Selector */}
+              <div className="mt-4">
+                <label className="block text-sm font-medium mb-2">{t('checkout.country')}</label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="border rounded-2xl px-5 py-4 w-full focus:outline-none focus:border-black"
+                >
+                  <option value="">{t('checkout.selectCountry')}</option>
+                  {allCountries.map(c => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {!isCountrySupported && country && (
+                <p className="text-red-600 text-sm mt-3 font-medium">
+                  {t('common.noShipment')}
+                </p>
+              )}
+
+              <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.paymentMethod')}</h2>
               <div className="space-y-4">
-                <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'paymob' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
-                  <input type="radio" name="payment" checked={paymentMethod === 'paymob'} onChange={() => setPaymentMethod('paymob')} />
+                <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'stripe' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
+                  <input type="radio" name="payment" checked={paymentMethod === 'stripe'} onChange={() => setPaymentMethod('stripe')} />
                   <CreditCard size={26} />
                   <div>
-                    <p className="font-medium">Credit / Debit Card</p>
-                    <p className="text-sm text-gray-500">Visa, Mastercard via Paymob</p>
-                  </div>
-                </label>
-
-                <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'fawry' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
-                  <input type="radio" name="payment" checked={paymentMethod === 'fawry'} onChange={() => setPaymentMethod('fawry')} />
-                  <Phone size={26} />
-                  <div>
-                    <p className="font-medium">Fawry</p>
-                    <p className="text-sm text-gray-500">Pay at Fawry outlets</p>
+                    <p className="font-medium">{t('checkout.stripe')}</p>
                   </div>
                 </label>
 
@@ -143,8 +164,7 @@ export default function Checkout() {
                   <input type="radio" name="payment" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
                   <Truck size={26} />
                   <div>
-                    <p className="font-medium">Cash on Delivery</p>
-                    <p className="text-sm text-gray-500">Pay when you receive the order</p>
+                    <p className="font-medium">{t('checkout.cod')}</p>
                   </div>
                 </label>
               </div>
@@ -154,7 +174,7 @@ export default function Checkout() {
           {/* Right: Order Summary */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-3xl p-8 sticky top-8">
-              <h2 className="text-2xl font-medium mb-8">Order Summary</h2>
+              <h2 className="text-2xl font-medium mb-8">{t('checkout.orderSummary')}</h2>
 
               {items.map((item, index) => (
                 <div key={index} className="flex justify-between py-6 border-b last:border-b-0">
@@ -164,24 +184,28 @@ export default function Checkout() {
                       Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
                     </p>
                   </div>
-                  <p className="font-medium">EGP {(item.price * item.quantity).toLocaleString()}</p>
+                  <p className="font-medium">{formatPrice(Number(item.price) * Number(item.quantity))}</p>
                 </div>
               ))}
 
               <div className="flex justify-between text-2xl font-medium mt-10 pt-8 border-t">
-                <span>Total</span>
-                <span>EGP {total.toLocaleString()}</span>
+                <span>{t('checkout.total')}</span>
+                <span>{formatPrice(total)}</span>
               </div>
 
               {error && <p className="text-red-600 text-center mt-6 font-medium">{error}</p>}
 
               <button
                 onClick={handlePayment}
-                disabled={loading}
-                className="w-full mt-8 bg-black text-white py-5 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-50 transition"
+                disabled={loading || !isCountrySupported || !country}
+                className="w-full mt-8 bg-black text-white py-5 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {loading ? 'Processing...' : `PAY EGP ${total.toLocaleString()} • ${paymentMethod.toUpperCase()}`}
+                {loading ? t('common.processing') : `${t('checkout.pay')} ${formatPrice(total)} • ${paymentMethod.toUpperCase()}`}
               </button>
+
+              {!isCountrySupported && country && (
+                <p className="text-red-600 text-center text-sm mt-4">{t('common.noShipment')}</p>
+              )}
             </div>
           </div>
         </div>

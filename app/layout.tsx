@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import { CurrencyProvider } from './context/CurrencyContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 export const metadata: Metadata = {
   title: 'ZARA',
@@ -16,8 +18,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Header />
-        {children}
+        <LanguageProvider>
+          <CurrencyProvider>
+            <Header />
+            {children}
+            <Footer />
+          </CurrencyProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

@@ -5,9 +5,12 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function Login() {
   const router = useRouter();
+  const { t } = useTranslation();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -32,7 +35,7 @@ export default function Login() {
     });
 
     if (authError) {
-      setError('Invalid login credentials');
+      setError(t('login.invalidCredentials'));
     } else {
       router.push('/');
     }
@@ -47,20 +50,20 @@ export default function Login() {
         <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md w-full">
           <div className="text-center mb-10">
             <h1 className="text-5xl font-bold tracking-[3px]">ZARA</h1>
-            <p className="text-xl text-gray-500 mt-2">Log in</p>
+            <p className="text-xl text-gray-500 mt-2">{t('login.title')}</p>
           </div>
 
           <div className="space-y-6">
             <input
               type="email"
-              placeholder="Email address"
+              placeholder={t('login.email')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
             />
             <input
               type="password"
-              placeholder="Password"
+              placeholder={t('login.password')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
@@ -73,17 +76,17 @@ export default function Login() {
               disabled={loading}
               className="w-full bg-black text-white py-4 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-70 transition"
             >
-              {loading ? 'Logging in...' : 'LOG IN'}
+              {loading ? t('common.processing') : t('login.button')}
             </button>
           </div>
 
           <div className="text-center mt-8 text-sm">
-            Don’t have an account?{' '}
+            {t('login.noAccount')}{' '}
             <span 
               onClick={() => router.push('/signup')} 
               className="text-black underline cursor-pointer"
             >
-              Sign up
+              {t('login.signUp')}
             </span>
           </div>
 

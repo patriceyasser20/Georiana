@@ -5,8 +5,11 @@ import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient as supabase } from '../../lib/supabaseClient';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function Signup() {
+  const { t } = useTranslation();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +28,7 @@ export default function Signup() {
     if (error) {
       setError(error.message);
     } else {
-      alert('✅ Account created! You can now log in.');
+      alert(t('signup.success'));
       window.location.href = '/login';
     }
     setLoading(false);
@@ -38,7 +41,7 @@ export default function Signup() {
         <div className="bg-white w-full max-w-md p-10 rounded-xl shadow-xl">
           <div className="text-center mb-10">
             <h1 className="text-5xl font-bold tracking-widest">ZARA</h1>
-            <p className="text-2xl mt-4 font-light">Create account</p>
+            <p className="text-2xl mt-4 font-light">{t('signup.title')}</p>
           </div>
 
           <form onSubmit={handleSignup} className="space-y-6">
@@ -46,7 +49,7 @@ export default function Signup() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
+              placeholder={t('signup.email')}
               className="w-full border border-gray-300 rounded-lg px-5 py-4 text-lg focus:outline-none focus:border-black"
               required
             />
@@ -54,7 +57,7 @@ export default function Signup() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password (min 6 characters)"
+              placeholder={t('signup.password')}
               className="w-full border border-gray-300 rounded-lg px-5 py-4 text-lg focus:outline-none focus:border-black"
               required
             />
@@ -64,14 +67,17 @@ export default function Signup() {
               disabled={loading}
               className="w-full bg-black text-white py-4 text-sm tracking-widest hover:bg-gray-800 disabled:opacity-50"
             >
-              {loading ? 'Creating account...' : 'CREATE ACCOUNT'}
+              {loading ? t('common.processing') : t('signup.button')}
             </button>
 
             {error && <p className="text-red-600 text-center text-sm">{error}</p>}
           </form>
 
           <div className="text-center mt-8 text-sm">
-            Already have an account? <Link href="/login" className="underline">Log in</Link>
+            {t('signup.haveAccount')}{' '}
+            <Link href="/login" className="underline">
+              {t('signup.login')}
+            </Link>
           </div>
         </div>
       </div>
