@@ -83,6 +83,9 @@ export default function ReviewOrder() {
 
       console.log('✅ Order saved successfully! ID:', order.id);
 
+      // Save order ID so checkout page can update address & payment method
+      localStorage.setItem('pendingOrderId', order.id);
+
       alert(t('reviewOrder.orderSaved'));
       router.push('/checkout');
 

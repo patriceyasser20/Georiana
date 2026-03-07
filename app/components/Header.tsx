@@ -26,6 +26,7 @@ export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviewCount, setReviewCount] = useState(0);
+  const [wishlistCount, setWishlistCount] = useState(0);   // ← NEW
 
   // Auth listener
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function Header() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Review Order count
+  // Review Order count (localStorage)
   useEffect(() => {
     const updateCount = () => {
       const saved = localStorage.getItem('reviewOrder');
@@ -52,6 +53,30 @@ export default function Header() {
     };
     updateCount();
     const interval = setInterval(updateCount, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Wishlist count from Supabase (real-time glow)
+  useEffect(() => {
+    const fetchWishlistCount = async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) {
+        setWishlistCount(0);
+        return;
+      }
+
+      const { count } = await supabaseClient
+        .from('wishlist')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      setWishlistCount(count || 0);
+    };
+
+    fetchWishlistCount();
+
+    // Refresh every 2 seconds (so it updates when you add from product page)
+    const interval = setInterval(fetchWishlistCount, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -109,8 +134,21 @@ export default function Header() {
             <div className="flex items-center gap-6">
               <Link href="/account" className="text-sm hover:text-gray-600">{t('header.account')}</Link>
               
-              <Link href="/wishlist" className="relative hover:text-gray-600 transition">
-                <Heart size={22} />
+              {/* GLOWING WISHLIST ICON */}
+              <Link href="/wishlist" className="relative group">
+                <Heart 
+                  size={22} 
+                  className={`transition-all duration-300 ${
+                    wishlistCount > 0 
+                      ? 'text-red-500 fill-red-500 drop-shadow-[0_0_12px_#ef4444] scale-110' 
+                      : 'text-gray-700 group-hover:text-gray-900'
+                  }`} 
+                />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
+                    {wishlistCount}
+                  </span>
+                )}
               </Link>
 
               <button 

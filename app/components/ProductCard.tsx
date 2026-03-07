@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Heart } from 'lucide-react';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { useCurrency } from '../context/CurrencyContext';   // ← Added
+import { useCurrency } from '../context/CurrencyContext';
+import { useEffect, useState } from 'react';
 
 interface ProductCardProps {
   id: string;
@@ -17,18 +18,64 @@ interface ProductCardProps {
 
 export default function ProductCard({ id, name, price, img }: ProductCardProps) {
   const router = useRouter();
-  const { formatPrice } = useCurrency();   // ← Added (auto-detects USD/EUR/EGP/etc.)
+  const { formatPrice } = useCurrency();
 
-  const handleHeartClick = async (e: React.MouseEvent) => {
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Check if this product is already in wishlist
+  useEffect(() => {
+    const checkWishlist = async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabaseClient
+        .from('wishlist')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('product_id', id)
+        .single();
+
+      setIsWishlisted(!!data);
+    };
+
+    checkWishlist();
+  }, [id]);
+
+  const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!user) {
       router.push('/login');
-    } else {
-      alert('Wishlist feature coming soon!');
+      setLoading(false);
+      return;
     }
+
+    if (isWishlisted) {
+      // Remove from wishlist
+      await supabaseClient
+        .from('wishlist')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('product_id', id);
+
+      setIsWishlisted(false);
+    } else {
+      // Add to wishlist
+      await supabaseClient
+        .from('wishlist')
+        .insert({
+          user_id: user.id,
+          product_id: id,
+        });
+
+      setIsWishlisted(true);
+    }
+
+    setLoading(false);
   };
 
   return (
@@ -40,17 +87,21 @@ export default function ProductCard({ id, name, price, img }: ProductCardProps) 
           className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" 
         />
 
-        {/* Heart Button - Redirects to Login */}
+        {/* Real Wishlist Button */}
         <button 
-          onClick={handleHeartClick}
+          onClick={toggleWishlist}
+          disabled={loading}
           className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:scale-110 transition"
         >
-          <Heart size={22} className="text-gray-700" />
+          <Heart 
+            size={22} 
+            className={`transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} 
+          />
         </button>
 
         <div className="p-4">
           <p className="font-medium text-lg">{name}</p>
-          <p className="text-xl font-medium">{formatPrice(Number(price))}</p>   {/* ← Now dynamic currency */}
+          <p className="text-xl font-medium">{formatPrice(Number(price))}</p>
         </div>
       </div>
     </Link>

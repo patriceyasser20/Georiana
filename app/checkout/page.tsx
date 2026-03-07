@@ -22,7 +22,17 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
 
-  // Shipping
+  // Shipping form fields
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [street, setStreet] = useState('');
+  const [apartment, setApartment] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [city, setCity] = useState('');
+
+  // Country
   const [country, setCountry] = useState('');
   const [allCountries, setAllCountries] = useState<any[]>([]);
   const [isCountrySupported, setIsCountrySupported] = useState(true);
@@ -63,6 +73,34 @@ export default function Checkout() {
 
   const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
 
+  // Update the order in Supabase with real address & payment method
+  const updateOrderDetails = async () => {
+    const orderId = localStorage.getItem('pendingOrderId');
+    if (!orderId) return;
+
+    const selectedCountry = allCountries.find(c => c.code === country);
+    const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
+
+    const { error: updateError } = await supabaseClient
+      .from('orders')
+      .update({
+        street: street,
+        apartment: apartment,
+        city: city,
+        governorate: selectedCountry?.name || country,
+        payment_method: paymentLabel,
+        status: paymentMethod === 'cod' ? 'confirmed' : 'pending',
+      })
+      .eq('id', orderId);
+
+    if (updateError) {
+      console.error('Failed to update order:', updateError);
+    }
+
+    // Clean up the pending order ID
+    localStorage.removeItem('pendingOrderId');
+  };
+
   const handlePayment = async () => {
     if (items.length === 0) return;
     if (!isCountrySupported) {
@@ -72,6 +110,9 @@ export default function Checkout() {
 
     setLoading(true);
     setError('');
+
+    // Update order with real address & payment method before proceeding
+    await updateOrderDetails();
 
     if (paymentMethod === 'stripe') {
       try {
@@ -113,19 +154,19 @@ export default function Checkout() {
             <div className="bg-white rounded-3xl p-8">
               <h2 className="text-2xl font-medium mb-6">{t('checkout.contactInfo')}</h2>
               <div className="grid grid-cols-2 gap-4">
-                <input type="text" placeholder={t('checkout.firstName')} className="border rounded-2xl px-5 py-4 w-full" />
-                <input type="text" placeholder={t('checkout.lastName')} className="border rounded-2xl px-5 py-4 w-full" />
+                <input type="text" placeholder={t('checkout.firstName')} value={firstName} onChange={e => setFirstName(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
+                <input type="text" placeholder={t('checkout.lastName')} value={lastName} onChange={e => setLastName(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
               </div>
-              <input type="email" placeholder={t('checkout.email')} className="border rounded-2xl px-5 py-4 w-full mt-4" />
-              <input type="tel" placeholder={t('checkout.phone')} className="border rounded-2xl px-5 py-4 w-full mt-4" />
+              <input type="email" placeholder={t('checkout.email')} value={email} onChange={e => setEmail(e.target.value)} className="border rounded-2xl px-5 py-4 w-full mt-4" />
+              <input type="tel" placeholder={t('checkout.phone')} value={phone} onChange={e => setPhone(e.target.value)} className="border rounded-2xl px-5 py-4 w-full mt-4" />
 
               <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.shippingAddress')}</h2>
-              <input type="text" placeholder={t('checkout.street')} className="border rounded-2xl px-5 py-4 w-full" />
+              <input type="text" placeholder={t('checkout.street')} value={street} onChange={e => setStreet(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
               <div className="grid grid-cols-2 gap-4 mt-4">
-                <input type="text" placeholder={t('checkout.apartment')} className="border rounded-2xl px-5 py-4" />
-                <input type="text" placeholder={t('checkout.postalCode')} className="border rounded-2xl px-5 py-4" />
+                <input type="text" placeholder={t('checkout.apartment')} value={apartment} onChange={e => setApartment(e.target.value)} className="border rounded-2xl px-5 py-4" />
+                <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4" />
               </div>
-              <input type="text" placeholder={t('checkout.city')} className="border rounded-2xl px-5 py-4 w-full mt-4" />
+              <input type="text" placeholder={t('checkout.city')} value={city} onChange={e => setCity(e.target.value)} className="border rounded-2xl px-5 py-4 w-full mt-4" />
 
               {/* Country Selector */}
               <div className="mt-4">
