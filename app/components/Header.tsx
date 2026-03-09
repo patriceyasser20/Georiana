@@ -18,6 +18,14 @@ const languages = [
   { code: 'nl', name: 'Dutch' },
 ];
 
+// Helper to create clean URLs (e.g. "Summer 2026" → "summer-2026")
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '');
+
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
@@ -26,7 +34,11 @@ export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviewCount, setReviewCount] = useState(0);
-  const [wishlistCount, setWishlistCount] = useState(0);   // ← NEW
+  const [wishlistCount, setWishlistCount] = useState(0);
+
+  // Separate states for dropdowns
+  const [categories, setCategories] = useState<string[]>([]);     // For WOMAN
+  const [collections, setCollections] = useState<string[]>([]);   // For Collections
 
   // Auth listener
   useEffect(() => {
@@ -44,7 +56,7 @@ export default function Header() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
-  // Review Order count (localStorage)
+  // Review Order count
   useEffect(() => {
     const updateCount = () => {
       const saved = localStorage.getItem('reviewOrder');
@@ -56,7 +68,7 @@ export default function Header() {
     return () => clearInterval(interval);
   }, []);
 
-  // Wishlist count from Supabase (real-time glow)
+  // Wishlist count
   useEffect(() => {
     const fetchWishlistCount = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -64,20 +76,43 @@ export default function Header() {
         setWishlistCount(0);
         return;
       }
-
       const { count } = await supabaseClient
         .from('wishlist')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
-
       setWishlistCount(count || 0);
     };
-
     fetchWishlistCount();
-
-    // Refresh every 2 seconds (so it updates when you add from product page)
     const interval = setInterval(fetchWishlistCount, 2000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Fetch Categories for WOMAN dropdown
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data } = await supabaseClient
+        .from('products')
+        .select('category')
+        .not('category', 'is', null);
+
+      const unique = [...new Set(data?.map((p: any) => p.category))].filter(Boolean);
+      setCategories(unique);
+    };
+    fetchCategories();
+  }, []);
+
+  // Fetch Collections for Collections dropdown
+  useEffect(() => {
+    const fetchCollections = async () => {
+      const { data } = await supabaseClient
+        .from('products')
+        .select('collection')
+        .not('collection', 'is', null);
+
+      const unique = [...new Set(data?.map((p: any) => p.collection))].filter(Boolean);
+      setCollections(unique);
+    };
+    fetchCollections();
   }, []);
 
   const handleSignOut = async () => {
@@ -107,9 +142,52 @@ export default function Header() {
 
         <nav className="hidden md:flex gap-10 text-sm font-medium uppercase tracking-widest">
           <Link href="/shop">{t('header.shop')}</Link>
-          <Link href="#">{t('header.woman')}</Link>
-          <Link href="#">{t('header.man')}</Link>
-          <Link href="#">{t('header.kids')}</Link>
+
+          {/* WOMAN DROPDOWN → Real pages: /woman/t-shirts */}
+          <div className="relative group">
+            <button className="hover:text-gray-600 transition flex items-center gap-1">
+              {t('header.woman')}
+              <span className="text-xs">▼</span>
+            </button>
+            <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <Link
+                    key={category}
+                    href={`/woman/${slugify(category)}`}
+                    className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
+                  >
+                    {category}
+                  </Link>
+                ))
+              ) : (
+                <div className="px-6 py-3 text-gray-400 text-sm">No categories yet</div>
+              )}
+            </div>
+          </div>
+
+          {/* COLLECTIONS DROPDOWN → Real pages: /collection/summer-2026 */}
+          <div className="relative group">
+            <button className="hover:text-gray-600 transition flex items-center gap-1">
+              Collections
+              <span className="text-xs">▼</span>
+            </button>
+            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              {collections.length > 0 ? (
+                collections.map((col) => (
+                  <Link
+                    key={col}
+                    href={`/collection/${slugify(col)}`}
+                    className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
+                  >
+                    {col}
+                  </Link>
+                ))
+              ) : (
+                <div className="px-6 py-3 text-gray-400 text-sm">No collections yet</div>
+              )}
+            </div>
+          </div>
           <Link href="#" className="text-red-600">{t('header.sale')}</Link>
         </nav>
 
@@ -134,7 +212,6 @@ export default function Header() {
             <div className="flex items-center gap-6">
               <Link href="/account" className="text-sm hover:text-gray-600">{t('header.account')}</Link>
               
-              {/* GLOWING WISHLIST ICON */}
               <Link href="/wishlist" className="relative group">
                 <Heart 
                   size={22} 

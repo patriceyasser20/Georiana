@@ -24,16 +24,20 @@ export default function AdminPanel() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // NEW: List of all collections
+  const [collections, setCollections] = useState<string[]>([]);
+
   // Product form
   const [form, setForm] = useState({
     name: '',
     price: '',
     description: '',
     category: 'Uncategorized',
+    collection: '',
     images: [] as File[],
   });
 
-  // Dynamic variants (Color + Size + Stock + SKU)
+  // Dynamic variants (Color + Size + Stock + SKU + Type Code)
   const [variants, setVariants] = useState<any[]>([]);
 
   useEffect(() => {
@@ -66,11 +70,23 @@ export default function AdminPanel() {
     setProducts(productsRes.data || []);
     setOrders(ordersRes.data || []);
     setSupportedCountries(countriesRes.data || []);
+
+    const uniqueCollections = [...new Set(
+      (productsRes.data || []).map((p: any) => p.collection).filter(Boolean)
+    )];
+    setCollections(uniqueCollections);
+
     setLoading(false);
   };
 
   const addVariant = () => {
-    setVariants([...variants, { color: '', size: '', stock: 0, sku: '' }]);
+    setVariants([...variants, { 
+      color: '', 
+      size: '', 
+      stock: 0, 
+      sku: '', 
+      typeCode: ''   // ← NEW
+    }]);
   };
 
   const updateVariant = (index: number, field: string, value: any) => {
@@ -89,9 +105,9 @@ export default function AdminPanel() {
       !form.price ||
       form.images.length === 0 ||
       variants.length === 0 ||
-      variants.some((v) => !v.color?.trim() || !v.size?.trim() || !v.sku?.trim())
+      variants.some((v) => !v.color?.trim() || !v.size?.trim() || !v.sku?.trim() || !v.typeCode?.trim())
     ) {
-      alert('Name, price, images, and for each variant: color, size, SKU are required');
+      alert('Name, price, images, and for each variant: color, size, SKU, and Type Code are required');
       return;
     }
 
@@ -124,6 +140,7 @@ export default function AdminPanel() {
           price: Number(form.price),
           description: form.description,
           category: form.category,
+          collection: form.collection || null,
           images: imageUrls,
         })
         .select()
@@ -138,6 +155,7 @@ export default function AdminPanel() {
         size: v.size.trim(),
         stock: Number(v.stock),
         sku: v.sku.trim(),
+        type_code: v.typeCode.trim().toUpperCase()   // ← SAVED HERE
       }));
 
       const { error: variantsError } = await supabaseClient
@@ -146,9 +164,9 @@ export default function AdminPanel() {
 
       if (variantsError) throw variantsError;
 
-      alert('✅ Product + SKUs + Category added!');
+      alert('✅ Product + SKUs + Category + Collection + Type Code added!');
       setShowAddModal(false);
-      setForm({ name: '', price: '', description: '', category: 'Uncategorized', images: [] });
+      setForm({ name: '', price: '', description: '', category: 'Uncategorized', collection: '', images: [] });
       setVariants([]);
       loadData();
     } catch (err: any) {
@@ -231,6 +249,19 @@ export default function AdminPanel() {
           {/* PRODUCTS TAB */}
           {tab === 'products' && !loading && (
             <div>
+              {collections.length > 0 && (
+                <div className="mb-8">
+                  <p className="text-sm text-gray-500 mb-3">Active Collections</p>
+                  <div className="flex flex-wrap gap-3">
+                    {collections.map((col) => (
+                      <div key={col} className="bg-white border px-5 py-2 rounded-2xl text-sm font-medium">
+                        {col}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => setShowAddModal(true)}
                 className="mb-8 bg-black text-white px-8 py-4 rounded-full flex items-center gap-2 hover:bg-gray-800"
@@ -251,10 +282,14 @@ export default function AdminPanel() {
                         <h3 className="font-medium text-lg mb-1">{p.name}</h3>
                         <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
                         
-                        {/* NEW: Show Category */}
                         <p className="text-sm text-gray-500 mt-1">
                           Category: <span className="font-medium text-black">{p.category || 'Uncategorized'}</span>
                         </p>
+                        {p.collection && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            Collection: <span className="font-medium text-black">{p.collection}</span>
+                          </p>
+                        )}
                         
                         <p className="text-sm text-gray-500 mt-1">Stock managed per variant</p>
 
@@ -474,7 +509,7 @@ export default function AdminPanel() {
       {/* Add Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl w-full max-w-6xl p-12 relative max-h-[92vh] overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-8xl p-12 relative max-h-[92vh] overflow-y-auto">
             <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8">
               <X size={28} />
             </button>
@@ -489,7 +524,7 @@ export default function AdminPanel() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
 
-              {/* NEW: Category Dropdown */}
+              {/* Category Dropdown */}
               <div>
                 <label className="block text-sm mb-3 font-medium">Category *</label>
                 <select
@@ -506,7 +541,29 @@ export default function AdminPanel() {
                   <option value="Accessories">Accessories</option>
                   <option value="Jackets">Jackets</option>
                   <option value="Pants">Pants</option>
+                  <option value="Blouses">Blouses</option>
+                  <option value="Skirts">Skirts</option>
+                  <option value="Tops">Tops</option>
+                  <option value="Cardigans">Cardigans</option>
+                  <option value="Coats">Coats</option>
+                  <option value="Heels">Heels</option>
+                  <option value="Handbags">Handbags</option>
+                  <option value="Lingerie">Lingerie</option>
+                  <option value="Swimwear">Swimwear</option>
+                  <option value="Activewear">Activewear</option>
                 </select>
+              </div>
+
+              {/* Collection Input Field */}
+              <div>
+                <label className="block text-sm mb-3 font-medium">Collection Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Summer 2026, New This Week, Black Friday"
+                  value={form.collection || ''}
+                  onChange={(e) => setForm({ ...form, collection: e.target.value })}
+                  className="border rounded-2xl px-6 py-5 w-full text-lg"
+                />
               </div>
 
               <input
@@ -534,10 +591,11 @@ export default function AdminPanel() {
                 />
               </div>
 
-              {/* Variants Section */}
+              {/* Variants Section - WITH TYPE CODE */}
               <div>
                 <div className="flex justify-between items-center mb-4">
-                  <label className="block text-lg font-medium">Variants (Color + Size + Stock + SKU)</label>
+                  <label className="block text-lg font-medium">Variants (Color + Type Code + SKU + Size + Stock)</label>
+                  <label></label>
                   <button
                     onClick={addVariant}
                     className="text-sm bg-black text-white px-6 py-2.5 rounded-2xl flex items-center gap-2 hover:bg-gray-800"
@@ -545,7 +603,26 @@ export default function AdminPanel() {
                     <Plus size={18} /> Add Variant
                   </button>
                 </div>
-
+                {/* Type Code Legend */}
+                <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-6 text-sm">
+                    <p className="font-medium mb-3 text-gray-700">Type Code Guide:</p>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-gray-600">
+                      <div><strong>SHR</strong> = Shirt</div>
+                      <div><strong>BLS</strong> = Blouse</div>
+                      <div><strong>TOP</strong> = Top</div>
+                      <div><strong>DRS</strong> = Dress</div>
+                      <div><strong>SKT</strong> = Skirt</div>
+                      <div><strong>PNT</strong> = Pants</div>
+                      <div><strong>JNS</strong> = Jeans</div>
+                      <div><strong>JCK</strong> = Jacket</div>
+                      <div><strong>BLZ</strong> = Blazer</div>
+                      <div><strong>HOD</strong> = Hoodie</div>
+                      <div><strong>CTS</strong> = Coat</div>
+                      <div><strong>SHO</strong> = Shoes</div>
+                      <div><strong>HEE</strong> = Heels</div>
+                      <div><strong>BAG</strong> = Handbag</div>
+                      </div>
+                    </div>
                 {variants.map((variant, index) => (
                   <div key={index} className="flex flex-wrap gap-4 mb-6 items-end border p-6 rounded-3xl bg-gray-50">
                     <input
@@ -553,14 +630,21 @@ export default function AdminPanel() {
                       placeholder="Color (e.g. Black)"
                       value={variant.color}
                       onChange={(e) => updateVariant(index, 'color', e.target.value)}
-                      className="border rounded-2xl px-6 py-5 flex-1 min-w-[160px] text-lg"
+                      className="border rounded-2xl px-6 py-5 flex-1 min-w-[140px] text-lg"
                     />
                     <input
                       type="text"
-                      placeholder="SKU (e.g. GM-DR-25S-001-BLK-M)"
+                      placeholder="Type (SHR/PNT/DRS...)"
+                      value={variant.typeCode || ''}
+                      onChange={(e) => updateVariant(index, 'typeCode', e.target.value.toUpperCase())}
+                      className="border rounded-2xl px-6 py-5 w-80 font-mono tracking-widest text-lg uppercase text-center"
+                    />
+                    <input
+                      type="text"
+                      placeholder="SKU (e.g. GM-DR-25S-SHR-001-BLK-S)"
                       value={variant.sku || ''}
                       onChange={(e) => updateVariant(index, 'sku', e.target.value.toUpperCase())}
-                      className="border rounded-2xl px-6 py-5 flex-2 min-w-[100px] font-mono tracking-widest text-lg uppercase"
+                      className="border rounded-2xl px-6 py-5 flex-2 min-w-260px font-mono tracking-widest text-lg uppercase"
                     />
                     <input
                       type="text"
