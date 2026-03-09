@@ -57,7 +57,6 @@ export default function ProductDetail() {
         setTotalReviews(reviewData.length);
       }
 
-      // Check if current user already reviewed
       const { data: { user } } = await supabaseClient.auth.getUser();
       if (user && reviewData) {
         const hasReviewed = reviewData.some((r: any) => r.user_id === user.id);
@@ -69,6 +68,14 @@ export default function ProductDetail() {
 
     fetchAll();
   }, [id]);
+
+  // ==================== SALE LOGIC ====================
+  const isOnSale = product?.is_on_sale === true;
+  const discount = product?.discount_percentage || 0;
+  const originalPrice = Number(product?.price || 0);
+  const salePrice = isOnSale && discount > 0 
+    ? originalPrice * (1 - discount / 100) 
+    : originalPrice;
 
   // ==================== IMAGES, COLORS, SIZES, STOCK ====================
   const images = product?.images && product.images.length > 0 
@@ -90,7 +97,7 @@ export default function ProductDetail() {
 
   const selectedStock = getStock(selectedColor, selectedSize);
 
-  // ==================== ADD TO REVIEW ORDER ====================
+  // ==================== ADD TO REVIEW ORDER (uses sale price) ====================
   const addToReviewOrder = async () => {
     if (!selectedSize || !selectedColor) {
       alert(t('product.selectSize') + ' & ' + t('product.selectColor'));
@@ -111,7 +118,7 @@ export default function ProductDetail() {
     const newItem = {
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: isOnSale ? salePrice : originalPrice,   // ← Use sale price in cart
       image_url: images[currentImageIndex] || '',
       size: selectedSize,
       color: selectedColor,
@@ -123,7 +130,6 @@ export default function ProductDetail() {
     currentItems.push(newItem);
     localStorage.setItem('reviewOrder', JSON.stringify(currentItems));
 
-    // Decrease stock
     await supabaseClient
       .from('product_variants')
       .update({ stock: stock - quantity })
@@ -135,7 +141,7 @@ export default function ProductDetail() {
     router.push('/review-order');
   };
 
-  // ==================== ADD REVIEW / RATING (ONE REVIEW PER USER) ====================
+  // ==================== REVIEWS (unchanged) ====================
   const submitReview = async () => {
     if (userRating === 0) {
       alert("Please select a rating");
@@ -175,7 +181,6 @@ export default function ProductDetail() {
     setSubmitting(false);
   };
 
-  // Render 5 stars
   const renderStars = (rating: number, interactive = false, onClick?: (star: number) => void) => {
     return Array.from({ length: 5 }, (_, i) => {
       const starValue = i + 1;
@@ -212,13 +217,30 @@ export default function ProductDetail() {
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
               />
             )}
-            {/* Image arrows (unchanged) */}
           </div>
 
           {/* Details */}
           <div>
             <h1 className="text-4xl font-light tracking-widest mb-4">{product.name}</h1>
-            <p className="text-3xl font-medium">{formatPrice(product.price)}</p>
+
+            {/* ==================== PRICE WITH DISCOUNT ==================== */}
+            <div className="flex items-baseline gap-4 mt-2">
+              {isOnSale && discount > 0 ? (
+                <>
+                  <span className="text-3xl font-medium line-through text-gray-400">
+                    {formatPrice(originalPrice)}
+                  </span>
+                  <span className="text-4xl font-bold text-red-600">
+                    {formatPrice(salePrice)}
+                  </span>
+                  <span className="bg-red-600 text-white text-sm font-bold px-4 py-1 rounded-full">
+                    -{discount}%
+                  </span>
+                </>
+              ) : (
+                <span className="text-4xl font-bold">{formatPrice(originalPrice)}</span>
+              )}
+            </div>
 
             {/* Average Rating */}
             <div className="flex items-center gap-3 mt-6">
@@ -282,7 +304,7 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Quantity + Add to Review Order Button */}
+            {/* Quantity */}
             <div className="mt-10">
               <p className="font-medium mb-3">{t('product.quantity')}</p>
               <div className="flex items-center gap-6">
@@ -310,11 +332,10 @@ export default function ProductDetail() {
               {t('product.addToReviewOrder')}
             </button>
 
-            {/* ==================== RATINGS & REVIEWS SECTION ==================== */}
+            {/* Ratings & Reviews Section */}
             <div className="mt-16 border-t pt-12">
               <h2 className="text-2xl font-light mb-8">Ratings & Reviews</h2>
 
-              {/* Rating Form */}
               <div className="bg-white p-8 rounded-3xl border mb-10">
                 <p className="font-medium mb-4">How would you rate this product?</p>
                 
@@ -343,7 +364,6 @@ export default function ProductDetail() {
                 )}
               </div>
 
-              {/* Reviews List */}
               <div className="space-y-8">
                 {reviews.length === 0 ? (
                   <p className="text-gray-500">No reviews yet. Be the first to rate!</p>

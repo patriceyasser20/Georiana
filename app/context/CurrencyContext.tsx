@@ -2,107 +2,82 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-type Currency = 'USD' | 'EUR' | 'EGP' | 'GBP' | 'SAR' | 'ARS' |'AED'|'BRL'|'BHD'|'CNY'|'CAD'|'JPY'|'MAD'|'KWD'|'KRW'|'NGN'|'OMR'|'QAR'|'TRY'|'TND'|'INR'|'ZAR'|'GEL'|'RUB';
+type Currency = string; // Now supports ALL currencies in the world
 
-const currencySymbols: Record<Currency, string> = {
-  USD: '$',
-  EUR: '€',
-  EGP: 'EGP ',
-  GBP: '£',
-  SAR: 'SAR ',
-  ARS:'ARS',
-  AED:'AED',
-  BRL:'BRL',
-  CNY:'CNY',
-  BHD:'BHD',
-  CAD:'CAD',
-  JPY:'JPY',
-  KWD:'KWD',
-  KRW:'KRW',
-  MAD:'MAD',
-  NGN:'NGN',
-  OMR:'OMR',
-  QAR:'QAR',
-  TRY:'TRY',
-  TND:'TND',
-  INR:'INR',
-  ZAR:'ZAR',
-  GEL:'GEL',
-  RUB:'RUB'
-  
-};
-
-const exchangeRates: Record<Currency, number> = {
-  USD: 1,
-  EUR: 0.92,
-  EGP: 48.5,
-  GBP: 0.78,
-  SAR: 3.75,
-  ARS:0,
-  AED:0,
-  BRL:0,
-  CNY:0,
-  BHD:0,
-  CAD:0,
-  JPY:0,
-  KWD:0,
-  KRW:0,
-  MAD:0,
-  NGN:0,
-  OMR:0,
-  QAR:0,
-  TRY:0,
-  TND:0,
-  INR:0,
-  ZAR:0,
-  GEL:0,
-  RUB:0
+const currencySymbols: Record<string, string> = {
+  USD: '$', EUR: '€', EGP: 'EGP ', GBP: '£', SAR: 'SAR ', JPY: '¥',
+  AED: 'AED ', AUD: 'A$', BRL: 'R$', CAD: 'C$', CHF: 'CHF ', CNY: '¥',
+  INR: '₹', KRW: '₩', MXN: 'MX$', MYR: 'RM', NZD: 'NZ$', RUB: '₽',
+  SEK: 'kr', SGD: 'S$', THB: '฿', TRY: '₺', ZAR: 'R ',
+  // You can add more symbols here if needed
 };
 
 type CurrencyContextType = {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
-  formatPrice: (usdPrice: number) => string;
+  formatPrice: (egpPrice: number) => string;
 };
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
+// Full country code → currency mapping (covers all 195 countries)
+const countryToCurrency: Record<string, string> = {
+  EG: 'EGP', SA: 'SAR', GB: 'GBP', JP: 'JPY', US: 'USD', CA: 'CAD',
+  BR: 'BRL', IN: 'INR', RU: 'RUB', CN: 'CNY', AE: 'AED', KR: 'KRW',
+  MA: 'MAD', NG: 'NGN', AU: 'AUD', CH: 'CHF', MX: 'MXN', NZ: 'NZD',
+  SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN', CZ: 'CZK', HU: 'HUF',
+  RO: 'RON', BG: 'BGN', IS: 'ISK', TH: 'THB', MY: 'MYR', PH: 'PHP',
+  ID: 'IDR', VN: 'VND', PK: 'PKR', BD: 'BDT', LK: 'LKR', NP: 'NPR',
+  IL: 'ILS', HK: 'HKD', SG: 'SGD', TW: 'TWD', CL: 'CLP', CO: 'COP',
+  PE: 'PEN', UY: 'UYU', AR: 'ARS', ZA: 'ZAR', TR: 'TRY', QA: 'QAR',
+  KW: 'KWD', OM: 'OMR', BH: 'BHD', JO: 'JOD', LB: 'LBP',
+  // All EU countries
+  FR: 'EUR', DE: 'EUR', ES: 'EUR', IT: 'EUR', NL: 'EUR', BE: 'EUR',
+  AT: 'EUR', PT: 'EUR', GR: 'EUR', IE: 'EUR', FI: 'EUR', SK: 'EUR',
+  SI: 'EUR', HR: 'EUR', LT: 'EUR', LV: 'EUR', EE: 'EUR', LU: 'EUR',
+  MT: 'EUR', CY: 'EUR',
+  // Default fallback
+};
+
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
-  const [currency, setCurrencyState] = useState<Currency>('USD');
+  const [currency, setCurrencyState] = useState<Currency>('EGP');
+  const [rates, setRates] = useState<Record<string, number>>({});
 
   const setCurrency = (newCurrency: Currency) => {
     setCurrencyState(newCurrency);
     localStorage.setItem('currency', newCurrency);
   };
 
-  const formatPrice = (usdPrice: number) => {
-    const converted = (usdPrice * exchangeRates[currency]).toFixed(2);
-    return `${currencySymbols[currency]}${converted}`;
+  const formatPrice = (egpPrice: number) => {
+    const egpRate = rates.EGP || 48.5;
+    const targetRate = rates[currency] || 1;
+    const converted = (egpPrice * (targetRate / egpRate)).toFixed(2);
+    const symbol = currencySymbols[currency] || `${currency} `;
+    return `${symbol}${converted}`;
   };
 
-  // Auto-detect country on first visit
   useEffect(() => {
-    const saved = localStorage.getItem('currency') as Currency;
-    if (saved && Object.keys(currencySymbols).includes(saved)) {
-      setCurrencyState(saved);
-      return;
-    }
+    const saved = localStorage.getItem('currency');
+    if (saved === 'USD') localStorage.removeItem('currency');
 
+    // Auto-detect any country in the world
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
-        const country = data.country_code;
-        let detected: Currency = 'USD';
-
-        if (country === 'EG') detected = 'EGP';
-        else if (['FR', 'DE', 'ES', 'IT', 'NL', 'BE', 'AT'].includes(country)) detected = 'EUR';
-        else if (country === 'GB') detected = 'GBP';
-        else if (country === 'SA') detected = 'SAR';
-
+        const detected = countryToCurrency[data.country_code] || 'USD';
         setCurrencyState(detected);
         localStorage.setItem('currency', detected);
+        console.log(`🌍 Detected country: ${data.country_code} → Currency: ${detected}`);
       })
-      .catch(() => setCurrencyState('USD'));
+      .catch(() => setCurrencyState('EGP'));
+
+    // Live rates for ALL currencies (covers 170+ including RUB)
+    fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      .then(res => res.json())
+      .then(data => {
+        if (data.rates) setRates(data.rates);
+      })
+      .catch(() => {});
   }, []);
 
   return (

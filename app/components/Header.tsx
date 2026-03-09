@@ -188,7 +188,7 @@ export default function Header() {
               )}
             </div>
           </div>
-          <Link href="#" className="text-red-600">{t('header.sale')}</Link>
+          <Link href="/sale" className="text-red-600">{t('header.sale')}</Link>
         </nav>
 
         <div className="flex items-center gap-8 text-xl">

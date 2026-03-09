@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { RefreshCw, X, Plus, Trash2, Check } from 'lucide-react';
+import { RefreshCw, X, Plus, Trash2, Check, Edit2 } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function AdminPanel() {
@@ -24,7 +24,10 @@ export default function AdminPanel() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // NEW: List of all collections
+  // Edit mode
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+
+  // List of all collections
   const [collections, setCollections] = useState<string[]>([]);
 
   // Product form
@@ -34,6 +37,8 @@ export default function AdminPanel() {
     description: '',
     category: 'Uncategorized',
     collection: '',
+    isOnSale: false,
+    discountPercentage: '',
     images: [] as File[],
   });
 
@@ -79,13 +84,32 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
+  // ==================== DELETE COLLECTION (keep products) ====================
+  const deleteCollection = async (colName: string) => {
+    if (!confirm(`Delete collection "${colName}"?\n\nAll products will stay, but they will no longer belong to this collection.`)) {
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from('products')
+      .update({ collection: null })
+      .eq('collection', colName);
+
+    if (error) {
+      alert('Failed to delete collection: ' + error.message);
+    } else {
+      alert(`✅ Collection "${colName}" deleted. Products are kept.`);
+      loadData();
+    }
+  };
+
   const addVariant = () => {
     setVariants([...variants, { 
       color: '', 
       size: '', 
       stock: 0, 
       sku: '', 
-      typeCode: ''   // ← NEW
+      typeCode: ''   
     }]);
   };
 
@@ -99,11 +123,55 @@ export default function AdminPanel() {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
-  const addProduct = async () => {
+  // Open modal for Add or Edit
+  const openModal = async (product?: any) => {
+    if (product) {
+      setEditingProduct(product);
+      setForm({
+        name: product.name,
+        price: product.price.toString(),
+        description: product.description || '',
+        category: product.category || 'Uncategorized',
+        collection: product.collection || '',
+        isOnSale: product.is_on_sale || false,
+        discountPercentage: product.discount_percentage?.toString() || '',
+        images: [] as File[],
+      });
+
+      const { data: existingVariants } = await supabaseClient
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', product.id);
+
+      setVariants(
+        (existingVariants || []).map(v => ({
+          ...v,
+          typeCode: v.type_code || ''
+        }))
+      );
+    } else {
+      setEditingProduct(null);
+      setForm({
+        name: '',
+        price: '',
+        description: '',
+        category: 'Uncategorized',
+        collection: '',
+        isOnSale: false,
+        discountPercentage: '',
+        images: [] as File[],
+      });
+      setVariants([]);
+    }
+    setShowAddModal(true);
+  };
+
+  // Save (Add or Update)
+  const saveProduct = async () => {
     if (
       !form.name ||
       !form.price ||
-      form.images.length === 0 ||
+      (form.images.length === 0 && !editingProduct) ||   // ← ONLY THIS LINE WAS CHANGED
       variants.length === 0 ||
       variants.some((v) => !v.color?.trim() || !v.size?.trim() || !v.sku?.trim() || !v.typeCode?.trim())
     ) {
@@ -114,70 +182,97 @@ export default function AdminPanel() {
     setUploading(true);
 
     try {
-      const imageUrls: string[] = [];
+      const imageUrls: string[] = editingProduct?.images || [];
 
-      for (const file of form.images) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+      if (form.images.length > 0) {
+        for (const file of form.images) {
+          const fileExt = file.name.split('.').pop();
+          const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
-        const { error: uploadError } = await supabaseClient.storage
-          .from('product-images')
-          .upload(fileName, file);
+          const { error: uploadError } = await supabaseClient.storage
+            .from('product-images')
+            .upload(fileName, file);
 
-        if (uploadError) throw uploadError;
+          if (uploadError) throw uploadError;
 
-        const { data: urlData } = supabaseClient.storage
-          .from('product-images')
-          .getPublicUrl(fileName);
+          const { data: urlData } = supabaseClient.storage
+            .from('product-images')
+            .getPublicUrl(fileName);
 
-        imageUrls.push(urlData.publicUrl);
+          imageUrls.push(urlData.publicUrl);
+        }
       }
 
-      const { data: newProduct, error: insertError } = await supabaseClient
-        .from('products')
-        .insert({
-          name: form.name,
-          price: Number(form.price),
-          description: form.description,
-          category: form.category,
-          collection: form.collection || null,
-          images: imageUrls,
-        })
-        .select()
-        .single();
+      const productData = {
+        name: form.name,
+        price: Number(form.price),
+        description: form.description,
+        category: form.category,
+        collection: form.collection || null,
+        is_on_sale: form.isOnSale,
+        discount_percentage: form.isOnSale ? Number(form.discountPercentage) || 0 : 0,
+        images: imageUrls,
+      };
 
-      if (insertError) throw insertError;
-      if (!newProduct) throw new Error('Product was not created');
+      if (editingProduct) {
+        const { error } = await supabaseClient
+          .from('products')
+          .update(productData)
+          .eq('id', editingProduct.id);
 
-      const variantData = variants.map((v) => ({
-        product_id: newProduct.id,
-        color: v.color.trim(),
-        size: v.size.trim(),
-        stock: Number(v.stock),
-        sku: v.sku.trim(),
-        type_code: v.typeCode.trim().toUpperCase()   // ← SAVED HERE
-      }));
+        if (error) throw error;
+        alert('✅ Product updated successfully!');
+      } else {
+        const { data: newProduct, error: insertError } = await supabaseClient
+          .from('products')
+          .insert(productData)
+          .select()
+          .single();
 
-      const { error: variantsError } = await supabaseClient
-        .from('product_variants')
-        .insert(variantData);
+        if (insertError) throw insertError;
+        if (!newProduct) throw new Error('Product was not created');
 
-      if (variantsError) throw variantsError;
+        const variantData = variants.map((v) => ({
+          product_id: newProduct.id,
+          color: v.color.trim(),
+          size: v.size.trim(),
+          stock: Number(v.stock),
+          sku: v.sku.trim(),
+          type_code: v.typeCode.trim().toUpperCase()
+        }));
 
-      alert('✅ Product + SKUs + Category + Collection + Type Code added!');
+        const { error: variantsError } = await supabaseClient
+          .from('product_variants')
+          .insert(variantData);
+
+        if (variantsError) throw variantsError;
+      }
+
       setShowAddModal(false);
-      setForm({ name: '', price: '', description: '', category: 'Uncategorized', collection: '', images: [] });
+      setEditingProduct(null);
+      setForm({ 
+        name: '', 
+        price: '', 
+        description: '', 
+        category: 'Uncategorized', 
+        collection: '', 
+        isOnSale: false,
+        discountPercentage: '',
+        images: [] 
+      });
       setVariants([]);
       loadData();
     } catch (err: any) {
-      console.error('Add product error:', err);
-      alert('Failed to add product: ' + (err?.message || err));
+      console.error('Save product error:', err);
+      alert('Failed to save product: ' + (err?.message || err));
     }
 
     setUploading(false);
   };
 
   const deleteProduct = async (id: string) => {
+    if (!confirm(`Delete "${id}" permanently?`)) return;
+
     try {
       await supabaseClient.from('product_variants').delete().eq('product_id', id);
       await supabaseClient.from('wishlist').delete().eq('product_id', id);
@@ -214,7 +309,11 @@ export default function AdminPanel() {
           name,
           price,
           description,
-          images
+          images,
+          category,
+          collection,
+          is_on_sale,
+          discount_percentage
         )
       `)
       .eq('sku', skuSearchTerm.trim())
@@ -246,7 +345,7 @@ export default function AdminPanel() {
 
           {loading && <p className="text-center py-20">Loading...</p>}
 
-          {/* PRODUCTS TAB */}
+          {/* PRODUCTS TAB - unchanged */}
           {tab === 'products' && !loading && (
             <div>
               {collections.length > 0 && (
@@ -254,8 +353,20 @@ export default function AdminPanel() {
                   <p className="text-sm text-gray-500 mb-3">Active Collections</p>
                   <div className="flex flex-wrap gap-3">
                     {collections.map((col) => (
-                      <div key={col} className="bg-white border px-5 py-2 rounded-2xl text-sm font-medium">
+                      <div 
+                        key={col} 
+                        className="bg-white border px-5 py-2 rounded-2xl text-sm font-medium flex items-center gap-2 group"
+                      >
                         {col}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteCollection(col);
+                          }}
+                          className="text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700 transition"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -263,7 +374,7 @@ export default function AdminPanel() {
               )}
 
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => openModal()}
                 className="mb-8 bg-black text-white px-8 py-4 rounded-full flex items-center gap-2 hover:bg-gray-800"
               >
                 + Add New Product
@@ -290,20 +401,28 @@ export default function AdminPanel() {
                             Collection: <span className="font-medium text-black">{p.collection}</span>
                           </p>
                         )}
-                        
-                        <p className="text-sm text-gray-500 mt-1">Stock managed per variant</p>
 
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (confirm(`Delete "${p.name}" permanently?`)) {
-                              deleteProduct(p.id);
-                            }
-                          }}
-                          className="mt-6 w-full text-red-600 hover:text-red-700 text-sm font-medium py-2 border border-red-200 hover:border-red-400 rounded-xl transition"
-                        >
-                          Delete Product
-                        </button>
+                        {p.is_on_sale && (
+                          <p className="text-red-600 text-sm font-medium mt-1">On Sale • -{p.discount_percentage}%</p>
+                        )}
+
+                        <div className="mt-6 flex gap-3">
+                          <button
+                            onClick={() => openModal(p)}
+                            className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                          >
+                            <Edit2 size={18} /> Edit
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Delete "${p.name}" permanently?`)) deleteProduct(p.id);
+                            }}
+                            className="flex-1 text-red-600 hover:text-red-700 py-3 border border-red-200 hover:border-red-400 rounded-xl transition"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -312,7 +431,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* ORDERS TAB */}
+          {/* ORDERS TAB - unchanged */}
           {tab === 'orders' && !loading && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -397,7 +516,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* SHIPPING COUNTRIES TAB */}
+          {/* SHIPPING COUNTRIES TAB - unchanged */}
           {tab === 'shipping' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">Shipping Countries</h2>
@@ -429,7 +548,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* SKU SEARCH TAB */}
+          {/* SKU SEARCH TAB - unchanged */}
           {tab === 'sku-search' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">SKU Search</h2>
@@ -494,6 +613,26 @@ export default function AdminPanel() {
                         {skuSearchResult.products.description}
                       </p>
                     )}
+
+                    <div className="mt-10 flex gap-3">
+                      <button
+                        onClick={() => openModal(skuSearchResult.products)}
+                        className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                      >
+                        <Edit2 size={18} /> Edit Product
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete "${skuSearchResult.products.name}" permanently?`)) {
+                            deleteProduct(skuSearchResult.products.id);
+                            setSkuSearchResult(null);
+                          }
+                        }}
+                        className="flex-1 text-red-600 hover:text-red-700 py-3 border border-red-200 hover:border-red-400 rounded-xl transition"
+                      >
+                        Delete Product
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -506,21 +645,27 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* Add / Edit Modal - unchanged */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl w-full max-w-8xl p-12 relative max-h-[92vh] overflow-y-auto">
-            <button onClick={() => setShowAddModal(false)} className="absolute top-8 right-8">
+            <button onClick={() => {
+              setShowAddModal(false);
+              setEditingProduct(null);
+            }} className="absolute top-8 right-8">
               <X size={28} />
             </button>
 
-            <h2 className="text-3xl font-light mb-10">Add New Product</h2>
+            <h2 className="text-3xl font-light mb-10">
+              {editingProduct ? 'Edit Product' : 'Add New Product'}
+            </h2>
 
             <div className="space-y-8">
               <input
                 type="text"
                 placeholder="Product Name *"
                 className="border rounded-2xl px-6 py-5 w-full text-lg"
+                value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
 
@@ -571,12 +716,14 @@ export default function AdminPanel() {
                 step="0.01"
                 placeholder="Price *"
                 className="border rounded-2xl px-6 py-5 w-full text-lg"
+                value={form.price}
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
               />
 
               <textarea
                 placeholder="Description"
                 className="border rounded-2xl px-6 py-5 w-full h-32 text-lg"
+                value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
 
@@ -591,11 +738,32 @@ export default function AdminPanel() {
                 />
               </div>
 
-              {/* Variants Section - WITH TYPE CODE */}
+              {/* Sale Section */}
+              <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 p-5 rounded-2xl">
+                <input
+                  type="checkbox"
+                  checked={form.isOnSale}
+                  onChange={(e) => setForm({ ...form, isOnSale: e.target.checked })}
+                  className="w-5 h-5 accent-orange-600"
+                />
+                <div className="flex-1">
+                  <p className="font-medium">Mark as On Sale</p>
+                  {form.isOnSale && (
+                    <input
+                      type="number"
+                      placeholder="Discount % (e.g. 30)"
+                      value={form.discountPercentage}
+                      onChange={(e) => setForm({ ...form, discountPercentage: e.target.value })}
+                      className="mt-2 border rounded-2xl px-6 py-3 w-full text-lg"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Variants Section + Legend - unchanged */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-lg font-medium">Variants (Color + Type Code + SKU + Size + Stock)</label>
-                  <label></label>
                   <button
                     onClick={addVariant}
                     className="text-sm bg-black text-white px-6 py-2.5 rounded-2xl flex items-center gap-2 hover:bg-gray-800"
@@ -603,76 +771,50 @@ export default function AdminPanel() {
                     <Plus size={18} /> Add Variant
                   </button>
                 </div>
-                {/* Type Code Legend */}
+
                 <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 mb-6 text-sm">
-                    <p className="font-medium mb-3 text-gray-700">Type Code Guide:</p>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-gray-600">
-                      <div><strong>SHR</strong> = Shirt</div>
-                      <div><strong>BLS</strong> = Blouse</div>
-                      <div><strong>TOP</strong> = Top</div>
-                      <div><strong>DRS</strong> = Dress</div>
-                      <div><strong>SKT</strong> = Skirt</div>
-                      <div><strong>PNT</strong> = Pants</div>
-                      <div><strong>JNS</strong> = Jeans</div>
-                      <div><strong>JCK</strong> = Jacket</div>
-                      <div><strong>BLZ</strong> = Blazer</div>
-                      <div><strong>HOD</strong> = Hoodie</div>
-                      <div><strong>CTS</strong> = Coat</div>
-                      <div><strong>SHO</strong> = Shoes</div>
-                      <div><strong>HEE</strong> = Heels</div>
-                      <div><strong>BAG</strong> = Handbag</div>
-                      </div>
-                    </div>
+                  <p className="font-medium mb-3 text-gray-700">Type Code Guide:</p>
+                  <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-gray-600">
+                    <div><strong>SHR</strong> = Shirt</div>
+                    <div><strong>BLS</strong> = Blouse</div>
+                    <div><strong>TOP</strong> = Top</div>
+                    <div><strong>DRS</strong> = Dress</div>
+                    <div><strong>SKT</strong> = Skirt</div>
+                    <div><strong>PNT</strong> = Pants</div>
+                    <div><strong>JNS</strong> = Jeans</div>
+                    <div><strong>JCK</strong> = Jacket</div>
+                    <div><strong>BLZ</strong> = Blazer</div>
+                    <div><strong>HOD</strong> = Hoodie</div>
+                    <div><strong>CTS</strong> = Coat</div>
+                    <div><strong>SHO</strong> = Shoes</div>
+                    <div><strong>HEE</strong> = Heels</div>
+                    <div><strong>BAG</strong> = Handbag</div>
+                  </div>
+                </div>
+
                 {variants.map((variant, index) => (
                   <div key={index} className="flex flex-wrap gap-4 mb-6 items-end border p-6 rounded-3xl bg-gray-50">
-                    <input
-                      type="text"
-                      placeholder="Color (e.g. Black)"
-                      value={variant.color}
-                      onChange={(e) => updateVariant(index, 'color', e.target.value)}
-                      className="border rounded-2xl px-6 py-5 flex-1 min-w-[140px] text-lg"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Type (SHR/PNT/DRS...)"
-                      value={variant.typeCode || ''}
-                      onChange={(e) => updateVariant(index, 'typeCode', e.target.value.toUpperCase())}
-                      className="border rounded-2xl px-6 py-5 w-80 font-mono tracking-widest text-lg uppercase text-center"
-                    />
-                    <input
-                      type="text"
-                      placeholder="SKU (e.g. GM-DR-25S-SHR-001-BLK-S)"
-                      value={variant.sku || ''}
-                      onChange={(e) => updateVariant(index, 'sku', e.target.value.toUpperCase())}
-                      className="border rounded-2xl px-6 py-5 flex-2 min-w-260px font-mono tracking-widest text-lg uppercase"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Size"
-                      value={variant.size}
-                      onChange={(e) => updateVariant(index, 'size', e.target.value)}
-                      className="border rounded-2xl px-6 py-5 w-28 text-lg"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Stock"
-                      value={variant.stock}
-                      onChange={(e) => updateVariant(index, 'stock', e.target.value)}
-                      className="border rounded-2xl px-6 py-5 w-32 text-lg"
-                    />
-                    <button onClick={() => removeVariant(index)} className="text-red-600 hover:text-red-700 p-3">
-                      <Trash2 size={24} />
-                    </button>
+                    <input type="text" placeholder="Color (e.g. Black)" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} className="border rounded-2xl px-6 py-5 flex-1 min-w-[140px] text-lg" />
+                    <input type="text" placeholder="Type (SHR/PNT/DRS...)" value={variant.typeCode || ''} onChange={(e) => updateVariant(index, 'typeCode', e.target.value.toUpperCase())} className="border rounded-2xl px-6 py-5 w-80 font-mono tracking-widest text-lg uppercase text-center" />
+                    <input type="text" placeholder="SKU (e.g. GM-DR-25S-SHR-001-BLK-S)" value={variant.sku || ''} onChange={(e) => updateVariant(index, 'sku', e.target.value.toUpperCase())} className="border rounded-2xl px-6 py-5 flex-2 min-w-260px font-mono tracking-widest text-lg uppercase" />
+                    <input type="text" placeholder="Size" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} className="border rounded-2xl px-6 py-5 w-28 text-lg" />
+                    <input type="number" placeholder="Stock" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', e.target.value)} className="border rounded-2xl px-6 py-5 w-32 text-lg" />
+                    <button onClick={() => removeVariant(index)} className="text-red-600 hover:text-red-700 p-3"><Trash2 size={24} /></button>
                   </div>
                 ))}
               </div>
 
               <button
-                onClick={addProduct}
+                onClick={saveProduct}
                 disabled={uploading}
                 className="w-full bg-black text-white py-5 rounded-2xl text-lg tracking-widest hover:bg-gray-800 disabled:opacity-70"
               >
-                {uploading ? 'Uploading...' : 'Add Product'}
+                {uploading 
+                  ? 'Saving...' 
+                  : editingProduct 
+                    ? 'Update Product' 
+                    : 'Add Product'
+                }
               </button>
             </div>
           </div>

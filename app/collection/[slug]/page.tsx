@@ -8,7 +8,6 @@ import ProductCard from '../../components/ProductCard';
 import { supabaseClient } from '../../../lib/supabaseClient';
 import { useCurrency } from '../../context/CurrencyContext';
 
-// Safe slugify that never crashes on null/undefined
 const slugify = (text: string | null | undefined): string => {
   if (!text) return '';
   return text
@@ -32,14 +31,12 @@ export default function CollectionPage() {
         .from('products')
         .select('*');
 
-      // Extra safe filter - skip any product with null collection
-      const filtered = (data || []).filter((p: any) => {
-        return slugify(p.collection) === slug;
-      });
+      const filtered = (data || []).filter((p: any) => 
+        slugify(p.collection) === slug
+      );
 
       setProducts(filtered);
-
-      // Nice display name
+      
       if (filtered.length > 0) {
         setDisplayName(filtered[0].collection);
       } else {
@@ -72,7 +69,7 @@ export default function CollectionPage() {
               No products found in this collection.
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {products.map((p) => (
                 <ProductCard
                   key={p.id}
@@ -80,13 +77,14 @@ export default function CollectionPage() {
                   name={p.name}
                   price={p.price}
                   img={p.images?.[0] || ''}
+                  isOnSale={p.is_on_sale}                    // ← NEW
+                  discountPercentage={p.discount_percentage}  // ← NEW
                 />
               ))}
             </div>
           )}
         </div>
       </div>
-      <Footer />
     </>
   );
 }

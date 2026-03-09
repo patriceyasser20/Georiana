@@ -21,7 +21,13 @@ export default function Home() {
         .limit(8);
 
       if (error) {
-        console.error('Error fetching products:', error);
+        console.error('Error fetching products:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
+        setProducts([]); // prevent crash
       } else {
         setProducts(data || []);
       }
@@ -67,10 +73,10 @@ export default function Home() {
                   key={product.id}
                   id={product.id}
                   name={product.name}
-                  price={Number(product.price)}
+                  price={product.price}
                   img={product.images?.[0] || product.image_url || ''}
-                  sizes={product.sizes || []}
-                  colors={product.colors || []}
+                  isOnSale={product.is_on_sale}                    // ← Added
+                  discountPercentage={product.discount_percentage}  // ← Added
                 />
               ))}
             </div>

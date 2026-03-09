@@ -53,13 +53,14 @@ export default function WomanCategoryPage() {
                   name={p.name}
                   price={p.price}
                   img={p.images?.[0] || ''}
+                  isOnSale={p.is_on_sale}                    // ← Added
+                  discountPercentage={p.discount_percentage}  // ← Added
                 />
               ))}
             </div>
           )}
         </div>
       </div>
-      <Footer />
     </>
   );
 }
