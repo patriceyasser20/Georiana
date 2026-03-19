@@ -22,7 +22,7 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
 
-  // Shipping form fields
+  // Shipping form fields (unchanged)
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -36,6 +36,11 @@ export default function Checkout() {
   const [country, setCountry] = useState('');
   const [allCountries, setAllCountries] = useState<any[]>([]);
   const [isCountrySupported, setIsCountrySupported] = useState(true);
+
+  // ==================== NEW: PROMO CODE ====================
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<any>(null);
+  const [promoError, setPromoError] = useState('');
 
   useEffect(() => {
     const saved = localStorage.getItem('reviewOrder');
@@ -71,7 +76,30 @@ export default function Checkout() {
     setIsCountrySupported(selected?.enabled || false);
   }, [country, allCountries]);
 
-  const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount_percentage / 100) : 0;
+  const finalTotal = subtotal - discountAmount;
+
+  // ==================== APPLY PROMO CODE ====================
+  const applyPromoCode = async () => {
+    if (!promoCodeInput.trim()) return;
+
+    setPromoError('');
+    setAppliedPromo(null);
+
+    const { data, error } = await supabaseClient
+      .from('promo_codes')
+      .select('*')
+      .eq('code', promoCodeInput.trim().toUpperCase())
+      .single();
+
+    if (error || !data) {
+      setPromoError('Invalid promo code');
+    } else {
+      setAppliedPromo(data);
+      alert(`✅ Promo code applied! ${data.discount_percentage}% OFF`);
+    }
+  };
 
   // Update the order in Supabase with real address & payment method
   const updateOrderDetails = async () => {
@@ -90,6 +118,8 @@ export default function Checkout() {
         governorate: selectedCountry?.name || country,
         payment_method: paymentLabel,
         status: paymentMethod === 'cod' ? 'confirmed' : 'pending',
+        promo_code: appliedPromo?.code || null,        // ← NEW
+        discount_amount: discountAmount || 0           // ← NEW
       })
       .eq('id', orderId);
 
@@ -97,7 +127,6 @@ export default function Checkout() {
       console.error('Failed to update order:', updateError);
     }
 
-    // Clean up the pending order ID
     localStorage.removeItem('pendingOrderId');
   };
 
@@ -111,7 +140,6 @@ export default function Checkout() {
     setLoading(true);
     setError('');
 
-    // Update order with real address & payment method before proceeding
     await updateOrderDetails();
 
     if (paymentMethod === 'stripe') {
@@ -122,7 +150,8 @@ export default function Checkout() {
           quantity: Number(item.quantity)
         }));
 
-        const result = await createStripeCheckout(total, stripeItems);
+        // Use final discounted total
+        const result = await createStripeCheckout(finalTotal, stripeItems);
 
         if (result?.url) {
           localStorage.removeItem('reviewOrder');
@@ -147,7 +176,7 @@ export default function Checkout() {
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-5 gap-10">
 
-          {/* Left: Form */}
+          {/* Left: Form - unchanged */}
           <div className="md:col-span-3">
             <h1 className="text-4xl font-light tracking-widest mb-10">{t('checkout.title')}</h1>
 
@@ -212,7 +241,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Right: Order Summary */}
+          {/* Right: Order Summary + Promo Code */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-3xl p-8 sticky top-8">
               <h2 className="text-2xl font-medium mb-8">{t('checkout.orderSummary')}</h2>
@@ -229,9 +258,49 @@ export default function Checkout() {
                 </div>
               ))}
 
-              <div className="flex justify-between text-2xl font-medium mt-10 pt-8 border-t">
-                <span>{t('checkout.total')}</span>
-                <span>{formatPrice(total)}</span>
+              {/* ==================== PROMO CODE INPUT ==================== */}
+              <div className="mt-8 border-t pt-8">
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    placeholder="Promo Code"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                    className="border rounded-2xl px-5 py-4 flex-1 text-lg font-mono tracking-widest uppercase"
+                  />
+                  <button
+                    onClick={applyPromoCode}
+                    className="bg-black text-white px-8 rounded-2xl hover:bg-gray-800 transition"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoError && <p className="text-red-600 text-sm mt-2">{promoError}</p>}
+                {appliedPromo && (
+                  <p className="text-green-600 text-sm mt-2 font-medium">
+                    ✅ {appliedPromo.code} applied • {appliedPromo.discount_percentage}% OFF
+                  </p>
+                )}
+              </div>
+
+              {/* Totals */}
+              <div className="mt-10 space-y-3 text-lg">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+
+                {appliedPromo && (
+                  <div className="flex justify-between text-red-600">
+                    <span>Discount ({appliedPromo.discount_percentage}%)</span>
+                    <span>-{formatPrice(discountAmount)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-2xl font-medium border-t pt-6">
+                  <span>Total</span>
+                  <span>{formatPrice(finalTotal)}</span>
+                </div>
               </div>
 
               {error && <p className="text-red-600 text-center mt-6 font-medium">{error}</p>}
@@ -241,7 +310,10 @@ export default function Checkout() {
                 disabled={loading || !isCountrySupported || !country}
                 className="w-full mt-8 bg-black text-white py-5 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {loading ? t('common.processing') : `${t('checkout.pay')} ${formatPrice(total)} • ${paymentMethod.toUpperCase()}`}
+                {loading 
+                  ? t('common.processing') 
+                  : `${t('checkout.pay')} ${formatPrice(finalTotal)} • ${paymentMethod.toUpperCase()}`
+                }
               </button>
 
               {!isCountrySupported && country && (
@@ -251,7 +323,6 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-      <Footer />
     </>
   );
 }

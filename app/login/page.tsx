@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useTranslation } from '../context/LanguageContext';
+import { Mail, Apple, Twitter } from 'lucide-react';
 
 export default function Login() {
   const router = useRouter();
@@ -16,11 +17,28 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // ==================== SOCIAL LOGIN ====================
+  const signInWithProvider = async (provider: 'google' | 'apple' | 'twitter') => {
+    setLoading(true);
+    setError('');
+
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) setError(error.message);
+    setLoading(false);
+  };
+
+  // ==================== EMAIL LOGIN ====================
   const handleLogin = async () => {
     setLoading(true);
     setError('');
 
-    // ADMIN LOGIN (hardcoded demo)
+    // ADMIN LOGIN
     if (email.toLowerCase() === 'admin@zara.com' && password === 'admin2026') {
       localStorage.setItem('isAdmin', 'true');
       router.push('/admin');
@@ -28,7 +46,6 @@ export default function Login() {
       return;
     }
 
-    // Normal user login with Supabase
     const { error: authError } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
@@ -46,13 +63,19 @@ export default function Login() {
   return (
     <>
       <Header />
+      <div>GAP</div>
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
         <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md w-full">
           <div className="text-center mb-10">
-            <h1 className="text-5xl font-bold tracking-[3px]">ZARA</h1>
-            <p className="text-xl text-gray-500 mt-2">{t('login.title')}</p>
+            <img 
+              src="/images/logo.svg" 
+              alt="GEORIANA" 
+              className="h-30 mx-auto" 
+            />
+            <p className="text-xl text-gray-500 mt-4">{t('login.title')}</p>
           </div>
 
+          {/* Email & Password Form */}
           <div className="space-y-6">
             <input
               type="email"
@@ -80,7 +103,47 @@ export default function Login() {
             </button>
           </div>
 
-          <div className="text-center mt-8 text-sm">
+          {/* ==================== SOCIAL LOGIN BUTTONS (NEW) ==================== */}
+          <div className="my-8 relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-4 text-gray-500">Or continue with</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            {/* Google */}
+            <button
+              onClick={() => signInWithProvider('google')}
+              disabled={loading}
+              className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition"
+            >
+              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-6" />
+            </button>
+
+            {/* Apple */}
+            <button
+              onClick={() => signInWithProvider('apple')}
+              disabled={loading}
+              className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition"
+            >
+              <Apple size={24} />
+            </button>
+
+            {/* X (Twitter) */}
+            <button
+              onClick={() => signInWithProvider('twitter')}
+              disabled={loading}
+              className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition"
+            >
+              <Twitter size={24} />
+            </button>
+          </div>
+
+          {/* Sign up link */}
+          <div className="text-center mt-10 text-sm">
             {t('login.noAccount')}{' '}
             <span 
               onClick={() => router.push('/signup')} 
@@ -90,12 +153,12 @@ export default function Login() {
             </span>
           </div>
 
+          {/* Admin hint */}
           <div className="text-center mt-6 text-xs text-gray-500">
             Admin Login: admin@zara.com / admin2026
           </div>
         </div>
       </div>
-      <Footer />
     </>
   );
 }

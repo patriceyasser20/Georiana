@@ -7,7 +7,8 @@
     "sale": "REBAJAS",
     "account": "Cuenta",
     "wishlist": "Lista de deseos",
-    "language": "Idioma"
+    "language": "Idioma",
+    "collections": "Colecciones"
   },
   "hero": {
     "spring2026": "PRIMAVERA 2026",
@@ -100,6 +101,19 @@
     "login": "Iniciar sesión",
     "success": "✅ ¡Cuenta creada! Ahora puedes iniciar sesión."
   },
+  "account": {
+  "title": "Mi Cuenta",
+  "myOrders": "Mis Pedidos",
+  "loading": "Cargando tus pedidos...",
+  "error": "No se pudieron cargar los pedidos",
+  "noOrders": "Aún no tienes pedidos",
+  "orderNumber": "Pedido #",
+  "shippingAddress": "Dirección de envío",
+  "orderedItems": "Artículos pedidos:",
+  "total": "Total",
+  "cod": "Pago contra reembolso",
+  "card": "Tarjeta de crédito / débito"
+},
   "footer": {
     "shop": "Tienda",
     "woman": "Mujer",
@@ -133,8 +147,30 @@
     "continueShopping": "Seguir comprando",
     "noResults": "No se encontraron productos",
     "processing": "Procesando...",
-    "back": "Atrás"
+    "back": "Atrás",
+    "noCategories": "Aún no hay categorías",
+    "noCollections": "Aún no hay colecciones"
   },
+  "category": {
+  "t-shirts": "Camisetas",
+  "hoodies": "Sudaderas",
+  "jeans": "Jeans",
+  "shoes": "Zapatos",
+  "dresses": "Vestidos",
+  "accessories": "Accesorios",
+  "jackets": "Chaquetas",
+  "pants": "Pantalones",
+  "blouses": "Blusas",
+  "skirts": "Faldas",
+  "tops": "Tops",
+  "cardigans": "Cardigans",
+  "coats": "Abrigos",
+  "heels": "Tacones",
+  "handbags": "Bolsos",
+  "lingerie": "Lencería",
+  "swimwear": "Ropa de baño",
+  "activewear": "Ropa deportiva"
+},
   "customerService": {
   "title": "Servicio al Cliente",
   "text": "Estamos aquí para ayudarte 24/7.",

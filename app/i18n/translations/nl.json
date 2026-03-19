@@ -7,7 +7,8 @@
     "sale": "AANBIEDINGEN",
     "account": "Account",
     "wishlist": "Verlanglijst",
-    "language": "Taal"
+    "language": "Taal",
+    "collections": "Collecties"
   },
   "hero": {
     "spring2026": "LENTE 2026",
@@ -126,6 +127,19 @@
     "copyright": "© 2026 Pawlo • Alle rechten voorbehouden",
     "madeInEgypt": "Gemaakt in Egypte met ❤️"
   },
+  "account": {
+  "title": "Mijn Account",
+  "myOrders": "Mijn Bestellingen",
+  "loading": "Uw bestellingen laden...",
+  "error": "Bestellingen laden mislukt",
+  "noOrders": "U heeft nog geen bestellingen",
+  "orderNumber": "Bestelling #",
+  "shippingAddress": "Verzendadres",
+  "orderedItems": "Bestelde artikelen:",
+  "total": "Totaal",
+  "cod": "Betalen bij aflevering",
+  "card": "Creditcard / Betaalpas"
+},
   "common": {
     "loading": "Laden...",
     "notFound": "Niet gevonden",
@@ -133,8 +147,30 @@
     "continueShopping": "Doorgaan met winkelen",
     "noResults": "Geen producten gevonden",
     "processing": "Bezig met verwerken...",
-    "back": "Terug"
+    "back": "Terug",
+    "noCategories": "Nog geen categorieën",
+    "noCollections": "Nog geen collecties"
   },
+  "category": {
+  "t-shirts": "T-shirts",
+  "hoodies": "Hoodies",
+  "jeans": "Jeans",
+  "shoes": "Schoenen",
+  "dresses": "Jurken",
+  "accessories": "Accessoires",
+  "jackets": "Jassen",
+  "pants": "Broeken",
+  "blouses": "Blouses",
+  "skirts": "Rokken",
+  "tops": "Tops",
+  "cardigans": "Cardigans",
+  "coats": "Jassen",
+  "heels": "Hakken",
+  "handbags": "Handtassen",
+  "lingerie": "Lingerie",
+  "swimwear": "Zwemkleding",
+  "activewear": "Sportkleding"
+},
   "customerService": {
   "title": "Klantenservice",
   "text": "We zijn er 24/7 om je te helpen.",

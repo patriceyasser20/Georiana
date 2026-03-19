@@ -21,7 +21,7 @@ export default function CustomerService() {
           <div className="grid md:grid-cols-2 gap-12 max-w-md mx-auto">
             <div className="bg-white rounded-3xl p-8">
               <h2 className="text-2xl font-medium mb-4">{t('customerService.emailSupport')}</h2>
-              <p className="text-lg">support@pawlo.com</p>
+              <p className="text-lg">support@GEORIANA.com</p>
             </div>
             <div className="bg-white rounded-3xl p-8">
               <h2 className="text-2xl font-medium mb-4">{t('customerService.phoneSupport')}</h2>

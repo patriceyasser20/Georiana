@@ -15,8 +15,6 @@ export default function Footer() {
           <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-5">{t('footer.shop')}</h3>
           <ul className="space-y-3 text-sm">
             <li><a href="#" className="hover:text-white transition-colors">{t('footer.woman')}</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">{t('footer.man')}</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">{t('footer.kids')}</a></li>
             <li><a href="#" className="hover:text-white transition-colors">{t('footer.newCollection')}</a></li>
             <li><a href="#" className="hover:text-white transition-colors">{t('footer.sale')}</a></li>
           </ul>

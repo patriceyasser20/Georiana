@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { User, LogOut, ShoppingBag, ArrowLeft, Heart } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabaseClient } from '../../lib/supabaseClient';
@@ -18,7 +19,7 @@ const languages = [
   { code: 'nl', name: 'Dutch' },
 ];
 
-// Helper to create clean URLs (e.g. "Summer 2026" → "summer-2026")
+// Helper to create clean URLs
 const slugify = (text: string) =>
   text
     .toLowerCase()
@@ -36,9 +37,8 @@ export default function Header() {
   const [reviewCount, setReviewCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
 
-  // Separate states for dropdowns
-  const [categories, setCategories] = useState<string[]>([]);     // For WOMAN
-  const [collections, setCollections] = useState<string[]>([]);   // For Collections
+  const [categories, setCategories] = useState<string[]>([]);
+  const [collections, setCollections] = useState<string[]>([]);
 
   // Auth listener
   useEffect(() => {
@@ -126,24 +126,31 @@ export default function Header() {
     <header className="top-bar bg-white/95 backdrop-blur-md border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
       <div className="max-w-7xl mx-auto px-6 h-70px flex items-center justify-between">
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-15">
           {showBackButton && (
             <button 
               onClick={() => router.back()} 
               className="flex items-center gap-1 text-sm text-gray-600 hover:text-black transition"
             >
               <ArrowLeft size={20} />
-              <span className="hidden md:inline">{t('common.back')}</span>
+              <span className="hidden md: ">{t('common.back')}</span>
             </button>
           )}
 
-          <Link href="/" className="text-3xl font-bold tracking-[3px]">ZARA</Link>
+          {/* Logo */}
+          <Link href="/" className="flex items-center">
+            <img 
+              src="/images/logo.svg" 
+              alt="GEORIANA" 
+              className="h-15 w-auto" 
+            />
+          </Link>
         </div>
 
-        <nav className="hidden md:flex gap-10 text-sm font-medium uppercase tracking-widest">
+        <nav className="hidden md:flex gap-10 text-lg font-medium uppercase tracking-widest">
           <Link href="/shop">{t('header.shop')}</Link>
 
-          {/* WOMAN DROPDOWN → Real pages: /woman/t-shirts */}
+          {/* WOMAN DROPDOWN */}
           <div className="relative group">
             <button className="hover:text-gray-600 transition flex items-center gap-1">
               {t('header.woman')}
@@ -151,25 +158,25 @@ export default function Header() {
             </button>
             <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
               {categories.length > 0 ? (
-                categories.map((category) => (
-                  <Link
-                    key={category}
-                    href={`/woman/${slugify(category)}`}
-                    className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
-                  >
-                    {category}
-                  </Link>
-                ))
-              ) : (
-                <div className="px-6 py-3 text-gray-400 text-sm">No categories yet</div>
-              )}
+              categories.map((category) => (
+                <Link
+                  key={category}
+                  href={`/woman/${slugify(category)}`}
+                  className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
+                >
+                  {t(`category.${slugify(category)}`)}
+                </Link>
+              ))
+            ) : (
+              <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
+            )}
             </div>
           </div>
 
-          {/* COLLECTIONS DROPDOWN → Real pages: /collection/summer-2026 */}
+          {/* COLLECTIONS DROPDOWN */}
           <div className="relative group">
             <button className="hover:text-gray-600 transition flex items-center gap-1">
-              Collections
+              {t('header.collections')}
               <span className="text-xs">▼</span>
             </button>
             <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
@@ -184,7 +191,7 @@ export default function Header() {
                   </Link>
                 ))
               ) : (
-                <div className="px-6 py-3 text-gray-400 text-sm">No collections yet</div>
+                <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCollections')}</div>
               )}
             </div>
           </div>

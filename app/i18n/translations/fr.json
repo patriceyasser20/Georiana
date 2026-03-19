@@ -7,8 +7,29 @@
     "sale": "PROMOTIONS",
     "account": "Compte",
     "wishlist": "Liste de souhaits",
-    "language": "Langue"
+    "language": "Langue",
+    "collections": "Collections"
   },
+  "category": {
+  "t-shirts": "T-shirts",
+  "hoodies": "Sweats à capuche",
+  "jeans": "Jeans",
+  "shoes": "Chaussures",
+  "dresses": "Robes",
+  "accessories": "Accessoires",
+  "jackets": "Vestes",
+  "pants": "Pantalons",
+  "blouses": "Chemisiers",
+  "skirts": "Jupes",
+  "tops": "Tops",
+  "cardigans": "Cardigans",
+  "coats": "Manteaux",
+  "heels": "Talons",
+  "handbags": "Sacs à main",
+  "lingerie": "Lingerie",
+  "swimwear": "Maillots de bain",
+  "activewear": "Vêtements de sport"
+},
   "hero": {
     "spring2026": "PRINTEMPS 2026",
     "discover": "Découvrez la nouvelle collection",
@@ -126,13 +147,28 @@
     "copyright": "© 2026 Pawlo • Tous droits réservés",
     "madeInEgypt": "Fabriqué en Égypte avec ❤️"
   },
+  "account": {
+  "title": "Mon Compte",
+  "myOrders": "Mes Commandes",
+  "loading": "Chargement de vos commandes...",
+  "error": "Échec du chargement des commandes",
+  "noOrders": "Vous n'avez pas encore de commandes",
+  "orderNumber": "Commande #",
+  "shippingAddress": "Adresse de livraison",
+  "orderedItems": "Articles commandés :",
+  "total": "Total",
+  "cod": "Paiement à la livraison",
+  "card": "Carte de crédit / débit"
+},
   "common": {
     "loading": "Chargement...",
     "notFound": "Non trouvé",
     "noShipment": "Pas de livraison dans ce pays",
     "continueShopping": "Continuer mes achats",
     "noResults": "Aucun produit trouvé",
-    "processing": "Traitement en cours..."
+    "processing": "Traitement en cours...",
+    "noCategories": "Aucune catégorie pour le moment",
+    "noCollections": "Aucune collection pour le moment"
   },
   "customerService": {
   "title": "Service Client",

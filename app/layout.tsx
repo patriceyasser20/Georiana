@@ -6,7 +6,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { LanguageProvider } from './context/LanguageContext';
 
 export const metadata: Metadata = {
-  title: 'ZARA',
+  title: 'GEORIANA',
   description: 'Modern Fashion Store',
 };
 

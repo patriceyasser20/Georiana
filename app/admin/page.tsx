@@ -12,7 +12,7 @@ export default function AdminPanel() {
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
-  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search'>('products');
+  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes'>('products');
   const [skuSearchTerm, setSkuSearchTerm] = useState('');
   const [skuSearchResult, setSkuSearchResult] = useState<any>(null);
   const [searching, setSearching] = useState(false);
@@ -20,6 +20,8 @@ export default function AdminPanel() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [supportedCountries, setSupportedCountries] = useState<any[]>([]);
+  const [promoCodes, setPromoCodes] = useState<any[]>([]); // NEW
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -42,8 +44,14 @@ export default function AdminPanel() {
     images: [] as File[],
   });
 
-  // Dynamic variants (Color + Size + Stock + SKU + Type Code)
+  // Dynamic variants
   const [variants, setVariants] = useState<any[]>([]);
+
+  // NEW: Promo code form
+  const [promoForm, setPromoForm] = useState({
+    code: '',
+    discountPercentage: '',
+  });
 
   useEffect(() => {
     if (localStorage.getItem('isAdmin') !== 'true') {
@@ -56,7 +64,7 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoading(true);
 
-    const [productsRes, ordersRes, countriesRes] = await Promise.all([
+    const [productsRes, ordersRes, countriesRes, promoRes] = await Promise.all([
       supabaseClient.from('products').select('*'),
       supabaseClient.from('orders').select(`
         *,
@@ -69,12 +77,14 @@ export default function AdminPanel() {
           image_url
         )
       `).order('created_at', { ascending: false }),
-      supabaseClient.from('supported_countries').select('*').order('name')
+      supabaseClient.from('supported_countries').select('*').order('name'),
+      supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false })
     ]);
 
     setProducts(productsRes.data || []);
     setOrders(ordersRes.data || []);
     setSupportedCountries(countriesRes.data || []);
+    setPromoCodes(promoRes.data || []);
 
     const uniqueCollections = [...new Set(
       (productsRes.data || []).map((p: any) => p.collection).filter(Boolean)
@@ -86,21 +96,52 @@ export default function AdminPanel() {
 
   // ==================== DELETE COLLECTION (keep products) ====================
   const deleteCollection = async (colName: string) => {
-    if (!confirm(`Delete collection "${colName}"?\n\nAll products will stay, but they will no longer belong to this collection.`)) {
-      return;
-    }
+    if (!confirm(`Delete collection "${colName}"?\n\nAll products will stay, but they will no longer belong to this collection.`)) return;
 
     const { error } = await supabaseClient
       .from('products')
       .update({ collection: null })
       .eq('collection', colName);
 
-    if (error) {
-      alert('Failed to delete collection: ' + error.message);
-    } else {
+    if (error) alert('Failed: ' + error.message);
+    else {
       alert(`✅ Collection "${colName}" deleted. Products are kept.`);
       loadData();
     }
+  };
+
+  // ==================== PROMO CODE FUNCTIONS ====================
+  const addPromoCode = async () => {
+    if (!promoForm.code.trim() || !promoForm.discountPercentage) {
+      alert('Code and discount percentage are required');
+      return;
+    }
+
+    const { error } = await supabaseClient
+      .from('promo_codes')
+      .insert({
+        code: promoForm.code.trim().toUpperCase(),
+        discount_percentage: Number(promoForm.discountPercentage)
+      });
+
+    if (error) alert('Error: ' + error.message);
+    else {
+      alert('✅ Promo code added!');
+      setPromoForm({ code: '', discountPercentage: '' });
+      loadData();
+    }
+  };
+
+  const deletePromoCode = async (id: string) => {
+    if (!confirm('Delete this promo code?')) return;
+
+    const { error } = await supabaseClient
+      .from('promo_codes')
+      .delete()
+      .eq('id', id);
+
+    if (error) alert('Error: ' + error.message);
+    else loadData();
   };
 
   const addVariant = () => {
@@ -123,7 +164,6 @@ export default function AdminPanel() {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
-  // Open modal for Add or Edit
   const openModal = async (product?: any) => {
     if (product) {
       setEditingProduct(product);
@@ -166,12 +206,11 @@ export default function AdminPanel() {
     setShowAddModal(true);
   };
 
-  // Save (Add or Update)
   const saveProduct = async () => {
     if (
       !form.name ||
       !form.price ||
-      (form.images.length === 0 && !editingProduct) ||   // ← ONLY THIS LINE WAS CHANGED
+      (form.images.length === 0 && !editingProduct) ||
       variants.length === 0 ||
       variants.some((v) => !v.color?.trim() || !v.size?.trim() || !v.sku?.trim() || !v.typeCode?.trim())
     ) {
@@ -341,6 +380,7 @@ export default function AdminPanel() {
             <button onClick={() => setTab('orders')} className={`px-8 py-3 rounded-full ${tab === 'orders' ? 'bg-black text-white' : 'bg-white border'}`}>Orders</button>
             <button onClick={() => setTab('shipping')} className={`px-8 py-3 rounded-full ${tab === 'shipping' ? 'bg-black text-white' : 'bg-white border'}`}>Shipping Countries</button>
             <button onClick={() => setTab('sku-search')} className={`px-8 py-3 rounded-full ${tab === 'sku-search' ? 'bg-black text-white' : 'bg-white border'}`}>SKU Search</button>
+            <button onClick={() => setTab('promo-codes')} className={`px-8 py-3 rounded-full ${tab === 'promo-codes' ? 'bg-black text-white' : 'bg-white border'}`}>Promo Codes</button>
           </div>
 
           {loading && <p className="text-center py-20">Loading...</p>}
@@ -642,6 +682,60 @@ export default function AdminPanel() {
               )}
             </div>
           )}
+
+          {/* ==================== NEW PROMO CODES TAB ==================== */}
+          {tab === 'promo-codes' && !loading && (
+            <div>
+              <h2 className="text-3xl font-light mb-8">Promo Codes</h2>
+
+              {/* Add New Promo Code Form */}
+              <div className="bg-white border rounded-3xl p-8 max-w-md mb-12">
+                <h3 className="text-xl font-medium mb-6">Add New Promo Code</h3>
+                <input
+                  type="text"
+                  placeholder="Promo Code (e.g. SUMMER30)"
+                  value={promoForm.code}
+                  onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })}
+                  className="border rounded-2xl px-6 py-4 w-full text-lg mb-4 font-mono uppercase tracking-widest"
+                />
+                <input
+                  type="number"
+                  placeholder="Discount % (e.g. 30)"
+                  value={promoForm.discountPercentage}
+                  onChange={(e) => setPromoForm({ ...promoForm, discountPercentage: e.target.value })}
+                  className="border rounded-2xl px-6 py-4 w-full text-lg mb-6"
+                />
+                <button
+                  onClick={addPromoCode}
+                  className="w-full bg-black text-white py-4 rounded-2xl text-lg hover:bg-gray-800 transition"
+                >
+                  Add Promo Code
+                </button>
+              </div>
+
+              {/* List of Promo Codes */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {promoCodes.length === 0 ? (
+                  <p className="text-gray-500 col-span-full">No promo codes yet.</p>
+                ) : (
+                  promoCodes.map((promo) => (
+                    <div key={promo.id} className="bg-white border rounded-3xl p-6 flex justify-between items-center">
+                      <div>
+                        <p className="font-mono text-2xl tracking-widest font-medium">{promo.code}</p>
+                        <p className="text-red-600 text-lg font-medium">-{promo.discount_percentage}% OFF</p>
+                      </div>
+                      <button
+                        onClick={() => deletePromoCode(promo.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 size={24} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -760,7 +854,7 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* Variants Section + Legend - unchanged */}
+              {/* Variants Section + Legend */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-lg font-medium">Variants (Color + Type Code + SKU + Size + Stock)</label>

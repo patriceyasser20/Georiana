@@ -7,7 +7,28 @@
     "sale": "SALE",
     "account": "Account",
     "wishlist": "Wishlist",
-    "language": "Language"
+    "language": "Language",
+    "collections": "Collections"
+  },
+  "category": {
+    "t-shirts": "T-Shirts",
+    "hoodies": "Hoodies",
+    "jeans": "Jeans",
+    "shoes": "Shoes",
+    "dresses": "Dresses",
+    "accessories": "Accessories",
+    "jackets": "Jackets",
+    "pants": "Pants",
+    "blouses": "Blouses",
+    "skirts": "Skirts",
+    "tops": "Tops",
+    "cardigans": "Cardigans",
+    "coats": "Coats",
+    "heels": "Heels",
+    "handbags": "Handbags",
+    "lingerie": "Lingerie",
+    "swimwear": "Swimwear",
+    "activewear": "Activewear"
   },
   "hero": {
     "spring2026": "SPRING 2026",
@@ -16,8 +37,8 @@
   },
   "home": {
     "newThisWeek": "New This Week",
-    "aboutTitle": "About Pawlo",
-    "aboutText": "Pawlo is a global fashion brand that brings the latest trends to life with exceptional quality and timeless elegance.",
+    "aboutTitle": "About GEORIANA",
+    "aboutText": "GEORIANA is a global fashion brand that brings the latest trends to life with exceptional quality and timeless elegance.",
     "timelessStyle": "Timeless Style",
     "timelessStyleDesc": "Modern silhouettes with classic appeal",
     "sustainableFuture": "Sustainable Future",
@@ -82,6 +103,19 @@
     "title": "Return & Exchange",
     "text": "We offer free returns within 30 days of purchase. Items must be unworn with tags attached."
   },
+  "account": {
+    "title": "My Account",
+    "myOrders": "My Orders",
+    "loading": "Loading your orders...",
+    "error": "Failed to load orders",
+    "noOrders": "You have no orders yet.",
+    "orderNumber": "Order #",
+    "shippingAddress": "Shipping Address",
+    "orderedItems": "Ordered Items:",
+    "total": "Total",
+    "cod": "Cash on Delivery",
+    "card": "Credit / Debit Card"
+  },
   "login": {
     "title": "Log in",
     "email": "Email address",
@@ -98,7 +132,8 @@
     "button": "CREATE ACCOUNT",
     "haveAccount": "Already have an account?",
     "login": "Log in",
-    "success": "✅ Account created! You can now log in."
+    "success": "✅ Account created! You can now log in.",
+    "OR":"Or Sign Up with"
   },
   "footer": {
     "shop": "Shop",
@@ -114,7 +149,7 @@
     "returns": "Returns & Exchanges",
     "sizeGuide": "Size Guide",
     "contactUs": "Contact Us",
-    "aboutZara": "About Zara",
+    "aboutZara": "About GEORIANA",
     "ourStory": "Our Story",
     "careers": "Careers",
     "press": "Press",
@@ -123,7 +158,7 @@
     "newsletterText": "Subscribe and get 10% off your first order + exclusive offers.",
     "emailPlaceholder": "Your email address",
     "subscribe": "SUBSCRIBE",
-    "copyright": "© 2026 Pawlo • All Rights Reserved",
+    "copyright": "© 2026 GEORIANA • All Rights Reserved",
     "madeInEgypt": "Made in Egypt with ❤️"
   },
   "common": {
@@ -133,7 +168,9 @@
     "continueShopping": "Continue Shopping",
     "noResults": "No products found",
     "processing": "Processing...",
-    "back": "Back"
+    "back": "Back",
+    "noCategories": "No categories yet",
+    "noCollections": "No collections yet"
   },
   "customerService": {
   "title": "Customer Service",
@@ -141,4 +178,4 @@
   "emailSupport": "Email Support",
   "phoneSupport": "Phone Support"
 }
-}
+} 

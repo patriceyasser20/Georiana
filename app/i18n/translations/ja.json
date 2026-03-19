@@ -7,7 +7,8 @@
     "sale": "セール",
     "account": "アカウント",
     "wishlist": "ウィッシュリスト",
-    "language": "言語"
+    "language": "言語",
+    "collections": "コレクション"
   },
   "hero": {
     "spring2026": "2026年春",
@@ -126,6 +127,19 @@
     "copyright": "© 2026 Pawlo • 全著作権所有",
     "madeInEgypt": "エジプト製 ❤️"
   },
+  "account": {
+  "title": "マイアカウント",
+  "myOrders": "注文履歴",
+  "loading": "注文を読み込んでいます...",
+  "error": "注文の読み込みに失敗しました",
+  "noOrders": "まだ注文がありません",
+  "orderNumber": "注文番号 #",
+  "shippingAddress": "配送先住所",
+  "orderedItems": "注文商品：",
+  "total": "合計",
+  "cod": "代金引換",
+  "card": "クレジットカード"
+},
   "common": {
     "loading": "読み込み中...",
     "notFound": "見つかりません",
@@ -133,8 +147,30 @@
     "continueShopping": "ショッピングを続ける",
     "noResults": "製品が見つかりません",
     "processing": "処理中...",
-    "back": "戻る"
+    "back": "戻る",
+    "noCategories": "カテゴリはまだありません",
+    "noCollections": "コレクションはまだありません"
   },
+  "category": {
+  "t-shirts": "Tシャツ",
+  "hoodies": "パーカー",
+  "jeans": "ジーンズ",
+  "shoes": "シューズ",
+  "dresses": "ワンピース",
+  "accessories": "アクセサリー",
+  "jackets": "ジャケット",
+  "pants": "パンツ",
+  "blouses": "ブラウス",
+  "skirts": "スカート",
+  "tops": "トップス",
+  "cardigans": "カーディガン",
+  "coats": "コート",
+  "heels": "ヒール",
+  "handbags": "ハンドバッグ",
+  "lingerie": "ランジェリー",
+  "swimwear": "水着",
+  "activewear": "アクティブウェア"
+},
   "customerService": {
   "title": "カスタマーサービス",
   "text": "24時間いつでもお手伝いします。",

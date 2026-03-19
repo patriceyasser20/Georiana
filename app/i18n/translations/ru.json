@@ -7,7 +7,8 @@
     "sale": "РАСПРОДАЖА",
     "account": "Аккаунт",
     "wishlist": "Избранное",
-    "language": "Язык"
+    "language": "Язык",
+    "collections": "Коллекции"
   },
   "hero": {
     "spring2026": "ВЕСНА 2026",
@@ -108,6 +109,19 @@
     "copyright": "© 2026 Pawlo • Все права защищены",
     "madeInEgypt": "Сделано в Египте с ❤️"
   },
+  "account": {
+  "title": "Мой аккаунт",
+  "myOrders": "Мои заказы",
+  "loading": "Загрузка ваших заказов...",
+  "error": "Не удалось загрузить заказы",
+  "noOrders": "У вас пока нет заказов",
+  "orderNumber": "Заказ #",
+  "shippingAddress": "Адрес доставки",
+  "orderedItems": "Заказанные товары:",
+  "total": "Итого",
+  "cod": "Оплата при получении",
+  "card": "Кредитная / дебетовая карта"
+},
   "common": {
     "loading": "Загрузка...",
     "notFound": "Не найдено",
@@ -115,8 +129,30 @@
     "continueShopping": "Продолжить покупки",
     "noResults": "Товары не найдены",
     "processing": "Обработка...",
-    "back": "Назад"
+    "back": "Назад",
+    "noCategories": "Пока нет категорий",
+    "noCollections": "Пока нет коллекций"
   },
+  "category": {
+  "t-shirts": "Футболки",
+  "hoodies": "Худи",
+  "jeans": "Джинсы",
+  "shoes": "Обувь",
+  "dresses": "Платья",
+  "accessories": "Аксессуары",
+  "jackets": "Куртки",
+  "pants": "Брюки",
+  "blouses": "Блузки",
+  "skirts": "Юбки",
+  "tops": "Топы",
+  "cardigans": "Кардиганы",
+  "coats": "Пальто",
+  "heels": "Каблуки",
+  "handbags": "Сумки",
+  "lingerie": "Нижнее бельё",
+  "swimwear": "Купальники",
+  "activewear": "Спортивная одежда"
+},
   "customerService": {
   "title": "Служба поддержки",
   "text": "Мы здесь, чтобы помочь 24/7.",

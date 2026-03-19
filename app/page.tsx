@@ -4,79 +4,89 @@ import { useEffect, useState } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
-import { supabaseClient as supabase } from '../lib/supabaseClient';
+import { supabaseClient } from '../lib/supabaseClient';
 import { useTranslation } from './context/LanguageContext';
 
 export default function Home() {
   const { t } = useTranslation();
-
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      const { data, error } = await supabase
+    const fetchNewProducts = async () => {
+      const { data } = await supabaseClient
         .from('products')
         .select('*')
+        .order('created_at', { ascending: false })
         .limit(8);
-
-      if (error) {
-        console.error('Error fetching products:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        setProducts([]); // prevent crash
-      } else {
-        setProducts(data || []);
-      }
+      setProducts(data || []);
       setLoading(false);
     };
-
-    fetchProducts();
+    fetchNewProducts();
   }, []);
 
   return (
     <>
       <Header />
+      <div>GAP</div>
+      {/* ==================== HERO WITH FLORAL SIDES ==================== */}
+      <section className="relative h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden">
+        {/* Left Floral Decoration */}
+        <div className="absolute left-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30"></div>
+        
+        {/* Right Floral Decoration */}
+        <div className="absolute right-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30"></div>
 
-      {/* Hero Banner */}
-      <section className="hero relative h-screen">
-        <img 
-          src="/images/hero-fashion.jpg" 
-          alt="Spring 2026" 
-          className="absolute inset-0 w-full h-full object-cover" 
-        />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center">
-          <h1 className="text-7xl md:text-8xl font-light tracking-[6px]">{t('hero.spring2026')}</h1>
-          <p className="text-3xl mt-6 tracking-widest">{t('hero.discover')}</p>
-          <a href="/shop" className="mt-10 inline-block bg-white text-black px-12 py-4 text-sm tracking-widest hover:bg-black hover:text-white transition">
-            {t('Shop Now')}
-          </a>
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center relative z-10">
+          <div className="space-y-8">
+            <h1 className="text-[5.5rem] leading-none font-light tracking-widest text-[#3a2f2f]">
+              SPRING 2026
+            </h1>
+            <p className="text-2xl text-gray-600 max-w-md">
+              Discover the new collection — designed for the modern woman.
+            </p>
+            <a href="/sale" className="inline-block bg-[#d4b8a8] text-white px-12 py-4 rounded-full text-sm tracking-widest hover:bg-[#c9a38f] transition">
+              Shop Now
+            </a>
+            
+          </div>
+
+          <div className="relative">
+            <img 
+              src="https://www.thefashionlaw.com/wp-content/uploads/2017/04/Steven-Meisel-ZARA-Spring-2017-1024x579.jpg" 
+              alt="Spring 2026 Woman" 
+              className="rounded-3xl shadow-2xl" 
+            />
+            {/* Floral accent overlay */}
+            
+          </div>
         </div>
       </section>
 
-      {/* New This Week */}
-      <section id="shop" className="py-24 bg-white">
+      {/* ==================== NEW THIS WEEK WITH FLORAL CORNERS ==================== */}
+      <section className="py-24 bg-white relative">
+        {/* Floral corner decorations */}
+        <div className="absolute top-12 left-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌼</div>
+        <div className="absolute top-12 right-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌸</div>
+
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-center text-5xl font-light tracking-widest mb-16">{t('home.newThisWeek')}</h2>
-          
+          <h2 className="text-center text-4xl font-light tracking-widest mb-16 text-[#3a2f2f]">
+            New This Week
+          </h2>
+
           {loading ? (
-            <p className="text-center text-xl">Loading products...</p>
-          ) : products.length === 0 ? (
-            <p className="text-center text-xl">No products found.</p>
+            <p className="text-center py-20">Loading...</p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {products.map((product) => (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {products.slice(0, 4).map((p) => (
                 <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.price}
-                  img={product.images?.[0] || product.image_url || ''}
-                  isOnSale={product.is_on_sale}                    // ← Added
-                  discountPercentage={product.discount_percentage}  // ← Added
+                  key={p.id}
+                  id={p.id}
+                  name={p.name}
+                  price={p.price}
+                  img={p.images?.[0] || ''}
+                  isOnSale={p.is_on_sale}
+                  discountPercentage={p.discount_percentage}
                 />
               ))}
             </div>
@@ -84,32 +94,33 @@ export default function Home() {
         </div>
       </section>
 
-      {/* About Section */}
-      <section className="py-24 bg-white border-t">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h2 className="text-5xl font-light tracking-widest mb-8">{t('home.aboutTitle')}</h2>
-          
-          <div className="max-w-2xl mx-auto mb-16">
-            <p className="text-xl text-gray-600 leading-relaxed">
-              {t('home.aboutText')}
-            </p>
-          </div>
+      {/* ==================== ABOUT - Feminine with Floral Accents ==================== */}
+      <section className="py-24 bg-[#f8f4f0] relative overflow-hidden">
+        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
+          <h2 className="text-4xl font-light tracking-widest mb-6">About GEORIANA</h2>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+            GEORIANA is a global fashion brand that brings the latest trends to life 
+            with exceptional quality and timeless feminine elegance.
+          </p>
 
-          <div className="flex justify-center gap-16">
-            <div className="text-center max-w-[220px]">
-              <div className="text-7xl mb-6">👗</div>
-              <h3 className="font-medium text-2xl mb-2">{t('home.timelessStyle')}</h3>
-              <p className="text-gray-500">{t('home.timelessStyleDesc')}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-16">
+            <div className="relative">
+              <div className="text-6xl mb-4">🌸</div>
+              <h3 className="text-xl font-medium">Timeless Style</h3>
+              <p className="text-gray-600 mt-3">Modern silhouettes with classic feminine appeal</p>
             </div>
-
-            <div className="text-center max-w-[220px]">
-              <div className="text-7xl mb-6">♻️</div>
-              <h3 className="font-medium text-2xl mb-2">{t('home.sustainableFuture')}</h3>
-              <p className="text-gray-500">{t('home.sustainableFutureDesc')}</p>
+            <div className="relative">
+              <div className="text-6xl mb-4">🌿</div>
+              <h3 className="text-xl font-medium">Sustainable Future</h3>
+              <p className="text-gray-600 mt-3">Committed to responsible and ethical fashion</p>
             </div>
           </div>
         </div>
-      </section>  
+
+        {/* Subtle side flowers */}
+        <div className="absolute bottom-0 left-12 text-[220px] text-[#f5e8d3] opacity-10 pointer-events-none">🌺</div>
+        <div className="absolute top-12 right-12 text-[180px] text-[#f5e8d3] opacity-10 pointer-events-none">🌼</div>
+      </section>
     </>
   );
 }
