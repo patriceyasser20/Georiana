@@ -6,7 +6,6 @@ import Footer from '../components/Footer';
 import { Trash2, Plus, Minus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabaseClient } from '../../lib/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from '../context/LanguageContext';
 
@@ -38,61 +37,9 @@ export default function ReviewOrder() {
 
   const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
 
-  const proceedToCheckout = async () => {
+  const proceedToCheckout = () => {
     if (items.length === 0) return;
-
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    if (!user) {
-      alert(t('reviewOrder.pleaseSignIn'));
-      return;
-    }
-
-    try {
-      const { data: order, error: orderError } = await supabaseClient
-        .from('orders')
-        .insert({
-          user_email: user.email,
-          total: total,
-          payment_method: 'pending',
-          street: 'Test Street',
-          apartment: '1',
-          city: 'Cairo',
-          governorate: 'Cairo',
-          status: 'pending'
-        })
-        .select()
-        .single();
-
-      if (orderError) throw new Error(orderError.message);
-
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        product_name: item.name,
-        size: item.size,
-        color: item.color,
-        quantity: item.quantity,
-        price: item.price,
-        image_url: item.image_url
-      }));
-
-      const { error: itemsError } = await supabaseClient
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw new Error(itemsError.message);
-
-      console.log('✅ Order saved successfully! ID:', order.id);
-
-      // Save order ID so checkout page can update address & payment method
-      localStorage.setItem('pendingOrderId', order.id);
-
-      alert(t('reviewOrder.orderSaved'));
-      router.push('/checkout');
-
-    } catch (error: any) {
-      console.error("Full order error:", error);
-      alert(t('reviewOrder.errorSaving') + (error.message || "Unknown error"));
-    }
+    router.push('/checkout');
   };
 
   return (
@@ -100,7 +47,6 @@ export default function ReviewOrder() {
       <Header />
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-6">
-          
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black mb-6">
             ← {t('common.continueShopping')}
           </Link>

@@ -20,7 +20,7 @@ export default function AdminPanel() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [supportedCountries, setSupportedCountries] = useState<any[]>([]);
-  const [promoCodes, setPromoCodes] = useState<any[]>([]); // NEW
+  const [promoCodes, setPromoCodes] = useState<any[]>([]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -47,10 +47,12 @@ export default function AdminPanel() {
   // Dynamic variants
   const [variants, setVariants] = useState<any[]>([]);
 
-  // NEW: Promo code form
+  // Promo code form with expiration date (optional)
   const [promoForm, setPromoForm] = useState({
     code: '',
     discountPercentage: '',
+    expiresAt: '',
+    neverExpires: false,        // new
   });
 
   useEffect(() => {
@@ -94,7 +96,7 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  // ==================== DELETE COLLECTION (keep products) ====================
+  // ==================== DELETE COLLECTION ====================
   const deleteCollection = async (colName: string) => {
     if (!confirm(`Delete collection "${colName}"?\n\nAll products will stay, but they will no longer belong to this collection.`)) return;
 
@@ -117,19 +119,35 @@ export default function AdminPanel() {
       return;
     }
 
+    const expirationDate = promoForm.neverExpires ? null : promoForm.expiresAt || null;
+
     const { error } = await supabaseClient
       .from('promo_codes')
       .insert({
         code: promoForm.code.trim().toUpperCase(),
-        discount_percentage: Number(promoForm.discountPercentage)
+        discount_percentage: Number(promoForm.discountPercentage),
+        expires_at: expirationDate,
       });
 
     if (error) alert('Error: ' + error.message);
     else {
-      alert('✅ Promo code added!');
-      setPromoForm({ code: '', discountPercentage: '' });
+      alert('✅ Promo code added successfully!');
+      setPromoForm({ code: '', discountPercentage: '', expiresAt: '', neverExpires: false });
       loadData();
     }
+  };
+
+  const renewPromoCode = async (id: string) => {
+    const newDate = prompt('Enter new expiration date (YYYY-MM-DD):');
+    if (!newDate) return;
+
+    const { error } = await supabaseClient
+      .from('promo_codes')
+      .update({ expires_at: newDate })
+      .eq('id', id);
+
+    if (error) alert('Error: ' + error.message);
+    else loadData();
   };
 
   const deletePromoCode = async (id: string) => {
@@ -371,6 +389,8 @@ export default function AdminPanel() {
   return (
     <>
       <Header />
+      <div>h!</div>
+      <div>h!</div>
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-7xl mx-auto px-6">
           <h1 className="text-5xl font-light tracking-widest mb-10">Admin Panel</h1>
@@ -385,7 +405,7 @@ export default function AdminPanel() {
 
           {loading && <p className="text-center py-20">Loading...</p>}
 
-          {/* PRODUCTS TAB - unchanged */}
+          {/* PRODUCTS TAB */}
           {tab === 'products' && !loading && (
             <div>
               {collections.length > 0 && (
@@ -471,7 +491,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* ORDERS TAB - unchanged */}
+          {/* ORDERS TAB */}
           {tab === 'orders' && !loading && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -518,12 +538,16 @@ export default function AdminPanel() {
                     </div>
 
                     <div className="mb-8 bg-gray-50 p-6 rounded-2xl">
-                      <p className="font-medium mb-2">📍 Shipping Address</p>
-                      <p>{order.street || '—'}</p>
-                      <p>
-                        {order.apartment && `${order.apartment}, `}
-                        {order.city}, {order.governorate}
-                      </p>
+                      <p className="font-medium mb-3">📍 Shipping Address</p>
+                      <div className="space-y-1 text-gray-700">
+                        {order.street && <p>{order.street}</p>}
+                        {order.apartment && <p>Apartment: {order.apartment}</p>}
+                        {order.city && <p>City: {order.city}</p>}
+                        {order.governorate && <p>Governorate: {order.governorate}</p>}
+                        {(!order.street && !order.apartment && !order.city && !order.governorate) && (
+                          <p className="text-gray-400">No address provided</p>
+                        )}
+                      </div>
                     </div>
 
                     <p className="font-medium mb-4">Ordered Items:</p>
@@ -556,11 +580,32 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* SHIPPING COUNTRIES TAB - unchanged */}
+          {/* SHIPPING COUNTRIES TAB - With Select All */}
           {tab === 'shipping' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">Shipping Countries</h2>
               <p className="text-gray-600 mb-6">Select the countries you want to sell and ship to:</p>
+
+              {/* Select All Checkbox */}
+              <div className="mb-6 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="selectAll"
+                  checked={supportedCountries.length > 0 && supportedCountries.every(c => c.enabled)}
+                  onChange={(e) => {
+                    const newEnabled = e.target.checked;
+                    supportedCountries.forEach(country => {
+                      if (country.enabled !== newEnabled) {
+                        toggleCountry(country.code, country.enabled);
+                      }
+                    });
+                  }}
+                  className="w-5 h-5 accent-black"
+                />
+                <label htmlFor="selectAll" className="font-medium cursor-pointer">
+                  Select All Countries
+                </label>
+              </div>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {supportedCountries.map((country) => (
@@ -585,19 +630,29 @@ export default function AdminPanel() {
                   </div>
                 ))}
               </div>
+
+              {supportedCountries.length === 0 && (
+                <p className="text-center py-20 text-gray-500">No countries found in database.</p>
+              )}
             </div>
           )}
 
-          {/* SKU SEARCH TAB - unchanged */}
+          {/* SKU SEARCH TAB - Updated with new SKU format + smaller box */}
           {tab === 'sku-search' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">SKU Search</h2>
-              <p className="text-gray-600 mb-6">Enter the exact SKU to find the product + variant:</p>
+              <p className="text-gray-600 mb-6">
+                Enter the exact SKU to find the product + variant:
+                <br />
+                <span className="font-mono text-sm text-black">
+                  Example: GM-DR-25S-JCK-001-BLU-M
+                </span>
+              </p>
 
               <div className="max-w-lg flex gap-3">
                 <input
                   type="text"
-                  placeholder="GM-DR-25S-001-BLK-M"
+                  placeholder="GM-DR-25S-JCK-001-BLU-M"
                   value={skuSearchTerm}
                   onChange={(e) => setSkuSearchTerm(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && searchBySku()}
@@ -612,52 +667,63 @@ export default function AdminPanel() {
                 </button>
               </div>
 
+              {/* SMALLER + WIDER PRODUCT BOX */}
               {skuSearchResult && (
-                <div className="mt-12 bg-white rounded-3xl p-8 border max-w-2xl">
+                <div className="mt-10 bg-white rounded-3xl p-6 border max-w-lg">   {/* ← wider: max-w-lg */}
+
                   {skuSearchResult.products?.images?.[0] && (
                     <img
                       src={skuSearchResult.products.images[0]}
                       alt={skuSearchResult.products.name}
-                      className="w-full h-80 object-cover rounded-2xl"
+                      className="w-full  object-cover rounded-2xl"   /* ← shorter image height */
                     />
                   )}
-                  <div className="mt-8">
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-sm text-gray-500">SKU</span>
-                      <span className="font-mono text-4xl tracking-[4px] font-medium">
+
+                  <div className="mt-6">
+                    {/* SKU */}
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-xs uppercase tracking-widest text-gray-500">SKU</span>
+                      <span className="font-mono text-3xl tracking-[2px] font-medium">
                         {skuSearchResult.sku}
                       </span>
                     </div>
-                    <h3 className="text-3xl font-medium mt-2">{skuSearchResult.products?.name}</h3>
+
+                    {/* Product Name */}
+                    <h3 className="text-2xl font-medium mt-2">{skuSearchResult.products?.name}</h3>
+
+                    {/* Price */}
                     <p className="text-3xl font-medium text-black mt-1">
                       {formatPrice(skuSearchResult.products?.price)}
                     </p>
 
-                    <div className="grid grid-cols-3 gap-6 mt-8 text-sm">
+                    {/* Color / Size / Stock */}
+                    <div className="grid grid-cols-3 gap-6 mt-7 text-sm">
                       <div>
                         <p className="text-gray-500">Color</p>
-                        <p className="font-medium text-lg">{skuSearchResult.color}</p>
+                        <p className="font-medium">{skuSearchResult.color}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Size</p>
-                        <p className="font-medium text-lg">{skuSearchResult.size}</p>
+                        <p className="font-medium">{skuSearchResult.size}</p>
                       </div>
                       <div>
                         <p className="text-gray-500">Stock</p>
-                        <p className="font-medium text-lg">{skuSearchResult.stock}</p>
+                        <p className="font-medium">{skuSearchResult.stock}</p>
                       </div>
                     </div>
 
+                    {/* Description */}
                     {skuSearchResult.products?.description && (
-                      <p className="mt-8 text-gray-600 border-t pt-8">
+                      <p className="mt-7 text-gray-600 text-sm border-t pt-6">
                         {skuSearchResult.products.description}
                       </p>
                     )}
 
-                    <div className="mt-10 flex gap-3">
+                    {/* Buttons */}
+                    <div className="mt-8 flex gap-3">
                       <button
                         onClick={() => openModal(skuSearchResult.products)}
-                        className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                        className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
                       >
                         <Edit2 size={18} /> Edit Product
                       </button>
@@ -668,7 +734,7 @@ export default function AdminPanel() {
                             setSkuSearchResult(null);
                           }
                         }}
-                        className="flex-1 text-red-600 hover:text-red-700 py-3 border border-red-200 hover:border-red-400 rounded-xl transition"
+                        className="flex-1 text-red-600 hover:text-red-700 py-3.5 border border-red-200 hover:border-red-400 rounded-2xl transition"
                       >
                         Delete Product
                       </button>
@@ -678,12 +744,16 @@ export default function AdminPanel() {
               )}
 
               {!skuSearchResult && skuSearchTerm && !searching && (
-                <p className="mt-8 text-red-600 text-lg">No variant found with this SKU.</p>
+                <p className="mt-8 text-red-600 text-lg text-center">No variant found with this SKU.</p>
+              )}
+
+              {skuSearchTerm === '' && (
+                <p className="text-center py-20 text-gray-500">Enter a full SKU to search</p>
               )}
             </div>
           )}
 
-          {/* ==================== NEW PROMO CODES TAB ==================== */}
+          {/* PROMO CODES TAB - Updated with your rules */}
           {tab === 'promo-codes' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">Promo Codes</h2>
@@ -691,6 +761,7 @@ export default function AdminPanel() {
               {/* Add New Promo Code Form */}
               <div className="bg-white border rounded-3xl p-8 max-w-md mb-12">
                 <h3 className="text-xl font-medium mb-6">Add New Promo Code</h3>
+                
                 <input
                   type="text"
                   placeholder="Promo Code (e.g. SUMMER30)"
@@ -698,13 +769,36 @@ export default function AdminPanel() {
                   onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })}
                   className="border rounded-2xl px-6 py-4 w-full text-lg mb-4 font-mono uppercase tracking-widest"
                 />
+                
                 <input
                   type="number"
                   placeholder="Discount % (e.g. 30)"
                   value={promoForm.discountPercentage}
                   onChange={(e) => setPromoForm({ ...promoForm, discountPercentage: e.target.value })}
-                  className="border rounded-2xl px-6 py-4 w-full text-lg mb-6"
+                  className="border rounded-2xl px-6 py-4 w-full text-lg mb-4"
                 />
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">Expiration Date (Optional)</label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="date"
+                      value={promoForm.expiresAt}
+                      onChange={(e) => setPromoForm({ ...promoForm, expiresAt: e.target.value })}
+                      disabled={promoForm.neverExpires}
+                      className="border rounded-2xl px-6 py-4 flex-1"
+                    />
+                    <label className="flex items-center gap-2 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={promoForm.neverExpires}
+                        onChange={(e) => setPromoForm({ ...promoForm, neverExpires: e.target.checked })}
+                      />
+                      Never expires
+                    </label>
+                  </div>
+                </div>
+
                 <button
                   onClick={addPromoCode}
                   className="w-full bg-black text-white py-4 rounded-2xl text-lg hover:bg-gray-800 transition"
@@ -716,22 +810,50 @@ export default function AdminPanel() {
               {/* List of Promo Codes */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promoCodes.length === 0 ? (
-                  <p className="text-gray-500 col-span-full">No promo codes yet.</p>
+                  <p className="text-gray-500 col-span-full py-20 text-center">No promo codes yet. Add your first promo code above.</p>
                 ) : (
-                  promoCodes.map((promo) => (
-                    <div key={promo.id} className="bg-white border rounded-3xl p-6 flex justify-between items-center">
-                      <div>
-                        <p className="font-mono text-2xl tracking-widest font-medium">{promo.code}</p>
-                        <p className="text-red-600 text-lg font-medium">-{promo.discount_percentage}% OFF</p>
-                      </div>
-                      <button
-                        onClick={() => deletePromoCode(promo.id)}
-                        className="text-red-600 hover:text-red-700"
+                  promoCodes.map((promo) => {
+                    const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
+
+                    return (
+                      <div
+                        key={promo.id}
+                        className={`bg-white border rounded-3xl p-6 ${isExpired ? 'border-red-300 bg-red-50' : ''}`}
                       >
-                        <Trash2 size={24} />
-                      </button>
-                    </div>
-                  ))
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-mono text-2xl tracking-widest font-medium">{promo.code}</p>
+                            <p className="text-red-600 text-lg font-medium">-{promo.discount_percentage}% OFF</p>
+                          </div>
+                          <button
+                            onClick={() => deletePromoCode(promo.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 size={24} />
+                          </button>
+                        </div>
+
+                        {isExpired ? (
+                          <p className="text-red-600 text-sm font-medium mt-4">Expiration date passed.</p>
+                        ) : promo.expires_at ? (
+                          <p className="text-sm text-gray-500 mt-4">
+                            Expires: {new Date(promo.expires_at).toLocaleDateString()}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-green-600 mt-4">No expiration date</p>
+                        )}
+
+                        {isExpired && (
+                          <button
+                            onClick={() => renewPromoCode(promo.id)}
+                            className="mt-6 w-full bg-black text-white py-3 rounded-2xl text-sm hover:bg-gray-800"
+                          >
+                            Renew promo code
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -739,7 +861,7 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Add / Edit Modal - unchanged */}
+      {/* Add / Edit Modal - completely unchanged */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl w-full max-w-8xl p-12 relative max-h-[92vh] overflow-y-auto">

@@ -56,7 +56,8 @@ export default function CollectionPage() {
   return (
     <>
       <Header />
-      <div>GAP</div>
+      <div>h!</div>
+      <div>h!</div>
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-7xl mx-auto px-6">
           <h1 className="text-5xl font-light tracking-widest mb-10">

@@ -14,8 +14,8 @@ interface ProductCardProps {
   img: string;
   sizes?: string[];
   colors?: string[];
-  isOnSale?: boolean;           // ← NEW
-  discountPercentage?: number;  // ← NEW
+  isOnSale?: boolean;
+  discountPercentage?: number;
 }
 
 export default function ProductCard({ 
@@ -35,7 +35,7 @@ export default function ProductCard({
   const discount = discountPercentage || 0;
   const salePrice = isOnSale ? Number(price) * (1 - discount / 100) : Number(price);
 
-  // Check if this product is already in wishlist
+  // Check if already in wishlist
   useEffect(() => {
     const checkWishlist = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -56,40 +56,58 @@ export default function ProductCard({
 
   const toggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
     setLoading(true);
 
-    const { data: { user } } = await supabaseClient.auth.getUser();
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
 
-    if (!user) {
-      router.push('/login');
+      if (!user) {
+        alert("Please log in to use wishlist");
+        router.push('/login');
+        return;
+      }
+
+      if (isWishlisted) {
+        // Remove
+        const { error } = await supabaseClient
+          .from('wishlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', id);
+
+        if (error) throw error;
+        setIsWishlisted(false);
+        
+      } else {
+        // Add
+        const { error } = await supabaseClient
+          .from('wishlist')
+          .insert({ 
+            user_id: user.id, 
+            product_id: id 
+          });
+
+        if (error) throw error;
+        setIsWishlisted(true);
+        
+      }
+    } catch (err: any) {
+      console.error('Wishlist error:', err);
+      alert(err.message || "Failed to update wishlist. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    if (isWishlisted) {
-      await supabaseClient
-        .from('wishlist')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('product_id', id);
-      setIsWishlisted(false);
-    } else {
-      await supabaseClient
-        .from('wishlist')
-        .insert({ user_id: user.id, product_id: id });
-      setIsWishlisted(true);
-    }
-
-    setLoading(false);
   };
 
   return (
     <Link href={`/product/${id}`} className="group block">
-      <div className="relative overflow-hidden rounded-3xl bg-white border">
+      <div className="flex flex-col h-full relative overflow-hidden rounded-3xl bg-white border">
         <img 
           src={img} 
           alt={name} 
-          className="w-full aspect-square object-cover group-hover:scale-105 transition-transform duration-500" 
+          className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500" 
         />
 
         {/* Sale Badge */}
@@ -103,7 +121,7 @@ export default function ProductCard({
         <button 
           onClick={toggleWishlist}
           disabled={loading}
-          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:scale-110 transition z-10"
+          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-red-50 hover:scale-110 transition z-10 disabled:opacity-50"
         >
           <Heart 
             size={22} 

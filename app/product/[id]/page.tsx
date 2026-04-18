@@ -205,6 +205,8 @@ export default function ProductDetail() {
   return (
     <>
       <Header />
+      <div>h!</div>
+      <div>h!</div>
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-12">
           

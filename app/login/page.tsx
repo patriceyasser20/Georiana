@@ -6,7 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useTranslation } from '../context/LanguageContext';
-import { Mail, Apple, Twitter } from 'lucide-react';
+import { Mail } from 'lucide-react';
 
 export default function Login() {
   const router = useRouter();
@@ -15,17 +15,20 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   // ==================== SOCIAL LOGIN ====================
-  const signInWithProvider = async (provider: 'google' | 'apple' | 'twitter') => {
+  const signInWithProvider = async (provider: 'google' | 'instagram' | 'tiktok') => {
     setLoading(true);
     setError('');
+    setSuccess('');
 
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/callback`,
       },
     });
 
@@ -37,6 +40,8 @@ export default function Login() {
   const handleLogin = async () => {
     setLoading(true);
     setError('');
+    setSuccess('');
+    setNeedsConfirmation(false);
 
     // ADMIN LOGIN
     if (email.toLowerCase() === 'admin@zara.com' && password === 'admin2026') {
@@ -46,24 +51,47 @@ export default function Login() {
       return;
     }
 
-    const { error: authError } = await supabaseClient.auth.signInWithPassword({
+    const { data, error: authError } = await supabaseClient.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError) {
-      setError(t('login.invalidCredentials'));
-    } else {
+      if (authError.message.includes("Email not confirmed")) {
+        setNeedsConfirmation(true);
+        setError("Please confirm your email first.");
+      } else {
+        setError("Invalid email or password");
+      }
+    } else if (data.user) {
+      setSuccess("Login successful!");
       router.push('/');
     }
 
     setLoading(false);
   };
 
+  // ==================== RESEND CONFIRMATION EMAIL ====================
+  const resendConfirmation = async () => {
+    if (!email) return;
+
+    setLoading(true);
+    const { error } = await supabaseClient.auth.resend({
+      type: 'signup',
+      email,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccess("Confirmation email has been resent. Please check your inbox.");
+    }
+    setLoading(false);
+  };
+
   return (
     <>
       <Header />
-      <div>GAP</div>
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
         <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md w-full">
           <div className="text-center mb-10">
@@ -93,6 +121,17 @@ export default function Login() {
             />
 
             {error && <p className="text-red-600 text-center font-medium">{error}</p>}
+            {success && <p className="text-green-600 text-center font-medium">{success}</p>}
+
+            {needsConfirmation && (
+              <button
+                onClick={resendConfirmation}
+                disabled={loading}
+                className="w-full text-sm text-blue-600 underline"
+              >
+                Resend confirmation email
+              </button>
+            )}
 
             <button
               onClick={handleLogin}
@@ -103,7 +142,7 @@ export default function Login() {
             </button>
           </div>
 
-          {/* ==================== SOCIAL LOGIN BUTTONS (NEW) ==================== */}
+          {/* Social Login */}
           <div className="my-8 relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-200"></div>
@@ -123,26 +162,25 @@ export default function Login() {
               <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-6" />
             </button>
 
-            {/* Apple */}
+            {/* Instagram */}
             <button
-              onClick={() => signInWithProvider('apple')}
+              onClick={() => signInWithProvider('instagram')}
               disabled={loading}
               className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition"
             >
-              <Apple size={24} />
+              <img src="/images/instagram.png" alt="Instagram" className="w-8" />
             </button>
 
-            {/* X (Twitter) */}
+            {/* TikTok */}
             <button
-              onClick={() => signInWithProvider('twitter')}
+              onClick={() => signInWithProvider('tiktok')}
               disabled={loading}
               className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition"
             >
-              <Twitter size={24} />
+              <img src="/images/tiktok.png" alt="TikTok" className="w-8" />
             </button>
           </div>
 
-          {/* Sign up link */}
           <div className="text-center mt-10 text-sm">
             {t('login.noAccount')}{' '}
             <span 
@@ -153,7 +191,6 @@ export default function Login() {
             </span>
           </div>
 
-          {/* Admin hint */}
           <div className="text-center mt-6 text-xs text-gray-500">
             Admin Login: admin@zara.com / admin2026
           </div>

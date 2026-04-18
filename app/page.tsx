@@ -28,7 +28,6 @@ export default function Home() {
   return (
     <>
       <Header />
-      <div>GAP</div>
       {/* ==================== HERO WITH FLORAL SIDES ==================== */}
       <section className="relative h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden">
         {/* Left Floral Decoration */}
@@ -45,7 +44,7 @@ export default function Home() {
             <p className="text-2xl text-gray-600 max-w-md">
               Discover the new collection — designed for the modern woman.
             </p>
-            <a href="/sale" className="inline-block bg-[#d4b8a8] text-white px-12 py-4 rounded-full text-sm tracking-widest hover:bg-[#c9a38f] transition">
+            <a href="/shop" className="inline-block bg-[#d4b8a8] text-white px-12 py-4 rounded-full text-sm tracking-widest hover:bg-[#c9a38f] transition">
               Shop Now
             </a>
             

@@ -22,7 +22,7 @@ export default function Checkout() {
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
 
-  // Shipping form fields (unchanged)
+  // Shipping form fields
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,17 +30,58 @@ export default function Checkout() {
   const [street, setStreet] = useState('');
   const [apartment, setApartment] = useState('');
   const [postalCode, setPostalCode] = useState('');
-  const [city, setCity] = useState('');
+  const [city, setCity] = useState(''); // kept for compatibility
+
+  // Governorate + Delivery Fee
+  const [governorate, setGovernorate] = useState('');
+  const [deliveryFee, setDeliveryFee] = useState(0);
 
   // Country
   const [country, setCountry] = useState('');
   const [allCountries, setAllCountries] = useState<any[]>([]);
   const [isCountrySupported, setIsCountrySupported] = useState(true);
 
-  // ==================== NEW: PROMO CODE ====================
+  // Promo Code
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState('');
+
+  // Egyptian Governorates with delivery fees (admin can manage later)
+  const governorateFees: { [key: string]: number } = {
+    'Cairo': 50,
+    'Giza': 50,
+    'Alexandria': 80,
+    'Port Said': 100,
+    'Suez': 90,
+    'Luxor': 120,
+    'Aswan': 150,
+    'Ismailia': 80,
+    'Damietta': 70,
+    'Sharqia': 60,
+    'Dakahlia': 65,
+    'Beheira': 55,
+    'Kafr El Sheikh': 70,
+    'Matruh': 120,
+    'Red Sea': 130,
+    'South Sinai': 140,
+    'North Sinai': 110,
+    'Qena': 110,
+    'Sohag': 100,
+    'Assiut': 95,
+    'Beni Suef': 70,
+    'Fayoum': 65,
+    'Minya': 90,
+  };
+
+  // ==================== PRE-FILL EMAIL & PHONE IF USER IS LOGGED IN ====================
+  useEffect(() => {
+    const getUserData = async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user?.email) setEmail(user.email);
+      if (user?.user_metadata?.phone) setPhone(user.user_metadata.phone);
+    };
+    getUserData();
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('reviewOrder');
@@ -54,19 +95,19 @@ export default function Checkout() {
     }
   }, []);
 
-  // Load ALL countries
+  // Load countries (only enabled ones by admin)
   useEffect(() => {
     const fetchCountries = async () => {
       const { data } = await supabaseClient
         .from('supported_countries')
         .select('*')
+        .eq('enabled', true)
         .order('name');
       setAllCountries(data || []);
     };
     fetchCountries();
   }, []);
 
-  // Check if selected country is enabled
   useEffect(() => {
     if (!country) {
       setIsCountrySupported(true);
@@ -76,11 +117,20 @@ export default function Checkout() {
     setIsCountrySupported(selected?.enabled || false);
   }, [country, allCountries]);
 
+  // Update delivery fee when governorate changes
+  useEffect(() => {
+    if (governorate && governorateFees[governorate]) {
+      setDeliveryFee(governorateFees[governorate]);
+    } else {
+      setDeliveryFee(0);
+    }
+  }, [governorate]);
+
   const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount_percentage / 100) : 0;
-  const finalTotal = subtotal - discountAmount;
+  const finalTotal = subtotal - discountAmount + deliveryFee;
 
-  // ==================== APPLY PROMO CODE ====================
+  // Apply Promo Code
   const applyPromoCode = async () => {
     if (!promoCodeInput.trim()) return;
 
@@ -101,33 +151,83 @@ export default function Checkout() {
     }
   };
 
-  // Update the order in Supabase with real address & payment method
-  const updateOrderDetails = async () => {
-    const orderId = localStorage.getItem('pendingOrderId');
-    if (!orderId) return;
+  // ==================== CREATE OR UPDATE ORDER ====================
+  const createOrUpdateOrder = async () => {
+    let orderId = localStorage.getItem('pendingOrderId');
 
-    const selectedCountry = allCountries.find(c => c.code === country);
     const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
 
-    const { error: updateError } = await supabaseClient
-      .from('orders')
-      .update({
-        street: street,
-        apartment: apartment,
-        city: city,
-        governorate: selectedCountry?.name || country,
-        payment_method: paymentLabel,
-        status: paymentMethod === 'cod' ? 'confirmed' : 'pending',
-        promo_code: appliedPromo?.code || null,        // ← NEW
-        discount_amount: discountAmount || 0           // ← NEW
-      })
-      .eq('id', orderId);
+    if (!orderId) {
+      // CREATE new order
+      const initialStatus = paymentMethod === 'cod' ? 'succeeded' : 'pending';
 
-    if (updateError) {
-      console.error('Failed to update order:', updateError);
+      const { data: newOrder, error } = await supabaseClient
+        .from('orders')
+        .insert({
+          user_email: email || 'guest@georgiana.com',
+          total: subtotal,
+          payment_method: paymentLabel,
+          street: street || null,
+          apartment: apartment || null,
+          city: city || 'Cairo',
+          governorate: governorate || 'Cairo',
+          delivery_fee: deliveryFee,
+          status: initialStatus,
+          promo_code: appliedPromo?.code || null,
+          discount_amount: discountAmount || 0
+        })
+        .select()
+        .single();
+
+      if (error || !newOrder) {
+        console.error('Failed to create order:', error);
+        throw new Error('Failed to create order');
+      }
+
+      orderId = newOrder.id as string;
+      localStorage.setItem('pendingOrderId', orderId);
+
+      // === IMPORTANT: Insert order_items now ===
+      const orderItemsData = items.map(item => ({
+        order_id: orderId,
+        product_name: item.name,
+        size: item.size || null,
+        color: item.color || null,
+        quantity: item.quantity,
+        price: item.price,
+        image_url: item.image_url || null
+      }));
+
+      const { error: itemsError } = await supabaseClient
+        .from('order_items')
+        .insert(orderItemsData);
+
+      if (itemsError) {
+        console.error('Failed to insert order items:', itemsError);
+      }
+    } else {
+      // Update existing order
+      const { error: updateError } = await supabaseClient
+        .from('orders')
+        .update({
+          user_email: email || 'guest@georgiana.com',
+          phone: phone || null,
+          street: street || null,
+          apartment: apartment || null,
+          city: city || 'Cairo',
+          governorate: governorate || 'Cairo',
+          delivery_fee: deliveryFee,
+          payment_method: paymentLabel,
+          status: paymentMethod === 'cod' ? 'succeeded' : 'pending',
+          promo_code: appliedPromo?.code || null,
+          discount_amount: discountAmount || 0
+        })
+        .eq('id', orderId);
+
+      if (updateError) console.error('Update error:', updateError);
     }
 
-    localStorage.removeItem('pendingOrderId');
+    return orderId;
   };
 
   const handlePayment = async () => {
@@ -140,34 +240,41 @@ export default function Checkout() {
     setLoading(true);
     setError('');
 
-    await updateOrderDetails();
+    try {
+      const orderId = await createOrUpdateOrder();
 
-    if (paymentMethod === 'stripe') {
-      try {
+      if (paymentMethod === 'stripe') {
         const stripeItems = items.map(item => ({
           name: item.name,
           price: Number(item.price),
           quantity: Number(item.quantity)
         }));
 
-        // Use final discounted total
         const result = await createStripeCheckout(finalTotal, stripeItems);
 
         if (result?.url) {
           localStorage.removeItem('reviewOrder');
           window.location.href = result.url;
+        } else {
+          throw new Error("No Stripe URL returned");
         }
-      } catch (err: any) {
-        setError(err.message || 'Stripe failed');
+      } 
+      else if (paymentMethod === 'cod') {
+        localStorage.removeItem('reviewOrder');
+        localStorage.removeItem('pendingOrderId');
+        
+        router.push('/checkout/success');
+      } 
+      else {
+        alert("Fawry coming soon");
       }
-    } else if (paymentMethod === 'cod') {
-      localStorage.removeItem('reviewOrder');
-      router.push('/checkout/success');
-    } else {
-      alert("Fawry coming soon");
+    } catch (err: any) {
+      console.error("Full Payment Error:", err);
+      setError(err.message || 'Payment failed. Check console for details.');
+      alert("Error: " + (err.message || 'Unknown error occurred'));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -176,7 +283,7 @@ export default function Checkout() {
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-5 gap-10">
 
-          {/* Left: Form - unchanged */}
+          {/* Left: Form */}
           <div className="md:col-span-3">
             <h1 className="text-4xl font-light tracking-widest mb-10">{t('checkout.title')}</h1>
 
@@ -195,21 +302,35 @@ export default function Checkout() {
                 <input type="text" placeholder={t('checkout.apartment')} value={apartment} onChange={e => setApartment(e.target.value)} className="border rounded-2xl px-5 py-4" />
                 <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4" />
               </div>
-              <input type="text" placeholder={t('checkout.city')} value={city} onChange={e => setCity(e.target.value)} className="border rounded-2xl px-5 py-4 w-full mt-4" />
 
-              {/* Country Selector */}
-              <div className="mt-4">
+              {/* Country Dropdown - Shows only what admin enabled */}
+              <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">{t('checkout.country')}</label>
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   className="border rounded-2xl px-5 py-4 w-full focus:outline-none focus:border-black"
                 >
-                  <option value="">{t('checkout.selectCountry')}</option>
+                  <option value="">Select Country</option>
                   {allCountries.map(c => (
                     <option key={c.code} value={c.code}>
                       {c.name}
                     </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Governorate Dropdown */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-2">Governorate</label>
+                <select
+                  value={governorate}
+                  onChange={(e) => setGovernorate(e.target.value)}
+                  className="border rounded-2xl px-5 py-4 w-full focus:outline-none focus:border-black"
+                >
+                  <option value="">Select Governorate</option>
+                  {Object.keys(governorateFees).map(gov => (
+                    <option key={gov} value={gov}>{gov}</option>
                   ))}
                 </select>
               </div>
@@ -258,7 +379,6 @@ export default function Checkout() {
                 </div>
               ))}
 
-              {/* ==================== PROMO CODE INPUT ==================== */}
               <div className="mt-8 border-t pt-8">
                 <div className="flex gap-3">
                   <input
@@ -283,12 +403,18 @@ export default function Checkout() {
                 )}
               </div>
 
-              {/* Totals */}
               <div className="mt-10 space-y-3 text-lg">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+
+                {deliveryFee > 0 && (
+                  <div className="flex justify-between">
+                    <span>Delivery Fee ({governorate})</span>
+                    <span>{formatPrice(deliveryFee)}</span>
+                  </div>
+                )}
 
                 {appliedPromo && (
                   <div className="flex justify-between text-red-600">
@@ -307,7 +433,7 @@ export default function Checkout() {
 
               <button
                 onClick={handlePayment}
-                disabled={loading || !isCountrySupported || !country}
+                disabled={loading || !isCountrySupported || !country || !governorate}
                 className="w-full mt-8 bg-black text-white py-5 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
                 {loading 
@@ -323,6 +449,7 @@ export default function Checkout() {
           </div>
         </div>
       </div>
+      <Footer />
     </>
   );
 }

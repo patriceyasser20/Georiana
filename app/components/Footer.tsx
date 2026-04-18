@@ -10,14 +10,35 @@ export default function Footer() {
     <footer className="bg-[#111] text-[#ddd] pt-20 pb-8">
       <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-12">
         
-        {/* Column 1 - Shop */}
+        {/* Column 1 - Social Media (aligned left) */}
         <div className="footer-col">
-          <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-5">{t('footer.shop')}</h3>
-          <ul className="space-y-3 text-sm">
-            <li><a href="#" className="hover:text-white transition-colors">{t('footer.woman')}</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">{t('footer.newCollection')}</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">{t('footer.sale')}</a></li>
-          </ul>
+          <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-5">FOLLOW US</h3>
+          <div className="flex gap-6 absolute left-67 ">   {/* ← Changed to justify-start */}
+            <a 
+              href="https://facebook.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:scale-110 transition-transform"
+            >
+              <img src="/images/facebook.webp" alt="Facebook" className="h-14 w-14" />
+            </a>
+            <a 
+              href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:scale-110 transition-transform"
+            >
+              <img src="/images/instgram.webp" alt="Instagram" className="h-14 w-14" />
+            </a>
+            <a 
+              href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover:scale-110 transition-transform"
+            >
+              <img src="/images/tiktok.png" alt="Instagram" className="h-14 w-14" />
+            </a>
+          </div>
         </div>
 
         {/* Column 2 - Help */}
@@ -33,7 +54,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Column 3 - About Zara */}
+        {/* Column 3 - About */}
         <div className="footer-col">
           <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-5">{t('footer.aboutZara')}</h3>
           <ul className="space-y-3 text-sm">
@@ -73,8 +94,6 @@ export default function Footer() {
           <div className="payment-icons flex flex-wrap gap-4 mt-8">
             <img src="/images/visa.jpg" alt="Visa" className="h-6 opacity-80" />
             <img src="/images/mastercard.jpg" alt="Mastercard" className="h-6 opacity-80" />
-            <img src="/images/fawry.jpg" alt="Fawry" className="h-6 opacity-80" />
-            <img src="/images/paypal.jpg" alt="PayPal" className="h-6 opacity-80" />
           </div>
         </div>
       </div>
