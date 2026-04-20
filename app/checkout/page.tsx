@@ -126,29 +126,54 @@ export default function Checkout() {
     }
   }, [governorate]);
 
+  // Auto clear error when all required fields are filled
+  useEffect(() => {
+    if (firstName && lastName && email && phone && street && apartment && governorate && country) {
+      setError('');
+    }
+  }, [firstName, lastName, email, phone, street, apartment, governorate, country]);
+
+  // ==================== AUTO CLEAR ERROR WHEN ALL REQUIRED FIELDS ARE FILLED ====================
+  useEffect(() => {
+    if (firstName && lastName && email && phone && street && apartment && governorate && country) {
+      setError('');
+    }
+  }, [firstName, lastName, email, phone, street, apartment, governorate, country]);
+
   const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount_percentage / 100) : 0;
   const finalTotal = subtotal - discountAmount + deliveryFee;
 
-  // Apply Promo Code
+  // ==================== APPLY PROMO CODE ====================
   const applyPromoCode = async () => {
     if (!promoCodeInput.trim()) return;
 
     setPromoError('');
     setAppliedPromo(null);
 
+    const code = promoCodeInput.trim().toUpperCase();
+
     const { data, error } = await supabaseClient
       .from('promo_codes')
       .select('*')
-      .eq('code', promoCodeInput.trim().toUpperCase())
+      .eq('code', code)
       .single();
 
     if (error || !data) {
       setPromoError('Invalid promo code');
-    } else {
-      setAppliedPromo(data);
-      alert(`✅ Promo code applied! ${data.discount_percentage}% OFF`);
+      return;
     }
+
+    const now = new Date();
+    const expiryDate = data.expires_at ? new Date(data.expires_at) : null;
+
+    if (expiryDate && expiryDate < now) {
+      setPromoError('Invalid Promo Code');
+      return;
+    }
+
+    setAppliedPromo(data);
+    alert(`✅ Promo code applied! ${data.discount_percentage}% OFF`);
   };
 
   // ==================== CREATE OR UPDATE ORDER ====================
@@ -158,7 +183,6 @@ export default function Checkout() {
     const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
 
     if (!orderId) {
-      // CREATE new order
       const initialStatus = paymentMethod === 'cod' ? 'succeeded' : 'pending';
 
       const { data: newOrder, error } = await supabaseClient
@@ -169,8 +193,8 @@ export default function Checkout() {
           payment_method: paymentLabel,
           street: street || null,
           apartment: apartment || null,
-          city: city || 'Cairo',
-          governorate: governorate || 'Cairo',
+          city: city || null,
+          governorate: governorate || 'null',
           delivery_fee: deliveryFee,
           status: initialStatus,
           promo_code: appliedPromo?.code || null,
@@ -187,7 +211,6 @@ export default function Checkout() {
       orderId = newOrder.id as string;
       localStorage.setItem('pendingOrderId', orderId);
 
-      // === IMPORTANT: Insert order_items now ===
       const orderItemsData = items.map(item => ({
         order_id: orderId,
         product_name: item.name,
@@ -206,7 +229,6 @@ export default function Checkout() {
         console.error('Failed to insert order items:', itemsError);
       }
     } else {
-      // Update existing order
       const { error: updateError } = await supabaseClient
         .from('orders')
         .update({
@@ -236,6 +258,11 @@ export default function Checkout() {
       setError(t('common.noShipment'));
       return;
     }
+    // Validation: All fields except postalCode are required
+    if (!firstName || !lastName || !email || !phone || !street || !apartment || !governorate || !country) {
+      setError('Please fill in all required fields');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -253,29 +280,30 @@ export default function Checkout() {
         const result = await createStripeCheckout(finalTotal, stripeItems);
 
         if (result?.url) {
+          // Save order ID temporarily for Stripe success page
+          localStorage.setItem('last_created_order_id', orderId);
           localStorage.removeItem('reviewOrder');
           window.location.href = result.url;
         } else {
-          throw new Error("No Stripe URL returned");
-        }
-      } 
+            throw new Error("No Stripe URL returned");
+          }
+        } 
       else if (paymentMethod === 'cod') {
         localStorage.removeItem('reviewOrder');
         localStorage.removeItem('pendingOrderId');
-        
-        router.push('/checkout/success');
+        router.push(`/checkout/success?order_id=${orderId}`);
       } 
       else {
         alert("Fawry coming soon");
       }
     } catch (err: any) {
       console.error("Full Payment Error:", err);
-      setError(err.message || 'Payment failed. Check console for details.');
+      setError(err.message || 'Payment failed');
       alert("Error: " + (err.message || 'Unknown error occurred'));
     } finally {
       setLoading(false);
     }
-  };
+};
 
   return (
     <>
@@ -303,7 +331,6 @@ export default function Checkout() {
                 <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4" />
               </div>
 
-              {/* Country Dropdown - Shows only what admin enabled */}
               <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">{t('checkout.country')}</label>
                 <select
@@ -320,7 +347,6 @@ export default function Checkout() {
                 </select>
               </div>
 
-              {/* Governorate Dropdown */}
               <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">Governorate</label>
                 <select
@@ -364,6 +390,7 @@ export default function Checkout() {
 
           {/* Right: Order Summary + Promo Code */}
           <div className="md:col-span-2">
+            <div>H!</div>
             <div className="bg-white rounded-3xl p-8 sticky top-8">
               <h2 className="text-2xl font-medium mb-8">{t('checkout.orderSummary')}</h2>
 
@@ -449,7 +476,6 @@ export default function Checkout() {
           </div>
         </div>
       </div>
-      <Footer />
     </>
   );
 }

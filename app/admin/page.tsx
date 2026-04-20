@@ -513,7 +513,8 @@ export default function AdminPanel() {
                     <div className="flex justify-between mb-6">
                       <div>
                         <p className="text-sm text-gray-500">Order #{order.id.slice(0, 8)}...</p>
-                        <p className="font-medium">{order.user_email || 'Guest'}</p>
+                        <p className="font-medium">Email: {order.user_email || 'Guest'}</p>
+                        <p className="font-medium">Phone Number: {order.phone || 'Guest'}</p>
                         <p className="text-sm text-gray-500">
                           {new Date(order.created_at).toLocaleString(undefined, {
                             year: 'numeric',
@@ -526,7 +527,7 @@ export default function AdminPanel() {
                         </p>
                       </div>
                       <span
-                        className={`px-6 py-2 rounded-full text-sm font-medium ${
+                        className={`px-2 py-8 rounded-full text-sm font-medium ${
                           (order.payment_method || '').toLowerCase().includes('cash') ||
                           (order.payment_method || '').toLowerCase().includes('delivery')
                             ? 'bg-green-100 text-green-700'
@@ -568,11 +569,17 @@ export default function AdminPanel() {
                         </div>
                         <p className="font-medium">{formatPrice(item.price)}</p>
                       </div>
-                    ))}
-
-                    <div className="mt-10 flex justify-between text-2xl font-medium border-t pt-8">
+                    ))} 
+                    {/* Delivery Fee */}
+                    {order.delivery_fee && order.delivery_fee > 0 && (
+                      <div className="flex justify-between text-lg mt-6">
+                        <span className="text-gray-600">Delivery Fee</span>
+                        <span className="font-medium">EGP {order.delivery_fee}</span>
+                      </div>
+                    )}
+                    <div className="mt-10 flex justify-between text-2xl font-medium pt-8">
                       <span>Total</span>
-                      <span>{formatPrice(order.total)}</span>
+                      <span>EGP {Number(order.total || 0) + Number(order.delivery_fee || 0)}</span>
                     </div>
                   </div>
                 ))

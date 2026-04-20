@@ -12,10 +12,9 @@ interface ProductCardProps {
   name: string;
   price: string | number;
   img: string;
-  sizes?: string[];
-  colors?: string[];
   isOnSale?: boolean;
   discountPercentage?: number;
+  onRemove?: (productId: string) => void; // ✅ NEW
 }
 
 export default function ProductCard({ 
@@ -24,7 +23,8 @@ export default function ProductCard({
   price, 
   img, 
   isOnSale = false, 
-  discountPercentage = 0 
+  discountPercentage = 0,
+  onRemove // ✅ NEW
 }: ProductCardProps) {
   const router = useRouter();
   const { formatPrice } = useCurrency();
@@ -35,7 +35,6 @@ export default function ProductCard({
   const discount = discountPercentage || 0;
   const salePrice = isOnSale ? Number(price) * (1 - discount / 100) : Number(price);
 
-  // Check if already in wishlist
   useEffect(() => {
     const checkWishlist = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -46,7 +45,7 @@ export default function ProductCard({
         .select('id')
         .eq('user_id', user.id)
         .eq('product_id', id)
-        .single();
+        .maybeSingle();
 
       setIsWishlisted(!!data);
     };
@@ -70,7 +69,7 @@ export default function ProductCard({
       }
 
       if (isWishlisted) {
-        // Remove
+        // 🔥 REMOVE
         const { error } = await supabaseClient
           .from('wishlist')
           .delete()
@@ -78,10 +77,16 @@ export default function ProductCard({
           .eq('product_id', id);
 
         if (error) throw error;
+
         setIsWishlisted(false);
-        
+
+        // ✅ Tell parent to remove this card
+        if (onRemove) {
+          onRemove(id);
+        }
+
       } else {
-        // Add
+        // ADD
         const { error } = await supabaseClient
           .from('wishlist')
           .insert({ 
@@ -90,12 +95,12 @@ export default function ProductCard({
           });
 
         if (error) throw error;
+
         setIsWishlisted(true);
-        
       }
+
     } catch (err: any) {
       console.error('Wishlist error:', err);
-      alert(err.message || "Failed to update wishlist. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -110,22 +115,20 @@ export default function ProductCard({
           className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500" 
         />
 
-        {/* Sale Badge */}
         {isOnSale && discount > 0 && (
           <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">
             -{discount}%
           </div>
         )}
 
-        {/* Real Wishlist Button */}
         <button 
           onClick={toggleWishlist}
           disabled={loading}
-          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-red-50 hover:scale-110 transition z-10 disabled:opacity-50"
+          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-red-50 hover:scale-110 transition z-10"
         >
           <Heart 
             size={22} 
-            className={`transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} 
+            className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'} 
           />
         </button>
 
@@ -135,7 +138,7 @@ export default function ProductCard({
           <div className="flex items-baseline gap-2 mt-1">
             {isOnSale && discount > 0 ? (
               <>
-                <span className="text-xl font-medium line-through text-gray-400">
+                <span className="text-xl line-through text-gray-400">
                   {formatPrice(Number(price))}
                 </span>
                 <span className="text-2xl font-bold text-red-600">
@@ -143,7 +146,9 @@ export default function ProductCard({
                 </span>
               </>
             ) : (
-              <span className="text-2xl font-medium">{formatPrice(Number(price))}</span>
+              <span className="text-2xl font-medium">
+                {formatPrice(Number(price))}
+              </span>
             )}
           </div>
         </div>

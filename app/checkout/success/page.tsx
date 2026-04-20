@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Link from 'next/link';
@@ -9,7 +9,6 @@ import { supabaseClient } from '../../../lib/supabaseClient';
 
 export default function CheckoutSuccess() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const orderIdFromUrl = searchParams.get('order_id');
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -17,25 +16,14 @@ export default function CheckoutSuccess() {
 
   useEffect(() => {
     const confirmOrder = async () => {
-      let orderId = orderIdFromUrl;
+      let finalOrderId = orderIdFromUrl;
 
-      // If no order_id in URL (COD case), get the latest order for the user
-      if (!orderId) {
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user?.email) {
-          const { data } = await supabaseClient
-            .from('orders')
-            .select('id')
-            .eq('user_email', user.email)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (data) orderId = data.id;
-        }
+      // If no order_id in URL (Stripe or COD), check localStorage
+      if (!finalOrderId) {
+        finalOrderId = localStorage.getItem('last_created_order_id');
       }
 
-      if (!orderId) {
+      if (!finalOrderId) {
         setStatus('error');
         setMessage('No order ID found');
         return;
@@ -45,23 +33,21 @@ export default function CheckoutSuccess() {
         const { error } = await supabaseClient
           .from('orders')
           .update({ status: 'succeeded' })
-          .eq('id', orderId);
+          .eq('id', finalOrderId);
 
-        if (error) {
-          console.error('Update error:', error);
-          setStatus('error');
-          setMessage('Failed to confirm order');
-          return;
-        }
+        if (error) throw error;
 
         setStatus('success');
+
+        // Clean up
         localStorage.removeItem('reviewOrder');
         localStorage.removeItem('pendingOrderId');
+        localStorage.removeItem('last_created_order_id');
 
       } catch (err) {
         console.error(err);
         setStatus('error');
-        setMessage('Something went wrong');
+        setMessage('Failed to confirm your order');
       }
     };
 
@@ -95,11 +81,17 @@ export default function CheckoutSuccess() {
               <p className="text-xl text-gray-600 mt-4">Your order has been placed successfully.</p>
               <p className="text-xl text-gray-600 mt-4">Confirmation email has been sent.</p>
 
-              <div className="mt-10 space-x-4">
-                <Link href="/account" className="inline-block bg-black text-white px-10 py-4 rounded-full hover:bg-gray-800">
+              <div className="mt-12 space-x-4">
+                <Link 
+                  href="/account" 
+                  className="inline-block bg-black text-white px-10 py-4 rounded-full hover:bg-gray-800"
+                >
                   View My Orders
                 </Link>
-                <Link href="/" className="inline-block text-gray-600 hover:text-black">
+                <Link 
+                  href="/" 
+                  className="inline-block text-gray-600 hover:text-black"
+                >
                   Return to Shop
                 </Link>
               </div>
@@ -109,13 +101,17 @@ export default function CheckoutSuccess() {
               <h1 className="text-6xl mb-6">⚠️</h1>
               <h2 className="text-4xl font-light text-red-600">Something went wrong</h2>
               <p className="text-xl text-gray-600 mt-4">{message}</p>
-              <Link href="/account" className="mt-8 inline-block bg-black text-white px-10 py-4 rounded-full hover:bg-gray-800">
+              <Link 
+                href="/account" 
+                className="mt-8 inline-block bg-black text-white px-10 py-4 rounded-full hover:bg-gray-800"
+              >
                 Go to My Account
               </Link>
             </>
           )}
         </div>
       </div>
+      <Footer />
     </>
   );
 }

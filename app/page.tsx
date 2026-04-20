@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
@@ -28,7 +29,7 @@ export default function Home() {
   return (
     <>
       <Header />
-      {/* ==================== HERO WITH FLORAL SIDES ==================== */}
+      {/* ==================== YOUR ORIGINAL HERO (unchanged) ==================== */}
       <section className="relative h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden">
         {/* Left Floral Decoration */}
         <div className="absolute left-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30"></div>
@@ -47,7 +48,6 @@ export default function Home() {
             <a href="/shop" className="inline-block bg-[#d4b8a8] text-white px-12 py-4 rounded-full text-sm tracking-widest hover:bg-[#c9a38f] transition">
               Shop Now
             </a>
-            
           </div>
 
           <div className="relative">
@@ -56,17 +56,115 @@ export default function Home() {
               alt="Spring 2026 Woman" 
               className="rounded-3xl shadow-2xl" 
             />
-            {/* Floral accent overlay */}
-            
           </div>
         </div>
       </section>
+
+            {/* ==================== ZIGZAG MODEL GALLERY WITH TEXT ==================== */}
+      <section className="py-20 bg-white overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+            {/* Left Column */}
+            <div className="space-y-20">
+              <div className="absolute  left-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌸</div>
+              <motion.div
+                initial={{ opacity: 0, x: -60 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="flex justify-end gap-12 items-center"   // ← Increased gap + better alignment
+              >
+                <img 
+                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg" 
+                  alt="Model 1"
+                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"   // ← Fixed width
+                />
+                <div className="max-w-[220px]">   {/* ← Controls text width and pushes it right */}
+                  <h3 className="text-3xl font-light">Shoflna ba2a kalam yat2al</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">
+                    Effortless style meets everyday comfort
+                  </p>
+                </div>
+              </motion.div>
+              <div className="absolute  right-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌼</div>
+
+              {/* Second image on left (you can add more if needed) */}
+              <motion.div
+                initial={{ opacity: 0, x: -60 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="flex justify-end gap-12 items-center"
+              >
+                <img 
+                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png" 
+                  alt="Model 2"
+                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
+                />
+                <div className="max-w-[220px]">
+                  <h3 className="text-3xl font-light">a2ol 7aga</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">
+                    Light, breathable, and effortlessly elegant
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Right Column - shifted down a little */}
+            <div className="space-y-20 lg:mt-90">
+              <motion.div
+                initial={{ opacity: 0, x: 60 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="flex justify-start gap-12 items-center"
+              >
+                <div className="max-w-[220px] text-left">   {/* ← Text on right side */}
+                  <h3 className="text-3xl font-light">3shan ana mesh 3raf </h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">
+                    Luxurious fabrics for the modern woman
+                  </p>
+                </div>
+                <img 
+                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg" 
+                  alt="Model 3"
+                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 60 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="flex justify-start gap-12 items-center"
+              >
+                <div className="max-w-[220px] text-right">
+                  <h3 className="text-3xl font-light">5alas</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">
+                    Fresh looks inspired by MARIANA
+                  </p>
+                </div>
+                <img 
+                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg" 
+                  alt="Model 4"
+                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
+                />
+              </motion.div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      
 
       {/* ==================== NEW THIS WEEK WITH FLORAL CORNERS ==================== */}
       <section className="py-24 bg-white relative">
         {/* Floral corner decorations */}
         <div className="absolute top-12 left-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌼</div>
-        <div className="absolute top-12 right-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌸</div>
+        
 
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-center text-4xl font-light tracking-widest mb-16 text-[#3a2f2f]">
@@ -90,6 +188,7 @@ export default function Home() {
               ))}
             </div>
           )}
+          <div className="absolute  right-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌸</div>
         </div>
       </section>
 
