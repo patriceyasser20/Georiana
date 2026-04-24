@@ -24,7 +24,7 @@ export default function RootLayout({
             <Header />
             {children}
             <Footer />
-            <CustomerChatbot />
+            {/* <CustomerChatbot /> */}
           </CurrencyProvider>
         </LanguageProvider>
       </body>

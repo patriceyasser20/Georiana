@@ -5,9 +5,14 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useTranslation } from '../context/LanguageContext';
+import { useSearchParams } from 'next/navigation';
+import { useCurrency } from '../context/CurrencyContext';
 
 export default function Account() {
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const orderIdParam = searchParams.get('order_id');   // ← This is what we use for guests
+  const { formatPrice } = useCurrency();
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,14 +20,14 @@ export default function Account() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [orderIdParam]);   // ← Re-fetch when order_id changes
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError('');
 
-      const { data, error: fetchError } = await supabaseClient
+      let query = supabaseClient
         .from('orders')
         .select(`
           *,
@@ -35,8 +40,25 @@ export default function Account() {
             image_url
           )
         `)
-        .in('status', ['succeeded', 'confirmed'])
         .order('created_at', { ascending: false });
+
+      // If there's an order_id in URL (guest from success page) → show ONLY that order
+      if (orderIdParam) {
+        query = query.eq('id', orderIdParam);
+      } 
+      // Otherwise, if user is logged in → show all their orders
+      else {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user?.email) {
+          query = query.eq('user_email', user.email);
+        } else {
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) {
         console.error('Fetch error:', fetchError);
@@ -45,7 +67,6 @@ export default function Account() {
         return;
       }
 
-      console.log('📦 Orders loaded with items:', data); // for debugging
       setOrders(data || []);
     } catch (err: any) {
       console.error('Fetch orders error:', err);
@@ -58,7 +79,7 @@ export default function Account() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen bg-gray-50 py-22">
         <div className="max-w-6xl mx-auto px-6">
           <h1 className="text-4xl font-light tracking-widest mb-10">{t('account.title')}</h1>
 
@@ -83,7 +104,14 @@ export default function Account() {
                       {t('account.orderNumber')} {order.id.slice(0, 8)}...
                     </p>
                     <p className="text-sm text-gray-500">
-                      {new Date(order.created_at).toLocaleString()}
+                      {new Date(order.created_at).toLocaleString('en-US', {
+                        month: 'numeric',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: 'numeric',
+                        hour12: true
+                      })}
                     </p>
                   </div>
                   <span
@@ -133,7 +161,7 @@ export default function Account() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">EGP {Number(item.price).toFixed(2)}</p>
+                        <p className="font-medium">{formatPrice(Number(item.price))}</p>
                       </div>
                     </div>
                   ))
@@ -145,26 +173,25 @@ export default function Account() {
                 {order.delivery_fee && order.delivery_fee > 0 && (
                   <div className="flex justify-between text-lg mt-6">
                     <span className="text-gray-600">Delivery Fee</span>
-                    <span className="font-medium">EGP {Number(order.delivery_fee).toFixed(2)}</span>
+                    <span className="font-medium">{formatPrice(Number(order.delivery_fee))}</span>
                   </div>
                 )}
                 {order.total && order.total > 0 && (
                   <div className="flex justify-between text-lg mt-6">
                     <span className="text-gray-600">Order Total</span>
-                    <span className="font-medium">EGP {Number(order.total).toFixed(2)}</span>
+                    <span className="font-medium">{formatPrice(Number(order.total))}</span>
                   </div>
                 )}
 
                 <div className="mt-10 flex justify-between text-2xl font-medium  pt-8">
                   <span>{t('account.total')}</span>
-                  <span>EGP {displayTotal.toFixed(2)}</span>
+                  <span> {formatPrice(displayTotal)}</span>
                 </div>
               </div>
             );
           })}
         </div>
       </div>
-      <Footer />
     </>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabaseClient } from '../../lib/supabaseClient';   // ← Make sure this path is correct
+import { supabaseClient } from '../../lib/supabaseClient';
 
 type Currency = string;
 
@@ -16,26 +16,26 @@ type CurrencyContextType = {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
   formatPrice: (egpPrice: number) => string;
-  wishlist: any[];                    // ← Added for global wishlist access
+  wishlist: any[];
   setWishlist: React.Dispatch<React.SetStateAction<any[]>>;
 };
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 const countryToCurrency: Record<string, string> = {
-  EG: 'EGP', SA: 'SAR', GB: 'GBP', JP: 'JPY', US: 'USD', CA: 'CAD',
+  EG: 'EGP', SA: 'SAR', GB: 'GBP', JP: 'JPY', US: 'USD', CA: 'CAD', 
   BR: 'BRL', IN: 'INR', RU: 'RUB', CN: 'CNY', AE: 'AED', KR: 'KRW',
-  // ... (your full mapping remains the same)
   FR: 'EUR', DE: 'EUR', ES: 'EUR', IT: 'EUR', NL: 'EUR', BE: 'EUR',
   AT: 'EUR', PT: 'EUR', GR: 'EUR', IE: 'EUR', FI: 'EUR', SK: 'EUR',
   SI: 'EUR', HR: 'EUR', LT: 'EUR', LV: 'EUR', EE: 'EUR', LU: 'EUR',
   MT: 'EUR', CY: 'EUR',
+  SG: 'SGD',   // ← Added Singapore
 };
 
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>('EGP');
   const [rates, setRates] = useState<Record<string, number>>({});
-  const [wishlist, setWishlist] = useState<any[]>([]);   // ← New state
+  const [wishlist, setWishlist] = useState<any[]>([]);
 
   const setCurrency = (newCurrency: Currency) => {
     setCurrencyState(newCurrency);
@@ -73,7 +73,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // Safe Wishlist Fetch - This stops the 406 spam
+  // Safe Wishlist Fetch
   useEffect(() => {
     const fetchWishlist = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -110,7 +110,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchWishlist();
-  }, []);   // Runs once on mount (you can change to [user?.id] if needed)
+  }, []);
 
   return (
     <CurrencyContext.Provider 

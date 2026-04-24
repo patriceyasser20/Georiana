@@ -19,8 +19,8 @@ export async function createStripeCheckout(total: number, items: any[]) {
       quantity: item.quantity,
     })),
     mode: 'payment',
-    success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout/success`,
-    cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/checkout`,
+    success_url: `${siteUrl}/checkout/success`,
+    cancel_url: `${siteUrl}/checkout`,
   });
 
   return { url: session.url };

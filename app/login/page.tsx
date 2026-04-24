@@ -44,7 +44,7 @@ export default function Login() {
     setNeedsConfirmation(false);
 
     // ADMIN LOGIN
-    if (email.toLowerCase() === 'admin@zara.com' && password === 'admin2026') {
+    if (email.toLowerCase() === 'admin@georiana.com' && password === 'pawlo2026') { //ask admin for strong username and password
       localStorage.setItem('isAdmin', 'true');
       router.push('/admin');
       setLoading(false);
@@ -189,10 +189,6 @@ export default function Login() {
             >
               {t('login.signUp')}
             </span>
-          </div>
-
-          <div className="text-center mt-6 text-xs text-gray-500">
-            Admin Login: admin@zara.com / admin2026
           </div>
         </div>
       </div>

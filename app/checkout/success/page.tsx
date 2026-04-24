@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Link from 'next/link';
@@ -10,15 +10,16 @@ import { supabaseClient } from '../../../lib/supabaseClient';
 export default function CheckoutSuccess() {
   const searchParams = useSearchParams();
   const orderIdFromUrl = searchParams.get('order_id');
+  const router = useRouter();
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const confirmOrder = async () => {
       let finalOrderId = orderIdFromUrl;
 
-      // If no order_id in URL (Stripe or COD), check localStorage
       if (!finalOrderId) {
         finalOrderId = localStorage.getItem('last_created_order_id');
       }
@@ -29,17 +30,25 @@ export default function CheckoutSuccess() {
         return;
       }
 
+      setLastOrderId(finalOrderId);
+
       try {
-        const { error } = await supabaseClient
+        const { error: updateError } = await supabaseClient
           .from('orders')
           .update({ status: 'succeeded' })
           .eq('id', finalOrderId);
 
-        if (error) throw error;
+        if (updateError) throw updateError;
+
+        // Send email in background (non-blocking)
+        supabaseClient.functions.invoke('resend-email', {
+          body: { order_id: finalOrderId }
+        }).catch(err => {
+          console.error('Email sending failed:', err);
+        });
 
         setStatus('success');
 
-        // Clean up
         localStorage.removeItem('reviewOrder');
         localStorage.removeItem('pendingOrderId');
         localStorage.removeItem('last_created_order_id');
@@ -53,6 +62,15 @@ export default function CheckoutSuccess() {
 
     confirmOrder();
   }, [orderIdFromUrl]);
+
+  const handleViewOrders = () => {
+    if (lastOrderId) {
+      // For guests, show only the last order
+      router.push(`/account?order_id=${lastOrderId}`);
+    } else {
+      router.push('/account');
+    }
+  };
 
   if (status === 'loading') {
     return (
@@ -79,17 +97,17 @@ export default function CheckoutSuccess() {
               <h1 className="text-6xl mb-6">🎉</h1>
               <h2 className="text-4xl font-light">Thank You!</h2>
               <p className="text-xl text-gray-600 mt-4">Your order has been placed successfully.</p>
-              <p className="text-xl text-gray-600 mt-4">Confirmation email has been sent.</p>
+              <p className="text-xl text-gray-600 mt-4">A confirmation email has been sent to your inbox.</p>
 
               <div className="mt-12 space-x-4">
-                <Link 
-                  href="/account" 
+                <button
+                  onClick={handleViewOrders}
                   className="inline-block bg-black text-white px-10 py-4 rounded-full hover:bg-gray-800"
                 >
-                  View My Orders
-                </Link>
-                <Link 
-                  href="/" 
+                  View My Order
+                </button>
+                <Link
+                  href="/"
                   className="inline-block text-gray-600 hover:text-black"
                 >
                   Return to Shop
@@ -101,8 +119,8 @@ export default function CheckoutSuccess() {
               <h1 className="text-6xl mb-6">⚠️</h1>
               <h2 className="text-4xl font-light text-red-600">Something went wrong</h2>
               <p className="text-xl text-gray-600 mt-4">{message}</p>
-              <Link 
-                href="/account" 
+              <Link
+                href="/account"
                 className="mt-8 inline-block bg-black text-white px-10 py-4 rounded-full hover:bg-gray-800"
               >
                 Go to My Account

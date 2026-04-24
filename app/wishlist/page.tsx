@@ -7,10 +7,13 @@ import ProductCard from '../components/ProductCard';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { useCurrency } from '../context/CurrencyContext';   // ← Added
 
 export default function WishlistPage() {
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { setWishlist } = useCurrency();   // ← Added global sync
 
   useEffect(() => {
     fetchWishlist();
@@ -24,6 +27,7 @@ export default function WishlistPage() {
 
       if (!user) {
         setWishlistItems([]);
+        setWishlist([]);   // ← Sync global
         return;
       }
 
@@ -47,15 +51,18 @@ export default function WishlistPage() {
       if (error) {
         console.error('Error fetching wishlist:', error);
         setWishlistItems([]);
+        setWishlist([]);   // ← Sync global
         return;
       }
 
       const validItems = (data || []).filter(item => item.products);
 
       setWishlistItems(validItems);
+      setWishlist(validItems);   // ← Sync global context
     } catch (err) {
       console.error('Wishlist fetch error:', err);
       setWishlistItems([]);
+      setWishlist([]);
     } finally {
       setLoading(false);
     }
@@ -70,6 +77,7 @@ export default function WishlistPage() {
     );
 
     setWishlistItems(updatedItems);
+    setWishlist(updatedItems);   // ← Sync global context immediately
 
     try {
       const { error } = await supabaseClient
@@ -80,19 +88,19 @@ export default function WishlistPage() {
       if (error) {
         console.error('Delete error:', error);
         setWishlistItems(previousItems); // rollback
+        setWishlist(previousItems); // rollback global
       }
     } catch (err) {
       console.error('Unexpected delete error:', err);
       setWishlistItems(previousItems); // rollback
+      setWishlist(previousItems); // rollback global
     }
   };
 
   return (
     <>
       <Header />
-      <div>H!</div>
-      <div>H!</div>
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen bg-gray-50 py-22">
         <div className="max-w-7xl mx-auto px-6">
           <h1 className="text-5xl font-light tracking-widest mb-10">Wishlist</h1>
 

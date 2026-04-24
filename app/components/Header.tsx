@@ -19,7 +19,6 @@ const languages = [
   { code: 'nl', name: 'Dutch' },
 ];
 
-// Helper to create clean URLs
 const slugify = (text: string) =>
   text
     .toLowerCase()
@@ -40,20 +39,31 @@ export default function Header() {
   const [categories, setCategories] = useState<string[]>([]);
   const [collections, setCollections] = useState<string[]>([]);
 
-  // Auth listener
+  // New approach: Single listener + initial session
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-    getUser();
+    let mounted = true;
+    
 
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((_, session) => {
-      setUser(session?.user ?? null);
+    // Get initial session
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
     });
 
-    return () => listener.subscription.unsubscribe();
+    // Listen for auth changes (main source of truth)
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (mounted) {
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   // Review Order count
@@ -87,28 +97,25 @@ export default function Header() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch Categories for WOMAN dropdown
+  // Fetch Categories & Collections (unchanged)
   useEffect(() => {
     const fetchCategories = async () => {
       const { data } = await supabaseClient
         .from('products')
         .select('category')
         .not('category', 'is', null);
-
       const unique = [...new Set(data?.map((p: any) => p.category))].filter(Boolean);
       setCategories(unique);
     };
     fetchCategories();
   }, []);
 
-  // Fetch Collections for Collections dropdown
   useEffect(() => {
     const fetchCollections = async () => {
       const { data } = await supabaseClient
         .from('products')
         .select('collection')
         .not('collection', 'is', null);
-
       const unique = [...new Set(data?.map((p: any) => p.collection))].filter(Boolean);
       setCollections(unique);
     };
@@ -133,11 +140,10 @@ export default function Header() {
               className="flex items-center gap-1 text-sm text-gray-600 hover:text-black transition"
             >
               <ArrowLeft size={20} />
-              <span className="hidden md: ">{t('common.back')}</span>
+              <span className="hidden md:block">{t('common.back')}</span>
             </button>
           )}
 
-          {/* Logo */}
           <Link href="/" className="flex items-center">
             <img 
               src="/images/logo.svg" 
@@ -150,7 +156,6 @@ export default function Header() {
         <nav className="hidden md:flex gap-10 text-lg font-medium uppercase tracking-widest">
           <Link href="/shop">{t('header.shop')}</Link>
 
-          {/* WOMAN DROPDOWN */}
           <div className="relative group">
             <button className="hover:text-gray-600 transition flex items-center gap-1">
               {t('header.woman')}
@@ -158,22 +163,21 @@ export default function Header() {
             </button>
             <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
               {categories.length > 0 ? (
-              categories.map((category) => (
-                <Link
-                  key={category}
-                  href={`/woman/${slugify(category)}`}
-                  className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
-                >
-                  {t(`category.${slugify(category)}`)}
-                </Link>
-              ))
-            ) : (
-              <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
-            )}
+                categories.map((category) => (
+                  <Link
+                    key={category}
+                    href={`/woman/${slugify(category)}`}
+                    className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
+                  >
+                    {t(`category.${slugify(category)}`)}
+                  </Link>
+                ))
+              ) : (
+                <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
+              )}
             </div>
           </div>
 
-          {/* COLLECTIONS DROPDOWN */}
           <div className="relative group">
             <button className="hover:text-gray-600 transition flex items-center gap-1">
               {t('header.collections')}
@@ -199,7 +203,6 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-8 text-xl">
-          {/* Language Selector */}
           <select
             value={language}
             onChange={(e) => changeLanguage(e.target.value as any)}
@@ -212,7 +215,6 @@ export default function Header() {
             ))}
           </select>
 
-          {/* User Section */}
           {loading ? (
             <span>...</span>
           ) : user ? (
@@ -246,7 +248,6 @@ export default function Header() {
             <Link href="/login"><User size={22} /></Link>
           )}
 
-          {/* Review Order Bag */}
           {reviewCount > 0 && (
             <Link href="/review-order" className="relative">
               <ShoppingBag size={22} />

@@ -27,6 +27,7 @@ export default function Signup() {
     const { error: authError } = await supabaseClient.auth.signUp({
       email,
       password,
+      phone,
       options: {
         data: { phone },                     // ← Saved in user_metadata
         emailRedirectTo: `${window.location.origin}/callback`,

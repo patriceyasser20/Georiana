@@ -35,22 +35,40 @@ export default function ProductCard({
   const discount = discountPercentage || 0;
   const salePrice = isOnSale ? Number(price) * (1 - discount / 100) : Number(price);
 
+  // Check if this product is already in wishlist
   useEffect(() => {
+    let mounted = true;
+
     const checkWishlist = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !mounted) return;
 
-      const { data } = await supabaseClient
-        .from('wishlist')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('product_id', id)
-        .maybeSingle();
+        const { data, error } = await supabaseClient
+          .from('wishlist')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('product_id', id)
+          .maybeSingle();   // ← Changed from .single() to .maybeSingle()
 
-      setIsWishlisted(!!data);
+        if (error) {
+          console.error('Wishlist check error:', error);
+          return;
+        }
+
+        if (mounted) {
+          setIsWishlisted(!!data);
+        }
+      } catch (err) {
+        console.error('Wishlist check failed:', err);
+      }
     };
 
     checkWishlist();
+
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   const toggleWishlist = async (e: React.MouseEvent) => {

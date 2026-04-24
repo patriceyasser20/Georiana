@@ -389,8 +389,7 @@ export default function Checkout() {
           </div>
 
           {/* Right: Order Summary + Promo Code */}
-          <div className="md:col-span-2">
-            <div>H!</div>
+          <div className="md:col-span-2 py-20">
             <div className="bg-white rounded-3xl p-8 sticky top-8">
               <h2 className="text-2xl font-medium mb-8">{t('checkout.orderSummary')}</h2>
 

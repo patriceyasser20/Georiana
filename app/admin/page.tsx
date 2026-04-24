@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { RefreshCw, X, Plus, Trash2, Check, Edit2 } from 'lucide-react';
+import { RefreshCw, X, Plus, Trash2, Check, Edit2, User } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function AdminPanel() {
@@ -389,9 +389,7 @@ export default function AdminPanel() {
   return (
     <>
       <Header />
-      <div>h!</div>
-      <div>h!</div>
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen bg-gray-50 py-22">
         <div className="max-w-7xl mx-auto px-6">
           <h1 className="text-5xl font-light tracking-widest mb-10">Admin Panel</h1>
 
@@ -513,7 +511,8 @@ export default function AdminPanel() {
                     <div className="flex justify-between mb-6">
                       <div>
                         <p className="text-sm text-gray-500">Order #{order.id.slice(0, 8)}...</p>
-                        <p className="font-medium">Email: {order.user_email || 'Guest'}</p>
+                        {/* <p className="font-medium">Account: {order.id || 'Guest'}</p> */}
+                        <p className="font-medium">Email: {order.user_email}</p>
                         <p className="font-medium">Phone Number: {order.phone || 'Guest'}</p>
                         <p className="text-sm text-gray-500">
                           {new Date(order.created_at).toLocaleString(undefined, {
