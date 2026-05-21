@@ -127,23 +127,12 @@ export default function Header() {
     router.push('/');
   };
 
-  const showBackButton = pathname !== '/' && pathname !== '/shop';
-
+  
   return (
     <header className="top-bar bg-white/95 backdrop-blur-md border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         
         <div className="flex items-center gap-15">
-          {showBackButton && (
-            <button 
-              onClick={() => router.back()} 
-              className="flex items-center gap-1 text-sm text-gray-600 hover:text-black transition"
-            >
-              <ArrowLeft size={20} />
-              <span className="hidden md:block">{t('common.back')}</span>
-            </button>
-          )}
-
           <Link href="/" className="flex items-center">
             <img 
               src="/images/logo.svg" 

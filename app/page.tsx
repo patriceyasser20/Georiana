@@ -174,19 +174,25 @@ export default function Home() {
           {loading ? (
             <p className="text-center py-20">Loading...</p>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-              {products.slice(0, 4).map((p) => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id}
-                  name={p.name}
-                  price={p.price}
-                  img={p.images?.[0] || ''}
-                  isOnSale={p.is_on_sale}
-                  discountPercentage={p.discount_percentage}
-                />
-              ))}
-            </div>
+              <motion.div
+                initial={{ opacity: 0, y: 60 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 "
+              >
+                {products.slice(0, 4).map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id}
+                    name={p.name}
+                    price={p.price}
+                    img={p.images?.[0] || ''}
+                    isOnSale={p.is_on_sale}
+                    discountPercentage={p.discount_percentage}
+                  />
+                ))}
+              </motion.div>
           )}
           <div className="absolute  right-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌸</div>
         </div>

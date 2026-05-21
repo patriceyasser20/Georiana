@@ -176,11 +176,12 @@ export default function Checkout() {
     alert(`✅ Promo code applied! ${data.discount_percentage}% OFF`);
   };
 
-  // ==================== CREATE OR UPDATE ORDER ====================
+    // ==================== CREATE OR UPDATE ORDER ====================
   const createOrUpdateOrder = async () => {
     let orderId = localStorage.getItem('pendingOrderId');
 
     const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
+    const { data: { user } } = await supabaseClient.auth.getUser();
 
     if (!orderId) {
       const initialStatus = paymentMethod === 'cod' ? 'succeeded' : 'pending';
@@ -188,13 +189,15 @@ export default function Checkout() {
       const { data: newOrder, error } = await supabaseClient
         .from('orders')
         .insert({
+          user_id: user?.id || null,
           user_email: email || 'guest@georgiana.com',
+          phone: phone || null,                    // ← SAVED HERE
           total: subtotal,
           payment_method: paymentLabel,
           street: street || null,
           apartment: apartment || null,
-          city: city || null,
-          governorate: governorate || 'null',
+          city: city || 'Cairo',
+          governorate: governorate || 'Cairo',
           delivery_fee: deliveryFee,
           status: initialStatus,
           promo_code: appliedPromo?.code || null,
@@ -220,7 +223,7 @@ export default function Checkout() {
         price: item.price,
         image_url: item.image_url || null
       }));
-
+      
       const { error: itemsError } = await supabaseClient
         .from('order_items')
         .insert(orderItemsData);
@@ -229,9 +232,11 @@ export default function Checkout() {
         console.error('Failed to insert order items:', itemsError);
       }
     } else {
+      // Update existing order
       const { error: updateError } = await supabaseClient
         .from('orders')
         .update({
+          user_id: user?.id || null,
           user_email: email || 'guest@georgiana.com',
           phone: phone || null,
           street: street || null,

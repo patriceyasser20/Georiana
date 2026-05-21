@@ -14,29 +14,78 @@ export default function Signup() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');          // ← New
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Helper to validate phone in real-time
+  const isPhoneValid = phone.replace(/\D/g, '').length === 11;
 
   const handleSignup = async () => {
     setLoading(true);
     setError('');
     setSuccess('');
 
-    const { error: authError } = await supabaseClient.auth.signUp({
+    // Validate phone number (11 digits)
+    const cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.length !== 11) {
+      setError('Phone number must be exactly 11 digits');
+      setLoading(false);
+      return;
+    }
+
+    // Check if phone or email already exists in profiles
+    const { data: existingPhone } = await supabaseClient
+      .from('profiles')
+      .select('phone')
+      .eq('phone', cleanedPhone)
+      .maybeSingle();
+
+    const { data: existingEmail } = await supabaseClient
+      .from('profiles')
+      .select('email')
+      .eq('email', email)
+      .maybeSingle();
+
+    // Prepare error message
+    const errors = [];
+    if (existingPhone) errors.push('Phone number');
+    if (existingEmail) errors.push('Email');
+
+    if (errors.length > 0) {
+      setError(`${errors.join(' and ')} already ${errors.length > 1 ? 'exist' : 'exists'}`);
+      setLoading(false);
+      return;
+    }
+
+    // Sign up the user (phone saved in auth.users metadata)
+    const { data, error: authError } = await supabaseClient.auth.signUp({
       email,
       password,
-      phone,
       options: {
-        data: { phone },                     // ← Saved in user_metadata
+        data: { phone: cleanedPhone }, // Saved in user_metadata
         emailRedirectTo: `${window.location.origin}/callback`,
       },
     });
 
     if (authError) {
-      setError(authError.message);
-    } else {
+      if (authError.message.toLowerCase().includes('already registered') ||
+          authError.message.toLowerCase().includes('already exists')) {
+        setError('Email already exists');
+      } else {
+        setError(authError.message);
+      }
+    } else if (data.user) {
+      // Save phone to profiles table (using the returned user ID)
+      await supabaseClient
+        .from('profiles')
+        .upsert({
+          id: data.user.id,
+          email,
+          phone: cleanedPhone
+        });
+
       setSuccess("✅ Account created successfully! Please check your email to confirm your account.");
       setTimeout(() => {
         router.push('/login');
@@ -68,13 +117,21 @@ export default function Signup() {
               onChange={(e) => setEmail(e.target.value)}
               className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
             />
-            <input
-              type="tel"
-              placeholder="Phone number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
-            />
+            <div>
+              <input
+                type="tel"
+                placeholder="Phone number"
+                value={phone}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  setPhone(value);
+                }}
+                className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
+              />
+              {phone && !isPhoneValid && (
+                <p className="text-red-500 text-xs mt-1">Phone must be 11 digits</p>
+              )}
+            </div>
             <input
               type="password"
               placeholder="Password (min 6 characters)"
@@ -88,7 +145,7 @@ export default function Signup() {
 
             <button
               onClick={handleSignup}
-              disabled={loading}
+              disabled={loading || !email || !password || !phone || !isPhoneValid}
               className="w-full bg-black text-white py-4 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-70 transition"
             >
               {loading ? 'Creating account...' : 'Create Account'}

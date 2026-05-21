@@ -81,7 +81,7 @@ export default function ProductCard({
       const { data: { user } } = await supabaseClient.auth.getUser();
 
       if (!user) {
-        alert("Please log in to use wishlist");
+        // alert("Please log in to use wishlist");
         router.push('/login');
         return;
       }

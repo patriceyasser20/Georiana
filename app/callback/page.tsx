@@ -6,10 +6,12 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 
+
 export default function AuthCallback() {
   const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
+  
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -27,8 +29,8 @@ export default function AuthCallback() {
 
         // Redirect to home after 3 seconds
         setTimeout(() => {
-          router.push('/');
-        }, 3000);
+          router.push('/account');
+        });
       } catch (err) {
         setStatus('error');
         setMessage('Something went wrong. Please try logging in manually.');

@@ -21,6 +21,7 @@ export default function AdminPanel() {
   const [orders, setOrders] = useState<any[]>([]);
   const [supportedCountries, setSupportedCountries] = useState<any[]>([]);
   const [promoCodes, setPromoCodes] = useState<any[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -52,7 +53,7 @@ export default function AdminPanel() {
     code: '',
     discountPercentage: '',
     expiresAt: '',
-    neverExpires: false,        // new
+    neverExpires: false,
   });
 
   useEffect(() => {
@@ -163,12 +164,12 @@ export default function AdminPanel() {
   };
 
   const addVariant = () => {
-    setVariants([...variants, { 
-      color: '', 
-      size: '', 
-      stock: 0, 
-      sku: '', 
-      typeCode: ''   
+    setVariants([...variants, {
+      color: '',
+      size: '',
+      stock: 0,
+      sku: '',
+      typeCode: ''
     }]);
   };
 
@@ -196,14 +197,20 @@ export default function AdminPanel() {
         images: [] as File[],
       });
 
+      // ALWAYS fetch fresh variants when opening edit modal (most reliable)
       const { data: existingVariants } = await supabaseClient
         .from('product_variants')
         .select('*')
-        .eq('product_id', product.id);
+        .eq('product_id', product.id)
+        .order('sku');
 
       setVariants(
-        (existingVariants || []).map(v => ({
-          ...v,
+        (existingVariants || []).map((v: any) => ({
+          id: v.id,
+          color: v.color || '',
+          size: v.size || '',
+          stock: v.stock || 0,
+          sku: v.sku || '',
           typeCode: v.type_code || ''
         }))
       );
@@ -307,15 +314,15 @@ export default function AdminPanel() {
 
       setShowAddModal(false);
       setEditingProduct(null);
-      setForm({ 
-        name: '', 
-        price: '', 
-        description: '', 
-        category: 'Uncategorized', 
-        collection: '', 
+      setForm({
+        name: '',
+        price: '',
+        description: '',
+        category: 'Uncategorized',
+        collection: '',
         isOnSale: false,
         discountPercentage: '',
-        images: [] 
+        images: []
       });
       setVariants([]);
       loadData();
@@ -362,7 +369,9 @@ export default function AdminPanel() {
       .from('product_variants')
       .select(`
         *,
+        product_id,
         products (
+          id,
           name,
           price,
           description,
@@ -373,8 +382,8 @@ export default function AdminPanel() {
           discount_percentage
         )
       `)
-      .eq('sku', skuSearchTerm.trim())
-      .single();
+  .eq('sku', skuSearchTerm.trim().toUpperCase())
+  .single();
 
     if (error || !data) {
       alert('No variant found with this SKU');
@@ -410,23 +419,38 @@ export default function AdminPanel() {
                 <div className="mb-8">
                   <p className="text-sm text-gray-500 mb-3">Active Collections</p>
                   <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => setSelectedCollection(null)}
+                      className={`px-5 py-2 rounded-2xl text-sm font-medium transition ${
+                        selectedCollection === null
+                          ? 'bg-black text-white'
+                          : 'bg-white border hover:bg-gray-50'
+                      }`}
+                    >
+                      All Products
+                    </button>
                     {collections.map((col) => (
-                      <div 
-                        key={col} 
-                        className="bg-white border px-5 py-2 rounded-2xl text-sm font-medium flex items-center gap-2 group"
+                    <div
+                      key={col}
+                      onClick={() => setSelectedCollection(col)}
+                      className={`px-5 py-2 rounded-2xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition ${
+                        selectedCollection === col
+                          ? 'bg-black text-white'
+                          : 'bg-white border hover:bg-gray-50'
+                      }`}
+                    >
+                      {col}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteCollection(col);
+                        }}
+                        className="text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700"
                       >
-                        {col}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteCollection(col);
-                          }}
-                          className="text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700 transition"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
                   </div>
                 </div>
               )}
@@ -442,48 +466,50 @@ export default function AdminPanel() {
                 <p className="text-center py-20 text-xl text-gray-500">No products yet. Add your first product.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {products.map((p) => (
-                    <div key={p.id} className="bg-white rounded-3xl overflow-hidden border">
-                      {p.images && p.images.length > 0 && (
-                        <img src={p.images[0]} alt={p.name} className="w-full h-64 object-cover" />
-                      )}
-                      <div className="p-6">
-                        <h3 className="font-medium text-lg mb-1">{p.name}</h3>
-                        <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
-                        
-                        <p className="text-sm text-gray-500 mt-1">
-                          Category: <span className="font-medium text-black">{p.category || 'Uncategorized'}</span>
-                        </p>
-                        {p.collection && (
+                  {products
+                    .filter(p => selectedCollection === null || p.collection === selectedCollection)
+                    .map((p) => (
+                      <div key={p.id} className="bg-white rounded-3xl overflow-hidden border">
+                        {p.images && p.images.length > 0 && (
+                          <img src={p.images[0]} alt={p.name} className="w-full h-64 object-cover" />
+                        )}
+                        <div className="p-6">
+                          <h3 className="font-medium text-lg mb-1">{p.name}</h3>
+                          <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
+
                           <p className="text-sm text-gray-500 mt-1">
-                            Collection: <span className="font-medium text-black">{p.collection}</span>
+                            Category: <span className="font-medium text-black">{p.category || 'Uncategorized'}</span>
                           </p>
-                        )}
+                          {p.collection && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              Collection: <span className="font-medium text-black">{p.collection}</span>
+                            </p>
+                          )}
 
-                        {p.is_on_sale && (
-                          <p className="text-red-600 text-sm font-medium mt-1">On Sale • -{p.discount_percentage}%</p>
-                        )}
+                          {p.is_on_sale && (
+                            <p className="text-red-600 text-sm font-medium mt-1">On Sale • -{p.discount_percentage}%</p>
+                          )}
 
-                        <div className="mt-6 flex gap-3">
-                          <button
-                            onClick={() => openModal(p)}
-                            className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                          >
-                            <Edit2 size={18} /> Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (confirm(`Delete "${p.name}" permanently?`)) deleteProduct(p.id);
-                            }}
-                            className="flex-1 text-red-600 hover:text-red-700 py-3 border border-red-200 hover:border-red-400 rounded-xl transition"
-                          >
-                            Delete
-                          </button>
+                          <div className="mt-6 flex gap-3">
+                            <button
+                              onClick={() => openModal(p)}
+                              className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                            >
+                              <Edit2 size={18} /> Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm(`Delete "${p.name}" permanently?`)) deleteProduct(p.id);
+                              }}
+                              className="flex-1 text-red-600 hover:text-red-700 py-3 border border-red-200 hover:border-red-400 rounded-xl transition"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>
@@ -511,9 +537,8 @@ export default function AdminPanel() {
                     <div className="flex justify-between mb-6">
                       <div>
                         <p className="text-sm text-gray-500">Order #{order.id.slice(0, 8)}...</p>
-                        {/* <p className="font-medium">Account: {order.id || 'Guest'}</p> */}
                         <p className="font-medium">Email: {order.user_email}</p>
-                        <p className="font-medium">Phone Number: {order.phone || 'Guest'}</p>
+                        <p className="font-medium">Phone Number: {order.phone || 'Not provided'}</p>
                         <p className="text-sm text-gray-500">
                           {new Date(order.created_at).toLocaleString(undefined, {
                             year: 'numeric',
@@ -525,8 +550,18 @@ export default function AdminPanel() {
                           })}
                         </p>
                       </div>
+
+                      {/* USER TYPE INDICATOR */}
+                      <div className={`px-5 py-2.5 rounded-full text-sm font-medium self-start ${
+                        order.user_id 
+                          ? 'bg-green-100 text-green-700' 
+                          : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {order.user_id ? '✅ Registered Account' : '👤 Guest User'}
+                      </div>
+
                       <span
-                        className={`px-2 py-8 rounded-full text-sm font-medium ${
+                        className={`px-5 py-2.5 rounded-full text-sm font-medium self-start ${
                           (order.payment_method || '').toLowerCase().includes('cash') ||
                           (order.payment_method || '').toLowerCase().includes('delivery')
                             ? 'bg-green-100 text-green-700'
@@ -568,14 +603,15 @@ export default function AdminPanel() {
                         </div>
                         <p className="font-medium">{formatPrice(item.price)}</p>
                       </div>
-                    ))} 
-                    {/* Delivery Fee */}
+                    ))}
+
                     {order.delivery_fee && order.delivery_fee > 0 && (
                       <div className="flex justify-between text-lg mt-6">
                         <span className="text-gray-600">Delivery Fee</span>
                         <span className="font-medium">EGP {order.delivery_fee}</span>
                       </div>
                     )}
+
                     <div className="mt-10 flex justify-between text-2xl font-medium pt-8">
                       <span>Total</span>
                       <span>EGP {Number(order.total || 0) + Number(order.delivery_fee || 0)}</span>
@@ -643,10 +679,11 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* SKU SEARCH TAB - Updated with new SKU format + smaller box */}
+          {/* SKU SEARCH TAB */}
           {tab === 'sku-search' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">SKU Search</h2>
+              
               <p className="text-gray-600 mb-6">
                 Enter the exact SKU to find the product + variant:
                 <br />
@@ -654,7 +691,6 @@ export default function AdminPanel() {
                   Example: GM-DR-25S-JCK-001-BLU-M
                 </span>
               </p>
-
               <div className="max-w-lg flex gap-3">
                 <input
                   type="text"
@@ -673,62 +709,82 @@ export default function AdminPanel() {
                 </button>
               </div>
 
-              {/* SMALLER + WIDER PRODUCT BOX */}
               {skuSearchResult && (
-                <div className="mt-10 bg-white rounded-3xl p-6 border max-w-lg">   {/* ← wider: max-w-lg */}
-
+                
+                <div className="mt-10 bg-white rounded-3xl p-6 border max-w-lg ">
                   {skuSearchResult.products?.images?.[0] && (
                     <img
                       src={skuSearchResult.products.images[0]}
                       alt={skuSearchResult.products.name}
-                      className="w-full  object-cover rounded-2xl"   /* ← shorter image height */
+                      className="w-full object-cover rounded-2xl"
                     />
                   )}
 
                   <div className="mt-6">
-                    {/* SKU */}
-                    <div className="flex items-baseline gap-2">
+                    {/* SKU Badge */}
+                    <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl mb-4">
                       <span className="text-xs uppercase tracking-widest text-gray-500">SKU</span>
-                      <span className="font-mono text-3xl tracking-[2px] font-medium">
+                      <span className="font-mono text-sm tracking-[2px] font-medium">
                         {skuSearchResult.sku}
                       </span>
                     </div>
 
-                    {/* Product Name */}
-                    <h3 className="text-2xl font-medium mt-2">{skuSearchResult.products?.name}</h3>
-
-                    {/* Price */}
+                    <h3 className="text-2xl font-medium">{skuSearchResult.products?.name}</h3>
                     <p className="text-3xl font-medium text-black mt-1">
                       {formatPrice(skuSearchResult.products?.price)}
                     </p>
 
-                    {/* Color / Size / Stock */}
-                    <div className="grid grid-cols-3 gap-6 mt-7 text-sm">
-                      <div>
-                        <p className="text-gray-500">Color</p>
-                        <p className="font-medium">{skuSearchResult.color}</p>
+                    {skuSearchResult.products?.is_on_sale && (
+                      <p className="text-red-600 text-sm font-medium mt-1">
+                        On Sale • -{skuSearchResult.products.discount_percentage}%
+                      </p>
+                    )}
+
+                    {/* Matched Variant Only */}
+                    <div className="mt-6 bg-gray-50 rounded-2xl p-5 border border-gray-200">
+                      <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Matched Variant</p>
+                      <div className="grid grid-cols-3 gap-6 text-sm">
+                        <div>
+                          <p className="text-gray-500 mb-1">Color</p>
+                          <p className="font-semibold text-base">{skuSearchResult.color}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 mb-1">Size</p>
+                          <p className="font-semibold text-base">{skuSearchResult.size}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-500 mb-1">Stock</p>
+                          <p className={`font-semibold text-base ${skuSearchResult.stock === 0 ? 'text-red-600' : skuSearchResult.stock <= 5 ? 'text-orange-500' : 'text-green-600'}`}>
+                            {skuSearchResult.stock === 0 ? 'Out of stock' : skuSearchResult.stock}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-500">Size</p>
-                        <p className="font-medium">{skuSearchResult.size}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-500">Stock</p>
-                        <p className="font-medium">{skuSearchResult.stock}</p>
-                      </div>
+                      {skuSearchResult.type_code && (
+                        <div className="mt-4 pt-4 border-t border-gray-200">
+                          <p className="text-gray-500 text-sm mb-1">Type Code</p>
+                          <p className="font-mono font-semibold tracking-widest">{skuSearchResult.type_code}</p>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Description */}
+                    {skuSearchResult.products?.category && (
+                      <p className="text-sm text-gray-500 mt-4">
+                        Category: <span className="font-medium text-black">{skuSearchResult.products.category}</span>
+                        {skuSearchResult.products?.collection && (
+                          <> · Collection: <span className="font-medium text-black">{skuSearchResult.products.collection}</span></>
+                        )}
+                      </p>
+                    )}
+
                     {skuSearchResult.products?.description && (
-                      <p className="mt-7 text-gray-600 text-sm border-t pt-6">
+                      <p className="mt-5 text-gray-600 text-sm border-t pt-5">
                         {skuSearchResult.products.description}
                       </p>
                     )}
 
-                    {/* Buttons */}
                     <div className="mt-8 flex gap-3">
                       <button
-                        onClick={() => openModal(skuSearchResult.products)}
+                        onClick={() => openModal({ ...skuSearchResult.products, id: skuSearchResult.product_id })}
                         className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
                       >
                         <Edit2 size={18} /> Edit Product
@@ -747,6 +803,7 @@ export default function AdminPanel() {
                     </div>
                   </div>
                 </div>
+                  
               )}
 
               {!skuSearchResult && skuSearchTerm && !searching && (
@@ -763,11 +820,9 @@ export default function AdminPanel() {
           {tab === 'promo-codes' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">Promo Codes</h2>
-
-              {/* Add New Promo Code Form */}
               <div className="bg-white border rounded-3xl p-8 max-w-md mb-12">
                 <h3 className="text-xl font-medium mb-6">Add New Promo Code</h3>
-                
+
                 <input
                   type="text"
                   placeholder="Promo Code (e.g. SUMMER30)"
@@ -775,7 +830,7 @@ export default function AdminPanel() {
                   onChange={(e) => setPromoForm({ ...promoForm, code: e.target.value.toUpperCase() })}
                   className="border rounded-2xl px-6 py-4 w-full text-lg mb-4 font-mono uppercase tracking-widest"
                 />
-                
+
                 <input
                   type="number"
                   placeholder="Discount % (e.g. 30)"
@@ -813,7 +868,6 @@ export default function AdminPanel() {
                 </button>
               </div>
 
-              {/* List of Promo Codes */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promoCodes.length === 0 ? (
                   <p className="text-gray-500 col-span-full py-20 text-center">No promo codes yet. Add your first promo code above.</p>
@@ -867,7 +921,7 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Add / Edit Modal - completely unchanged */}
+      {/* Add / Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl w-full max-w-8xl p-12 relative max-h-[92vh] overflow-y-auto">
@@ -921,16 +975,38 @@ export default function AdminPanel() {
                 </select>
               </div>
 
-              {/* Collection Input Field */}
+              {/* Collection Dropdown with Plus Button */}
               <div>
-                <label className="block text-sm mb-3 font-medium">Collection Name (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Summer 2026, New This Week, Black Friday"
-                  value={form.collection || ''}
-                  onChange={(e) => setForm({ ...form, collection: e.target.value })}
-                  className="border rounded-2xl px-6 py-5 w-full text-lg"
-                />
+                <label className="block text-sm mb-3 font-medium">Collection</label>
+                <div className="flex gap-2">
+                  <select
+                    value={form.collection || ''}
+                    onChange={(e) => setForm({ ...form, collection: e.target.value })}
+                    className="border rounded-2xl px-6 py-5 flex-1 text-lg bg-white"
+                  >
+                    <option value="">Select a collection</option>
+                    {collections.map((col) => (
+                      <option key={col} value={col}>{col}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => {
+                      const name = prompt('Enter new collection name:');
+                      if (name?.trim()) {
+                        if (collections.includes(name.trim())) {
+                          alert('⚠️ Collection already exists!');
+                        } else {
+                          setCollections([...collections, name.trim()]);
+                          setForm({ ...form, collection: name.trim() });
+                        }
+                      }
+                    }}
+                    className="bg-black text-white p-5 rounded-2xl hover:bg-gray-800 transition"
+                    title="Add new collection"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
               </div>
 
               <input
@@ -1031,10 +1107,10 @@ export default function AdminPanel() {
                 disabled={uploading}
                 className="w-full bg-black text-white py-5 rounded-2xl text-lg tracking-widest hover:bg-gray-800 disabled:opacity-70"
               >
-                {uploading 
-                  ? 'Saving...' 
-                  : editingProduct 
-                    ? 'Update Product' 
+                {uploading
+                  ? 'Saving...'
+                  : editingProduct
+                    ? 'Update Product'
                     : 'Add Product'
                 }
               </button>
