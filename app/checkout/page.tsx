@@ -36,6 +36,9 @@ export default function Checkout() {
   const [governorate, setGovernorate] = useState('');
   const [deliveryFee, setDeliveryFee] = useState(0);
 
+  // Free Shipping
+  const [isFreeShipping, setIsFreeShipping] = useState(false);
+
   // Country
   const [country, setCountry] = useState('');
   const [allCountries, setAllCountries] = useState<any[]>([]);
@@ -46,7 +49,7 @@ export default function Checkout() {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState('');
 
-  // Egyptian Governorates with delivery fees (admin can manage later)
+  // Egyptian Governorates with delivery fees
   const governorateFees: { [key: string]: number } = {
     'Cairo': 50,
     'Giza': 50,
@@ -73,7 +76,7 @@ export default function Checkout() {
     'Minya': 90,
   };
 
-  // ==================== PRE-FILL EMAIL & PHONE IF USER IS LOGGED IN ====================
+  // ==================== PRE-FILL EMAIL & PHONE IF LOGGED IN ====================
   useEffect(() => {
     const getUserData = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
@@ -95,7 +98,7 @@ export default function Checkout() {
     }
   }, []);
 
-  // Load countries (only enabled ones by admin)
+  // Load enabled countries
   useEffect(() => {
     const fetchCountries = async () => {
       const { data } = await supabaseClient
@@ -117,23 +120,45 @@ export default function Checkout() {
     setIsCountrySupported(selected?.enabled || false);
   }, [country, allCountries]);
 
-  // Update delivery fee when governorate changes
+  // Update delivery fee when governorate changes (standard fee)
   useEffect(() => {
     if (governorate && governorateFees[governorate]) {
       setDeliveryFee(governorateFees[governorate]);
     } else {
       setDeliveryFee(0);
     }
+    // Reset free shipping when city changes (re-check below)
+    setIsFreeShipping(false);
   }, [governorate]);
 
-  // Auto clear error when all required fields are filled
+  // ==================== CHECK FREE SHIPPING FROM DB ====================
   useEffect(() => {
-    if (firstName && lastName && email && phone && street && apartment && governorate && country) {
-      setError('');
-    }
-  }, [firstName, lastName, email, phone, street, apartment, governorate, country]);
+    if (!governorate || !country) return;
 
-  // ==================== AUTO CLEAR ERROR WHEN ALL REQUIRED FIELDS ARE FILLED ====================
+    const checkFreeShipping = async () => {
+      const { data } = await supabaseClient
+        .from('free_shipping_cities')
+        .select('is_free_shipping')
+        .eq('country_code', country)
+        .eq('city_name', governorate)
+        .single();
+
+      if (data?.is_free_shipping) {
+        setDeliveryFee(0);
+        setIsFreeShipping(true);
+      } else {
+        setIsFreeShipping(false);
+        // Restore the standard fee
+        if (governorate && governorateFees[governorate]) {
+          setDeliveryFee(governorateFees[governorate]);
+        }
+      }
+    };
+
+    checkFreeShipping();
+  }, [governorate, country]);
+
+  // Auto clear error when required fields are filled
   useEffect(() => {
     if (firstName && lastName && email && phone && street && apartment && governorate && country) {
       setError('');
@@ -176,7 +201,7 @@ export default function Checkout() {
     alert(`✅ Promo code applied! ${data.discount_percentage}% OFF`);
   };
 
-    // ==================== CREATE OR UPDATE ORDER ====================
+  // ==================== CREATE OR UPDATE ORDER ====================
   const createOrUpdateOrder = async () => {
     let orderId = localStorage.getItem('pendingOrderId');
 
@@ -191,7 +216,7 @@ export default function Checkout() {
         .insert({
           user_id: user?.id || null,
           user_email: email || 'guest@georgiana.com',
-          phone: phone || null,                    // ← SAVED HERE
+          phone: phone || null,
           total: subtotal,
           payment_method: paymentLabel,
           street: street || null,
@@ -223,7 +248,7 @@ export default function Checkout() {
         price: item.price,
         image_url: item.image_url || null
       }));
-      
+
       const { error: itemsError } = await supabaseClient
         .from('order_items')
         .insert(orderItemsData);
@@ -263,7 +288,6 @@ export default function Checkout() {
       setError(t('common.noShipment'));
       return;
     }
-    // Validation: All fields except postalCode are required
     if (!firstName || !lastName || !email || !phone || !street || !apartment || !governorate || !country) {
       setError('Please fill in all required fields');
       return;
@@ -285,20 +309,17 @@ export default function Checkout() {
         const result = await createStripeCheckout(finalTotal, stripeItems);
 
         if (result?.url) {
-          // Save order ID temporarily for Stripe success page
           localStorage.setItem('last_created_order_id', orderId);
           localStorage.removeItem('reviewOrder');
           window.location.href = result.url;
         } else {
-            throw new Error("No Stripe URL returned");
-          }
-        } 
-      else if (paymentMethod === 'cod') {
+          throw new Error("No Stripe URL returned");
+        }
+      } else if (paymentMethod === 'cod') {
         localStorage.removeItem('reviewOrder');
         localStorage.removeItem('pendingOrderId');
         router.push(`/checkout/success?order_id=${orderId}`);
-      } 
-      else {
+      } else {
         alert("Fawry coming soon");
       }
     } catch (err: any) {
@@ -308,7 +329,7 @@ export default function Checkout() {
     } finally {
       setLoading(false);
     }
-};
+  };
 
   return (
     <>
@@ -316,7 +337,7 @@ export default function Checkout() {
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-5 gap-10">
 
-          {/* Left: Form */}
+          {/* ==================== LEFT: FORM ==================== */}
           <div className="md:col-span-3">
             <h1 className="text-4xl font-light tracking-widest mb-10">{t('checkout.title')}</h1>
 
@@ -336,6 +357,7 @@ export default function Checkout() {
                 <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4" />
               </div>
 
+              {/* Country Selector */}
               <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">{t('checkout.country')}</label>
                 <select
@@ -352,6 +374,7 @@ export default function Checkout() {
                 </select>
               </div>
 
+              {/* Governorate / City Selector */}
               <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">Governorate</label>
                 <select
@@ -364,6 +387,13 @@ export default function Checkout() {
                     <option key={gov} value={gov}>{gov}</option>
                   ))}
                 </select>
+
+                {/* Free Shipping Badge — shown below governorate selector */}
+                {isFreeShipping && governorate && (
+                  <div className="mt-3 flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-5 py-3 rounded-2xl text-sm font-medium">
+                    Free shipping available for <strong>{governorate}</strong>!
+                  </div>
+                )}
               </div>
 
               {!isCountrySupported && country && (
@@ -372,6 +402,7 @@ export default function Checkout() {
                 </p>
               )}
 
+              {/* Payment Methods */}
               <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.paymentMethod')}</h2>
               <div className="space-y-4">
                 <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'stripe' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
@@ -393,7 +424,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Right: Order Summary + Promo Code */}
+          {/* ==================== RIGHT: ORDER SUMMARY ==================== */}
           <div className="md:col-span-2 py-20">
             <div className="bg-white rounded-3xl p-8 sticky top-8">
               <h2 className="text-2xl font-medium mb-8">{t('checkout.orderSummary')}</h2>
@@ -410,6 +441,7 @@ export default function Checkout() {
                 </div>
               ))}
 
+              {/* Promo Code */}
               <div className="mt-8 border-t pt-8">
                 <div className="flex gap-3">
                   <input
@@ -434,16 +466,24 @@ export default function Checkout() {
                 )}
               </div>
 
+              {/* Price Breakdown */}
               <div className="mt-10 space-y-3 text-lg">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
 
-                {deliveryFee > 0 && (
+                {/* Delivery Fee Row — shows Free or amount */}
+                {governorate && (
                   <div className="flex justify-between">
                     <span>Delivery Fee ({governorate})</span>
-                    <span>{formatPrice(deliveryFee)}</span>
+                    {isFreeShipping ? (
+                      <span className="text-green-600 font-semibold flex items-center gap-1">
+                        Free
+                      </span>
+                    ) : (
+                      <span>{formatPrice(deliveryFee)}</span>
+                    )}
                   </div>
                 )}
 
@@ -467,8 +507,8 @@ export default function Checkout() {
                 disabled={loading || !isCountrySupported || !country || !governorate}
                 className="w-full mt-8 bg-black text-white py-5 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
               >
-                {loading 
-                  ? t('common.processing') 
+                {loading
+                  ? t('common.processing')
                   : `${t('checkout.pay')} ${formatPrice(finalTotal)} • ${paymentMethod.toUpperCase()}`
                 }
               </button>

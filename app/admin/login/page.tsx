@@ -17,7 +17,7 @@ export default function AdminLogin() {
     setError('');
 
     // Strict check for new admin
-    if (email.trim().toLowerCase() === 'admin@georiana.com' && password === 'admin2026') {
+    if (email.trim().toLowerCase() === 'admin@georiana.com' && password === 'pawlo2026') {
       localStorage.setItem('isAdmin', 'true');
       router.push('/admin');
     } else {
@@ -60,7 +60,7 @@ export default function AdminLogin() {
           </button>
 
           <p className="text-xs text-gray-500 mt-8">
-            Demo: admin@georiana.com / admin2026
+            Demo: admin@georiana.com / pawlo2026
           </p>
         </div>
       </div>

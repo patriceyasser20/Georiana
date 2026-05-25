@@ -104,7 +104,7 @@ export default function Signup() {
             <img 
               src="/images/logo.svg" 
               alt="GEORIANA" 
-              className="h-14 mx-auto" 
+              className="h-30 mx-auto" 
             />
             <p className="text-xl text-gray-500 mt-4">Create your account</p>
           </div>

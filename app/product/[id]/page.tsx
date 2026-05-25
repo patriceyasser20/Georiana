@@ -137,7 +137,6 @@ export default function ProductDetail() {
       .eq('color', selectedColor)
       .eq('size', selectedSize);
 
-    alert(t('product.addedToReviewOrder'));
     router.push('/review-order');
   };
 

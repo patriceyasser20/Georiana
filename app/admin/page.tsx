@@ -27,13 +27,9 @@ export default function AdminPanel() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Edit mode
   const [editingProduct, setEditingProduct] = useState<any>(null);
-
-  // List of all collections
   const [collections, setCollections] = useState<string[]>([]);
 
-  // Product form
   const [form, setForm] = useState({
     name: '',
     price: '',
@@ -45,10 +41,8 @@ export default function AdminPanel() {
     images: [] as File[],
   });
 
-  // Dynamic variants
   const [variants, setVariants] = useState<any[]>([]);
 
-  // Promo code form with expiration date (optional)
   const [promoForm, setPromoForm] = useState({
     code: '',
     discountPercentage: '',
@@ -164,13 +158,7 @@ export default function AdminPanel() {
   };
 
   const addVariant = () => {
-    setVariants([...variants, {
-      color: '',
-      size: '',
-      stock: 0,
-      sku: '',
-      typeCode: ''
-    }]);
+    setVariants([...variants, { color: '', size: '', stock: 0, sku: '', typeCode: '' }]);
   };
 
   const updateVariant = (index: number, field: string, value: any) => {
@@ -197,7 +185,6 @@ export default function AdminPanel() {
         images: [] as File[],
       });
 
-      // ALWAYS fetch fresh variants when opening edit modal (most reliable)
       const { data: existingVariants } = await supabaseClient
         .from('product_variants')
         .select('*')
@@ -382,8 +369,8 @@ export default function AdminPanel() {
           discount_percentage
         )
       `)
-  .eq('sku', skuSearchTerm.trim().toUpperCase())
-  .single();
+      .eq('sku', skuSearchTerm.trim().toUpperCase())
+      .single();
 
     if (error || !data) {
       alert('No variant found with this SKU');
@@ -398,21 +385,49 @@ export default function AdminPanel() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 py-22">
-        <div className="max-w-7xl mx-auto px-6">
-          <h1 className="text-5xl font-light tracking-widest mb-10">Admin Panel</h1>
+      <div className="min-h-screen bg-gray-50 py-20 md:py-22">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <h1 className="text-3xl md:text-5xl font-light tracking-widest mb-8">Admin Panel</h1>
 
-          <div className="flex gap-4 mb-8 border-b pb-4 flex-wrap">
-            <button onClick={() => setTab('products')} className={`px-8 py-3 rounded-full ${tab === 'products' ? 'bg-black text-white' : 'bg-white border'}`}>Products</button>
-            <button onClick={() => setTab('orders')} className={`px-8 py-3 rounded-full ${tab === 'orders' ? 'bg-black text-white' : 'bg-white border'}`}>Orders</button>
-            <button onClick={() => setTab('shipping')} className={`px-8 py-3 rounded-full ${tab === 'shipping' ? 'bg-black text-white' : 'bg-white border'}`}>Shipping Countries</button>
-            <button onClick={() => setTab('sku-search')} className={`px-8 py-3 rounded-full ${tab === 'sku-search' ? 'bg-black text-white' : 'bg-white border'}`}>SKU Search</button>
-            <button onClick={() => setTab('promo-codes')} className={`px-8 py-3 rounded-full ${tab === 'promo-codes' ? 'bg-black text-white' : 'bg-white border'}`}>Promo Codes</button>
+          {/* Tabs — 2-col grid on mobile, single row on desktop */}
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 mb-8 border-b pb-4">
+            <button
+              onClick={() => setTab('products')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'products' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              Products
+            </button>
+            <button
+              onClick={() => setTab('orders')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'orders' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              Orders
+            </button>
+            <button
+              onClick={() => setTab('shipping')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'shipping' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              <span className="md:hidden">Shipping</span>
+              <span className="hidden md:inline">Shipping Countries</span>
+            </button>
+            <button
+              onClick={() => setTab('sku-search')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'sku-search' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              SKU Search
+            </button>
+            <button
+              onClick={() => setTab('promo-codes')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'promo-codes' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              <span className="md:hidden">Promos</span>
+              <span className="hidden md:inline">Promo Codes</span>
+            </button>
           </div>
 
           {loading && <p className="text-center py-20">Loading...</p>}
 
-          {/* PRODUCTS TAB */}
+          {/* ==================== PRODUCTS TAB ==================== */}
           {tab === 'products' && !loading && (
             <div>
               {collections.length > 0 && (
@@ -422,35 +437,28 @@ export default function AdminPanel() {
                     <button
                       onClick={() => setSelectedCollection(null)}
                       className={`px-5 py-2 rounded-2xl text-sm font-medium transition ${
-                        selectedCollection === null
-                          ? 'bg-black text-white'
-                          : 'bg-white border hover:bg-gray-50'
+                        selectedCollection === null ? 'bg-black text-white' : 'bg-white border hover:bg-gray-50'
                       }`}
                     >
                       All Products
                     </button>
                     {collections.map((col) => (
-                    <div
-                      key={col}
-                      onClick={() => setSelectedCollection(col)}
-                      className={`px-5 py-2 rounded-2xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition ${
-                        selectedCollection === col
-                          ? 'bg-black text-white'
-                          : 'bg-white border hover:bg-gray-50'
-                      }`}
-                    >
-                      {col}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteCollection(col);
-                        }}
-                        className="text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700"
+                      <div
+                        key={col}
+                        onClick={() => setSelectedCollection(col)}
+                        className={`px-5 py-2 rounded-2xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition ${
+                          selectedCollection === col ? 'bg-black text-white' : 'bg-white border hover:bg-gray-50'
+                        }`}
                       >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  ))}
+                        {col}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteCollection(col); }}
+                          className="text-red-500 opacity-0 group-hover:opacity-100 hover:text-red-700"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -476,7 +484,6 @@ export default function AdminPanel() {
                         <div className="p-6">
                           <h3 className="font-medium text-lg mb-1">{p.name}</h3>
                           <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
-
                           <p className="text-sm text-gray-500 mt-1">
                             Category: <span className="font-medium text-black">{p.category || 'Uncategorized'}</span>
                           </p>
@@ -485,11 +492,9 @@ export default function AdminPanel() {
                               Collection: <span className="font-medium text-black">{p.collection}</span>
                             </p>
                           )}
-
                           {p.is_on_sale && (
                             <p className="text-red-600 text-sm font-medium mt-1">On Sale • -{p.discount_percentage}%</p>
                           )}
-
                           <div className="mt-6 flex gap-3">
                             <button
                               onClick={() => openModal(p)}
@@ -515,7 +520,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* ORDERS TAB */}
+          {/* ==================== ORDERS TAB ==================== */}
           {tab === 'orders' && !loading && (
             <div className="space-y-8">
               <div className="flex items-center justify-between">
@@ -532,103 +537,139 @@ export default function AdminPanel() {
               {orders.length === 0 ? (
                 <p className="text-center py-20 text-xl text-gray-500">No orders yet</p>
               ) : (
-                orders.map((order) => (
-                  <div key={order.id} className="bg-white rounded-3xl p-8 border">
-                    <div className="flex justify-between mb-6">
-                      <div>
-                        <p className="text-sm text-gray-500">Order #{order.id.slice(0, 8)}...</p>
-                        <p className="font-medium">Email: {order.user_email}</p>
-                        <p className="font-medium">Phone Number: {order.phone || 'Not provided'}</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(order.created_at).toLocaleString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZoneName: 'short',
-                          })}
-                        </p>
-                      </div>
+                orders.map((order) => {
+                  const isFreeShipping = !order.delivery_fee || Number(order.delivery_fee) === 0;
+                  const orderTotal = Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0);
 
-                      {/* USER TYPE INDICATOR */}
-                      <div className={`px-5 py-2.5 rounded-full text-sm font-medium self-start ${
-                        order.user_id 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-orange-100 text-orange-700'
-                      }`}>
-                        {order.user_id ? '✅ Registered Account' : '👤 Guest User'}
-                      </div>
+                  return (
+                    <div key={order.id} className="bg-white rounded-3xl p-8 border">
 
-                      <span
-                        className={`px-5 py-2.5 rounded-full text-sm font-medium self-start ${
-                          (order.payment_method || '').toLowerCase().includes('cash') ||
-                          (order.payment_method || '').toLowerCase().includes('delivery')
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}
-                      >
-                        {order.payment_method || 'Credit / Debit Card'}
-                      </span>
-                    </div>
-
-                    <div className="mb-8 bg-gray-50 p-6 rounded-2xl">
-                      <p className="font-medium mb-3">📍 Shipping Address</p>
-                      <div className="space-y-1 text-gray-700">
-                        {order.street && <p>{order.street}</p>}
-                        {order.apartment && <p>Apartment: {order.apartment}</p>}
-                        {order.city && <p>City: {order.city}</p>}
-                        {order.governorate && <p>Governorate: {order.governorate}</p>}
-                        {(!order.street && !order.apartment && !order.city && !order.governorate) && (
-                          <p className="text-gray-400">No address provided</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="font-medium mb-4">Ordered Items:</p>
-                    {order.order_items?.map((item: any, i: number) => (
-                      <div key={i} className="flex items-center gap-4 py-4 border-b last:border-b-0">
-                        {item.image_url && (
-                          <img
-                            src={item.image_url}
-                            alt={item.product_name}
-                            className="w-16 h-16 object-cover rounded-xl shrink-0"
-                          />
-                        )}
-                        <div className="flex-1">
-                          <p className="font-medium">{item.product_name}</p>
-                          <p className="text-sm text-gray-500">
-                            Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
+                      {/* ── Top row: order meta + badges ── */}
+                      <div className="flex flex-wrap justify-between gap-4 mb-6">
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Order #{order.id.slice(0, 8)}...</p>
+                          <p className="font-medium">Email: {order.user_email}</p>
+                          <p className="font-medium">Phone: {order.phone || 'Not provided'}</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {new Date(order.created_at).toLocaleString(undefined, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZoneName: 'short',
+                            })}
                           </p>
                         </div>
-                        <p className="font-medium">{formatPrice(item.price)}</p>
-                      </div>
-                    ))}
 
-                    {order.delivery_fee && order.delivery_fee > 0 && (
+                        <div className="flex flex-wrap gap-2 items-start">
+                          {/* Registered vs Guest */}
+                          <div className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            order.user_id
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {order.user_id ? '✅ Registered Account' : ' Guest User'}
+                          </div>
+
+                          {/* Payment method */}
+                          <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            (order.payment_method || '').toLowerCase().includes('cash') ||
+                            (order.payment_method || '').toLowerCase().includes('delivery')
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {order.payment_method || 'Credit / Debit Card'}
+                          </span>
+
+                          {/* Free Shipping badge */}
+                          {isFreeShipping && (
+                            <span className="px-4 py-2 rounded-full text-sm font-medium bg-emerald-100 text-emerald-700 flex items-center gap-1.5">
+                               Free Shipping
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── Shipping Address ── */}
+                      <div className="mb-8 bg-gray-50 p-6 rounded-2xl">
+                        <p className="font-medium mb-3">📍 Shipping Address</p>
+                        <div className="space-y-1 text-gray-700">
+                          {order.street && <p>{order.street}</p>}
+                          {order.apartment && <p>Apartment: {order.apartment}</p>}
+                          {order.city && <p>City: {order.city}</p>}
+                          {order.governorate && <p>Governorate: {order.governorate}</p>}
+                          {(!order.street && !order.apartment && !order.city && !order.governorate) && (
+                            <p className="text-gray-400">No address provided</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── Order Items ── */}
+                      <p className="font-medium mb-4">Ordered Items:</p>
+                      {order.order_items?.map((item: any, i: number) => (
+                        <div key={i} className="flex items-center gap-4 py-4 border-b last:border-b-0">
+                          {item.image_url && (
+                            <img
+                              src={item.image_url}
+                              alt={item.product_name}
+                              className="w-16 h-16 object-cover rounded-xl shrink-0"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <p className="font-medium">{item.product_name}</p>
+                            <p className="text-sm text-gray-500">
+                              Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
+                            </p>
+                          </div>
+                          <p className="font-medium">{formatPrice(item.price)}</p>
+                        </div>
+                      ))}
+
+                      {/* ── Delivery Fee Row ── */}
                       <div className="flex justify-between text-lg mt-6">
                         <span className="text-gray-600">Delivery Fee</span>
-                        <span className="font-medium">EGP {order.delivery_fee}</span>
+                        {isFreeShipping ? (
+                          <span className="font-medium text-emerald-600 flex items-center gap-1.5">
+                             Free
+                          </span>
+                        ) : (
+                          <span className="font-medium">EGP {order.delivery_fee}</span>
+                        )}
                       </div>
-                    )}
 
-                    <div className="mt-10 flex justify-between text-2xl font-medium pt-8">
-                      <span>Total</span>
-                      <span>EGP {Number(order.total || 0) + Number(order.delivery_fee || 0)}</span>
+                      {/* ── Promo / Discount Row (if any) ── */}
+                      {Number(order.discount_amount) > 0 && (
+                        <div className="flex justify-between text-lg mt-2">
+                          <span className="text-gray-600">
+                            Discount{order.promo_code ? ` (${order.promo_code})` : ''}
+                          </span>
+                          <span className="font-medium text-red-600">
+                            -EGP {Number(order.discount_amount).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* ── Total ── */}
+                      <div className="mt-6 flex justify-between text-2xl font-medium border-t pt-6">
+                        <span>Total</span>
+                        <span>EGP {orderTotal.toFixed(2)}</span>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}
 
-          {/* SHIPPING COUNTRIES TAB - With Select All */}
+          {/* ==================== SHIPPING COUNTRIES TAB ==================== */}
           {tab === 'shipping' && !loading && (
             <div>
-              <h2 className="text-3xl font-light mb-8">Shipping Countries</h2>
-              <p className="text-gray-600 mb-6">Select the countries you want to sell and ship to:</p>
+              <h2 className="text-3xl font-light mb-2">Shipping Countries</h2>
+              <p className="text-gray-500 mb-8 text-sm">
+                Enable countries to ship to, then click <span className="font-medium text-black"> Free Cities</span> to manage free shipping per city.
+              </p>
 
-              {/* Select All Checkbox */}
               <div className="mb-6 flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -649,26 +690,43 @@ export default function AdminPanel() {
                 </label>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {supportedCountries.map((country) => (
                   <div
                     key={country.code}
-                    onClick={() => toggleCountry(country.code, country.enabled)}
-                    className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${
+                    className={`flex items-center gap-3 p-4 border rounded-2xl transition ${
                       country.enabled ? 'border-black bg-green-50' : 'border-gray-200 hover:border-gray-400'
                     }`}
                   >
+                    {/* Toggle circle */}
                     <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
+                      onClick={() => toggleCountry(country.code, country.enabled)}
+                      className={`w-6 h-6 rounded-full flex items-center justify-center border-2 cursor-pointer shrink-0 ${
                         country.enabled ? 'border-green-600 bg-green-600' : 'border-gray-400'
                       }`}
                     >
-                      {country.enabled && <Check size={16} className="text-white" />}
+                      {country.enabled && <Check size={14} className="text-white" />}
                     </div>
-                    <div>
-                      <p className="font-medium">{country.name}</p>
+
+                    {/* Country name — truncate so it never pushes button off */}
+                    <div
+                      className="flex-1 cursor-pointer min-w-0"
+                      onClick={() => toggleCountry(country.code, country.enabled)}
+                    >
+                      <p className="font-medium text-sm truncate">{country.name}</p>
                       <p className="text-xs text-gray-500">{country.code}</p>
                     </div>
+
+                    {/* Free Cities — short label on mobile */}
+                    {country.enabled && (
+                      <button
+                        onClick={() => router.push(`/admin/shipping/${country.code}`)}
+                        className="text-xs bg-black text-white px-3 py-1.5 rounded-xl hover:bg-gray-800 transition whitespace-nowrap shrink-0"
+                      >
+                        <span className="sm:hidden">🚚</span>
+                        <span className="hidden sm:inline"> Free Cities</span>
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -679,39 +737,37 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* SKU SEARCH TAB */}
+          {/* ==================== SKU SEARCH TAB ==================== */}
           {tab === 'sku-search' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">SKU Search</h2>
-              
+
               <p className="text-gray-600 mb-6">
                 Enter the exact SKU to find the product + variant:
                 <br />
-                <span className="font-mono text-sm text-black">
-                  Example: GM-DR-25S-JCK-001-BLU-M
-                </span>
+                <span className="font-mono text-sm text-black">Example: GM-DR-25S-JCK-001-BLU-M</span>
               </p>
-              <div className="max-w-lg flex gap-3">
+
+              <div className="w-full max-w-lg flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
                   placeholder="GM-DR-25S-JCK-001-BLU-M"
                   value={skuSearchTerm}
                   onChange={(e) => setSkuSearchTerm(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && searchBySku()}
-                  className="border rounded-2xl px-5 py-4 flex-1 text-lg font-mono tracking-widest uppercase"
+                  className="border rounded-2xl px-5 py-4 w-full text-base md:text-lg font-mono tracking-widest uppercase"
                 />
                 <button
                   onClick={searchBySku}
                   disabled={searching || !skuSearchTerm.trim()}
-                  className="bg-black text-white px-10 rounded-2xl hover:bg-gray-800 disabled:opacity-50"
+                  className="bg-black text-white px-8 py-4 rounded-2xl hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
                 >
                   {searching ? 'Searching...' : 'Search'}
                 </button>
               </div>
 
               {skuSearchResult && (
-                
-                <div className="mt-10 bg-white rounded-3xl p-6 border max-w-lg ">
+                <div className="mt-10 bg-white rounded-3xl p-6 border max-w-lg">
                   {skuSearchResult.products?.images?.[0] && (
                     <img
                       src={skuSearchResult.products.images[0]}
@@ -721,12 +777,9 @@ export default function AdminPanel() {
                   )}
 
                   <div className="mt-6">
-                    {/* SKU Badge */}
                     <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl mb-4">
                       <span className="text-xs uppercase tracking-widest text-gray-500">SKU</span>
-                      <span className="font-mono text-sm tracking-[2px] font-medium">
-                        {skuSearchResult.sku}
-                      </span>
+                      <span className="font-mono text-sm tracking-[2px] font-medium">{skuSearchResult.sku}</span>
                     </div>
 
                     <h3 className="text-2xl font-medium">{skuSearchResult.products?.name}</h3>
@@ -740,7 +793,6 @@ export default function AdminPanel() {
                       </p>
                     )}
 
-                    {/* Matched Variant Only */}
                     <div className="mt-6 bg-gray-50 rounded-2xl p-5 border border-gray-200">
                       <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Matched Variant</p>
                       <div className="grid grid-cols-3 gap-6 text-sm">
@@ -754,7 +806,13 @@ export default function AdminPanel() {
                         </div>
                         <div>
                           <p className="text-gray-500 mb-1">Stock</p>
-                          <p className={`font-semibold text-base ${skuSearchResult.stock === 0 ? 'text-red-600' : skuSearchResult.stock <= 5 ? 'text-orange-500' : 'text-green-600'}`}>
+                          <p className={`font-semibold text-base ${
+                            skuSearchResult.stock === 0
+                              ? 'text-red-600'
+                              : skuSearchResult.stock <= 5
+                                ? 'text-orange-500'
+                                : 'text-green-600'
+                          }`}>
                             {skuSearchResult.stock === 0 ? 'Out of stock' : skuSearchResult.stock}
                           </p>
                         </div>
@@ -792,7 +850,7 @@ export default function AdminPanel() {
                       <button
                         onClick={() => {
                           if (confirm(`Delete "${skuSearchResult.products.name}" permanently?`)) {
-                            deleteProduct(skuSearchResult.products.id);
+                            deleteProduct(skuSearchResult.product_id);
                             setSkuSearchResult(null);
                           }
                         }}
@@ -803,7 +861,6 @@ export default function AdminPanel() {
                     </div>
                   </div>
                 </div>
-                  
               )}
 
               {!skuSearchResult && skuSearchTerm && !searching && (
@@ -816,7 +873,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* PROMO CODES TAB - Updated with your rules */}
+          {/* ==================== PROMO CODES TAB ==================== */}
           {tab === 'promo-codes' && !loading && (
             <div>
               <h2 className="text-3xl font-light mb-8">Promo Codes</h2>
@@ -870,7 +927,7 @@ export default function AdminPanel() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {promoCodes.length === 0 ? (
-                  <p className="text-gray-500 col-span-full py-20 text-center">No promo codes yet. Add your first promo code above.</p>
+                  <p className="text-gray-500 col-span-full py-20 text-center">No promo codes yet.</p>
                 ) : (
                   promoCodes.map((promo) => {
                     const isExpired = promo.expires_at && new Date(promo.expires_at) < new Date();
@@ -885,10 +942,7 @@ export default function AdminPanel() {
                             <p className="font-mono text-2xl tracking-widest font-medium">{promo.code}</p>
                             <p className="text-red-600 text-lg font-medium">-{promo.discount_percentage}% OFF</p>
                           </div>
-                          <button
-                            onClick={() => deletePromoCode(promo.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
+                          <button onClick={() => deletePromoCode(promo.id)} className="text-red-600 hover:text-red-700">
                             <Trash2 size={24} />
                           </button>
                         </div>
@@ -921,14 +975,11 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      {/* Add / Edit Modal */}
+      {/* ==================== ADD / EDIT MODAL ==================== */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl w-full max-w-8xl p-12 relative max-h-[92vh] overflow-y-auto">
-            <button onClick={() => {
-              setShowAddModal(false);
-              setEditingProduct(null);
-            }} className="absolute top-8 right-8">
+            <button onClick={() => { setShowAddModal(false); setEditingProduct(null); }} className="absolute top-8 right-8">
               <X size={28} />
             </button>
 
@@ -945,7 +996,6 @@ export default function AdminPanel() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
 
-              {/* Category Dropdown */}
               <div>
                 <label className="block text-sm mb-3 font-medium">Category *</label>
                 <select
@@ -975,7 +1025,6 @@ export default function AdminPanel() {
                 </select>
               </div>
 
-              {/* Collection Dropdown with Plus Button */}
               <div>
                 <label className="block text-sm mb-3 font-medium">Collection</label>
                 <div className="flex gap-2">
@@ -1036,7 +1085,6 @@ export default function AdminPanel() {
                 />
               </div>
 
-              {/* Sale Section */}
               <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 p-5 rounded-2xl">
                 <input
                   type="checkbox"
@@ -1058,7 +1106,6 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* Variants Section + Legend */}
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-lg font-medium">Variants (Color + Type Code + SKU + Size + Stock)</label>
@@ -1094,7 +1141,7 @@ export default function AdminPanel() {
                   <div key={index} className="flex flex-wrap gap-4 mb-6 items-end border p-6 rounded-3xl bg-gray-50">
                     <input type="text" placeholder="Color (e.g. Black)" value={variant.color} onChange={(e) => updateVariant(index, 'color', e.target.value)} className="border rounded-2xl px-6 py-5 flex-1 min-w-[140px] text-lg" />
                     <input type="text" placeholder="Type (SHR/PNT/DRS...)" value={variant.typeCode || ''} onChange={(e) => updateVariant(index, 'typeCode', e.target.value.toUpperCase())} className="border rounded-2xl px-6 py-5 w-80 font-mono tracking-widest text-lg uppercase text-center" />
-                    <input type="text" placeholder="SKU (e.g. GM-DR-25S-SHR-001-BLK-S)" value={variant.sku || ''} onChange={(e) => updateVariant(index, 'sku', e.target.value.toUpperCase())} className="border rounded-2xl px-6 py-5 flex-2 min-w-260px font-mono tracking-widest text-lg uppercase" />
+                    <input type="text" placeholder="SKU (e.g. GM-DR-25S-SHR-001-BLK-S)" value={variant.sku || ''} onChange={(e) => updateVariant(index, 'sku', e.target.value.toUpperCase())} className="border rounded-2xl px-6 py-5 flex-2 min-w-[260px] font-mono tracking-widest text-lg uppercase" />
                     <input type="text" placeholder="Size" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} className="border rounded-2xl px-6 py-5 w-28 text-lg" />
                     <input type="number" placeholder="Stock" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', e.target.value)} className="border rounded-2xl px-6 py-5 w-32 text-lg" />
                     <button onClick={() => removeVariant(index)} className="text-red-600 hover:text-red-700 p-3"><Trash2 size={24} /></button>
@@ -1107,12 +1154,7 @@ export default function AdminPanel() {
                 disabled={uploading}
                 className="w-full bg-black text-white py-5 rounded-2xl text-lg tracking-widest hover:bg-gray-800 disabled:opacity-70"
               >
-                {uploading
-                  ? 'Saving...'
-                  : editingProduct
-                    ? 'Update Product'
-                    : 'Add Product'
-                }
+                {uploading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
               </button>
             </div>
           </div>

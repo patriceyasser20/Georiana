@@ -11,7 +11,7 @@ import { useCurrency } from '../context/CurrencyContext';
 export default function Account() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
-  const orderIdParam = searchParams.get('order_id');   // ← This is what we use for guests
+  const orderIdParam = searchParams.get('order_id');
   const { formatPrice } = useCurrency();
 
   const [orders, setOrders] = useState<any[]>([]);
@@ -20,7 +20,7 @@ export default function Account() {
 
   useEffect(() => {
     fetchOrders();
-  }, [orderIdParam]);   // ← Re-fetch when order_id changes
+  }, [orderIdParam]);
 
   const fetchOrders = async () => {
     try {
@@ -42,12 +42,9 @@ export default function Account() {
         `)
         .order('created_at', { ascending: false });
 
-      // If there's an order_id in URL (guest from success page) → show ONLY that order
       if (orderIdParam) {
         query = query.eq('id', orderIdParam);
-      } 
-      // Otherwise, if user is logged in → show all their orders
-      else {
+      } else {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user?.email) {
           query = query.eq('user_email', user.email);
@@ -94,10 +91,13 @@ export default function Account() {
           )}
 
           {orders.map((order) => {
-            const displayTotal = Number(order.total || 0) + Number(order.delivery_fee || 0);
+            const isFreeShipping = !order.delivery_fee || Number(order.delivery_fee) === 0;
+            const displayTotal = Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0);
 
             return (
               <div key={order.id} className="bg-white rounded-3xl p-8 mb-8 border">
+
+                {/* ── Top row ── */}
                 <div className="flex justify-between mb-6">
                   <div>
                     <p className="text-sm text-gray-500">
@@ -114,23 +114,35 @@ export default function Account() {
                       })}
                     </p>
                   </div>
-                  <span
-                    className={`px-5 py-2 rounded-full text-sm ${
-                      order.payment_method?.toLowerCase().includes('cash') || 
-                      order.payment_method === 'Cash on Delivery' ||
-                      order.status === 'confirmed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}
-                  >
-                    {order.payment_method?.toLowerCase().includes('cash') || 
-                     order.payment_method === 'Cash on Delivery' ||
-                     order.status === 'confirmed'
-                      ? t('account.cod')
-                      : t('account.card')}
-                  </span>
+
+                  <div className="flex flex-wrap gap-2 items-start justify-end">
+                    {/* Payment method badge */}
+                    <span
+                      className={`px-5 py-2 rounded-full text-sm ${
+                        order.payment_method?.toLowerCase().includes('cash') ||
+                        order.payment_method === 'Cash on Delivery' ||
+                        order.status === 'confirmed'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}
+                    >
+                      {order.payment_method?.toLowerCase().includes('cash') ||
+                       order.payment_method === 'Cash on Delivery' ||
+                       order.status === 'confirmed'
+                        ? t('account.cod')
+                        : t('account.card')}
+                    </span>
+
+                    {/* Free Shipping badge */}
+                    {isFreeShipping && (
+                      <span className="px-5 py-2 rounded-full text-sm bg-emerald-100 text-emerald-700 font-medium">
+                         Free Shipping
+                      </span>
+                    )}
+                  </div>
                 </div>
 
+                {/* ── Shipping Address ── */}
                 <div className="mb-8 bg-gray-50 p-6 rounded-2xl">
                   <p className="font-medium mb-2">{t('account.shippingAddress')}</p>
                   <p>{order.street}, {order.apartment}</p>
@@ -142,6 +154,7 @@ export default function Account() {
                   )}
                 </div>
 
+                {/* ── Order Items ── */}
                 <p className="font-medium mb-4">{t('account.orderedItems')}</p>
 
                 {order.order_items && order.order_items.length > 0 ? (
@@ -169,23 +182,44 @@ export default function Account() {
                   <p className="text-gray-500 py-8 text-center">No items found for this order</p>
                 )}
 
-                {/* Delivery Fee */}
-                {order.delivery_fee && order.delivery_fee > 0 && (
-                  <div className="flex justify-between text-lg mt-6">
-                    <span className="text-gray-600">Delivery Fee</span>
-                    <span className="font-medium">{formatPrice(Number(order.delivery_fee))}</span>
-                  </div>
-                )}
-                {order.total && order.total > 0 && (
-                  <div className="flex justify-between text-lg mt-6">
-                    <span className="text-gray-600">Order Total</span>
-                    <span className="font-medium">{formatPrice(Number(order.total))}</span>
-                  </div>
-                )}
+                {/* ── Price Breakdown ── */}
+                <div className="mt-6 space-y-3">
 
-                <div className="mt-10 flex justify-between text-2xl font-medium  pt-8">
+                  {/* Order subtotal */}
+                  {order.total && order.total > 0 && (
+                    <div className="flex justify-between text-lg">
+                      <span className="text-gray-600">Order Total</span>
+                      <span className="font-medium">{formatPrice(Number(order.total))}</span>
+                    </div>
+                  )}
+
+                  {/* Delivery fee — free or paid */}
+                  <div className="flex justify-between text-lg">
+                    <span className="text-gray-600">Delivery Fee</span>
+                    {isFreeShipping ? (
+                      <span className="font-medium text-emerald-600">🚚 Free</span>
+                    ) : (
+                      <span className="font-medium">{formatPrice(Number(order.delivery_fee))}</span>
+                    )}
+                  </div>
+
+                  {/* Discount row — only if a promo was applied */}
+                  {Number(order.discount_amount) > 0 && (
+                    <div className="flex justify-between text-lg">
+                      <span className="text-gray-600">
+                        Discount{order.promo_code ? ` (${order.promo_code})` : ''}
+                      </span>
+                      <span className="font-medium text-red-600">
+                        -{formatPrice(Number(order.discount_amount))}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── Grand Total ── */}
+                <div className="mt-6 flex justify-between text-2xl font-medium border-t pt-8">
                   <span>{t('account.total')}</span>
-                  <span> {formatPrice(displayTotal)}</span>
+                  <span>{formatPrice(displayTotal)}</span>
                 </div>
               </div>
             );

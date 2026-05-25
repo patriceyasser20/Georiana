@@ -1,39 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '../components/Header';
-import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 
-
-export default function AuthCallback() {
+export default function Callback() {
   const router = useRouter();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
-  
 
   useEffect(() => {
     const handleCallback = async () => {
-      try {
-        const { error } = await supabaseClient.auth.getSession();
+      // Exchange the OAuth code for a session
+      const { data, error } = await supabaseClient.auth.getSession();
 
-        if (error) {
-          setStatus('error');
-          setMessage('Failed to confirm your email. Please try again.');
-          return;
-        }
+      if (error) {
+        console.error('OAuth callback error:', error);
+        router.push('/login?error=oauth_failed');
+        return;
+      }
 
-        setStatus('success');
-        setMessage('🎉 Your email has been successfully confirmed!');
-
-        // Redirect to home after 3 seconds
-        setTimeout(() => {
-          router.push('/account');
+      if (data.session) {
+        // Upsert profile for social login users (no phone required)
+        const user = data.session.user;
+        await supabaseClient.from('profiles').upsert({
+          id: user.id,
+          email: user.email,
+          phone: user.user_metadata?.phone || null,
         });
-      } catch (err) {
-        setStatus('error');
-        setMessage('Something went wrong. Please try logging in manually.');
+
+        router.push('/');
+      } else {
+        router.push('/login');
       }
     };
 
@@ -41,41 +37,11 @@ export default function AuthCallback() {
   }, [router]);
 
   return (
-    <>
-      <Header />
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
-        <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md w-full text-center">
-          {status === 'loading' && (
-            <>
-              <div className="animate-spin w-12 h-12 border-4 border-black border-t-transparent rounded-full mx-auto mb-6"></div>
-              <h2 className="text-2xl font-light">Confirming your email...</h2>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <div className="text-6xl mb-6">🎉</div>
-              <h2 className="text-3xl font-light mb-3">Email Confirmed!</h2>
-              <p className="text-gray-600 mb-8">{message}</p>
-              <p className="text-sm text-gray-500">You will be redirected to the homepage shortly...</p>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <div className="text-6xl mb-6">❌</div>
-              <h2 className="text-3xl font-light mb-3">Confirmation Failed</h2>
-              <p className="text-red-600 mb-8">{message}</p>
-              <button
-                onClick={() => router.push('/login')}
-                className="bg-black text-white px-8 py-3 rounded-full text-sm tracking-widest"
-              >
-                Go to Login
-              </button>
-            </>
-          )}
-        </div>
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <div className="w-10 h-10 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-gray-500 text-sm tracking-widest">Signing you in...</p>
       </div>
-    </>
+    </div>
   );
 }

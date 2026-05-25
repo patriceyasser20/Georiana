@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+/* ── Force light mode — disable Tailwind v4 dark mode entirely ── */
+:root {
+  color-scheme: light !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: light !important;
+  }
+
+  html,
+  body {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+  }
+}
+
+html,
+body {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  min-height: 100%;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}

@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { User, LogOut, ShoppingBag, ArrowLeft, Heart } from 'lucide-react';
+import { User, LogOut, ShoppingBag, Heart, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
@@ -20,11 +19,7 @@ const languages = [
 ];
 
 const slugify = (text: string) =>
-  text
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '');
+  text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
 export default function Header() {
   const router = useRouter();
@@ -35,61 +30,50 @@ export default function Header() {
   const [loading, setLoading] = useState(true);
   const [reviewCount, setReviewCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
-
   const [categories, setCategories] = useState<string[]>([]);
   const [collections, setCollections] = useState<string[]>([]);
 
-  // New approach: Single listener + initial session
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileCatOpen, setMobileCatOpen] = useState(false);
+  const [mobileColOpen, setMobileColOpen] = useState(false);
+
+  // Prevent body scroll when drawer is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
+
   useEffect(() => {
     let mounted = true;
-    
-
-    // Get initial session
     supabaseClient.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+      if (mounted) { setUser(session?.user ?? null); setLoading(false); }
     });
-
-    // Listen for auth changes (main source of truth)
-    const { data: listener } = supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (mounted) {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
+    const { data: listener } = supabaseClient.auth.onAuthStateChange((_, session) => {
+      if (mounted) { setUser(session?.user ?? null); setLoading(false); }
     });
-
-    return () => {
-      mounted = false;
-      listener.subscription.unsubscribe();
-    };
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
   }, []);
 
-  // Review Order count
   useEffect(() => {
     const updateCount = () => {
       const saved = localStorage.getItem('reviewOrder');
-      const items = saved ? JSON.parse(saved) : [];
-      setReviewCount(items.length);
+      setReviewCount(saved ? JSON.parse(saved).length : 0);
     };
     updateCount();
     const interval = setInterval(updateCount, 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Wishlist count
   useEffect(() => {
     const fetchWishlistCount = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) {
-        setWishlistCount(0);
-        return;
-      }
+      if (!user) { setWishlistCount(0); return; }
       const { count } = await supabaseClient
-        .from('wishlist')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+        .from('wishlist').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
       setWishlistCount(count || 0);
     };
     fetchWishlistCount();
@@ -97,127 +81,109 @@ export default function Header() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch Categories & Collections (unchanged)
   useEffect(() => {
     const fetchCategories = async () => {
-      const { data } = await supabaseClient
-        .from('products')
-        .select('category')
-        .not('category', 'is', null);
-      const unique = [...new Set(data?.map((p: any) => p.category))].filter(Boolean);
-      setCategories(unique);
+      const { data } = await supabaseClient.from('products').select('category').not('category', 'is', null);
+      setCategories([...new Set(data?.map((p: any) => p.category))].filter(Boolean));
     };
     fetchCategories();
   }, []);
 
   useEffect(() => {
     const fetchCollections = async () => {
-      const { data } = await supabaseClient
-        .from('products')
-        .select('collection')
-        .not('collection', 'is', null);
-      const unique = [...new Set(data?.map((p: any) => p.collection))].filter(Boolean);
-      setCollections(unique);
+      const { data } = await supabaseClient.from('products').select('collection').not('collection', 'is', null);
+      setCollections([...new Set(data?.map((p: any) => p.collection))].filter(Boolean));
     };
     fetchCollections();
   }, []);
 
   const handleSignOut = async () => {
     await supabaseClient.auth.signOut();
+    setMobileMenuOpen(false);
     router.push('/');
   };
 
-  
+  useEffect(() => { setMobileMenuOpen(false); }, [pathname]);
+
   return (
-    <header className="top-bar bg-white/95 backdrop-blur-md border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        
-        <div className="flex items-center gap-15">
+    <>
+      <header suppressHydrationWarning className="bg-white border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
+
+          {/* ── Logo ── */}
           <Link href="/" className="flex items-center">
-            <img 
-              src="/images/logo.svg" 
-              alt="GEORIANA" 
-              className="h-15 w-auto" 
-            />
+            <img src="/images/logo.svg" alt="GEORIANA" className="h-10 md:h-15 w-auto" />
           </Link>
-        </div>
 
-        <nav className="hidden md:flex gap-10 text-lg font-medium uppercase tracking-widest">
-          <Link href="/shop">{t('header.shop')}</Link>
+          {/* ── Desktop Nav ── */}
+          <nav className="hidden md:flex gap-10 text-lg font-medium uppercase tracking-widest">
+            <Link href="/shop">{t('header.shop')}</Link>
 
-          <div className="relative group">
-            <button className="hover:text-gray-600 transition flex items-center gap-1">
-              {t('header.woman')}
-              <span className="text-xs">▼</span>
-            </button>
-            <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              {categories.length > 0 ? (
-                categories.map((category) => (
-                  <Link
-                    key={category}
-                    href={`/woman/${slugify(category)}`}
-                    className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
-                  >
+            <div className="relative group">
+              <button className="hover:text-gray-600 transition flex items-center gap-1">
+                {t('header.woman')} <span className="text-xs">▼</span>
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                {categories.length > 0 ? categories.map((category) => (
+                  <Link key={category} href={`/woman/${slugify(category)}`} className="block px-6 py-3 hover:bg-gray-100 transition text-sm">
                     {t(`category.${slugify(category)}`)}
                   </Link>
-                ))
-              ) : (
-                <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
-              )}
+                )) : (
+                  <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
+                )}
+              </div>
             </div>
-          </div>
 
-          <div className="relative group">
-            <button className="hover:text-gray-600 transition flex items-center gap-1">
-              {t('header.collections')}
-              <span className="text-xs">▼</span>
-            </button>
-            <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-              {collections.length > 0 ? (
-                collections.map((col) => (
-                  <Link
-                    key={col}
-                    href={`/collection/${slugify(col)}`}
-                    className="block px-6 py-3 hover:bg-gray-100 transition text-sm"
-                  >
+            <div className="relative group">
+              <button className="hover:text-gray-600 transition flex items-center gap-1">
+                {t('header.collections')} <span className="text-xs">▼</span>
+              </button>
+              <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                {collections.length > 0 ? collections.map((col) => (
+                  <Link key={col} href={`/collection/${slugify(col)}`} className="block px-6 py-3 hover:bg-gray-100 transition text-sm">
                     {col}
                   </Link>
-                ))
-              ) : (
-                <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCollections')}</div>
-              )}
+                )) : (
+                  <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCollections')}</div>
+                )}
+              </div>
             </div>
-          </div>
-          <Link href="/sale" className="text-red-600">{t('header.sale')}</Link>
-        </nav>
 
-        <div className="flex items-center gap-8 text-xl">
-          <select
-            value={language}
-            onChange={(e) => changeLanguage(e.target.value as any)}
-            className="bg-transparent border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none cursor-pointer"
-          >
-            {languages.map(lang => (
-              <option key={lang.code} value={lang.code}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
+            <Link href="/sale" className="text-red-600">{t('header.sale')}</Link>
+          </nav>
 
-          {loading ? (
-            <span>...</span>
-          ) : user ? (
-            <div className="flex items-center gap-6">
-              <Link href="/account" className="text-sm hover:text-gray-600">{t('header.account')}</Link>
-              
-              <Link href="/wishlist" className="relative group">
-                <Heart 
-                  size={22} 
-                  className={`transition-all duration-300 ${
-                    wishlistCount > 0 
-                      ? 'text-red-500 fill-red-500 drop-shadow-[0_0_12px_#ef4444] scale-110' 
-                      : 'text-gray-700 group-hover:text-gray-900'
-                  }`} 
+          {/* ── Right Icons ── */}
+          <div suppressHydrationWarning className="flex items-center gap-4 md:gap-8">
+
+            {/* Language — desktop only */}
+            <select
+              value={language}
+              onChange={(e) => changeLanguage(e.target.value as any)}
+              className="hidden md:block bg-transparent border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none cursor-pointer"
+              suppressHydrationWarning
+            >
+              {languages.map(lang => (
+                <option key={lang.code} value={lang.code}>{lang.name}</option>
+              ))}
+            </select>
+
+            {/* Cart */}
+            {reviewCount > 0 && (
+              <Link href="/review-order" className="relative" suppressHydrationWarning>
+                <ShoppingBag size={22} suppressHydrationWarning />
+                <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full">
+                  {reviewCount}
+                </span>
+              </Link>
+            )}
+
+            {/* Wishlist — only when logged in */}
+            {!loading && user && (
+              <Link href="/wishlist" className="relative" suppressHydrationWarning>
+                <Heart
+                  size={22}
+                  suppressHydrationWarning
+                  className={wishlistCount > 0 ? 'text-red-500 fill-red-500' : 'text-gray-700'}
                 />
                 {wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full animate-pulse">
@@ -225,28 +191,193 @@ export default function Header() {
                   </span>
                 )}
               </Link>
+            )}
 
-              <button 
-                onClick={handleSignOut} 
-                className="flex items-center gap-2 text-sm hover:text-gray-600 transition"
+            {/* Desktop auth */}
+            {!loading && (
+              <div className="hidden md:flex items-center gap-6" suppressHydrationWarning>
+                {user ? (
+                  <>
+                    <Link href="/account" className="text-sm hover:text-gray-600">
+                      {t('header.account')}
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-2 text-sm hover:text-gray-600 transition"
+                      suppressHydrationWarning
+                    >
+                      <LogOut size={22} suppressHydrationWarning />
+                    </button>
+                  </>
+                ) : (
+                  <Link href="/login" suppressHydrationWarning>
+                    <User size={22} suppressHydrationWarning />
+                  </Link>
+                )}
+              </div>
+            )}
+
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden p-1"
+              aria-label="Open menu"
+              suppressHydrationWarning
+            >
+              <Menu size={26} suppressHydrationWarning />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Mobile Drawer ── */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] flex md:hidden">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Panel — slides in from right */}
+          <div className="relative ml-auto w-4/5 max-w-xs h-full bg-white flex flex-col overflow-y-auto shadow-2xl">
+
+            {/* Drawer header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+              <img src="/images/logo.svg" alt="GEORIANA" className="h-8 w-auto" />
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                suppressHydrationWarning
               >
-                <LogOut size={22} />
+                <X size={24} suppressHydrationWarning />
               </button>
             </div>
-          ) : (
-            <Link href="/login"><User size={22} /></Link>
-          )}
 
-          {reviewCount > 0 && (
-            <Link href="/review-order" className="relative">
-              <ShoppingBag size={22} />
-              <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full">
-                {reviewCount}
-              </span>
-            </Link>
-          )}
+            {/* Language selector */}
+            <div className="px-6 pt-5 pb-2">
+              <select
+                value={language}
+                onChange={(e) => changeLanguage(e.target.value as any)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
+                suppressHydrationWarning
+              >
+                {languages.map(lang => (
+                  <option key={lang.code} value={lang.code}>{lang.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Nav links */}
+            <nav className="flex flex-col px-6 py-4 gap-0 text-sm font-medium uppercase tracking-widest flex-1">
+
+              <Link
+                href="/shop"
+                className="py-4 border-b border-gray-100 hover:text-gray-500 transition"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('header.shop')}
+              </Link>
+
+              {/* Woman accordion */}
+              <div className="border-b border-gray-100">
+                <button
+                  onClick={() => setMobileCatOpen(!mobileCatOpen)}
+                  className="w-full flex justify-between items-center py-4 hover:text-gray-500 transition"
+                  suppressHydrationWarning
+                >
+                  {t('header.woman')}
+                  <span className="text-xs text-gray-400">{mobileCatOpen ? '▲' : '▼'}</span>
+                </button>
+                {mobileCatOpen && (
+                  <div className="pb-3 pl-3 flex flex-col gap-0">
+                    {categories.map((category) => (
+                      <Link
+                        key={category}
+                        href={`/woman/${slugify(category)}`}
+                        className="py-2.5 text-xs text-gray-500 hover:text-black transition capitalize"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {t(`category.${slugify(category)}`)}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Collections accordion */}
+              <div className="border-b border-gray-100">
+                <button
+                  onClick={() => setMobileColOpen(!mobileColOpen)}
+                  className="w-full flex justify-between items-center py-4 hover:text-gray-500 transition"
+                  suppressHydrationWarning
+                >
+                  {t('header.collections')}
+                  <span className="text-xs text-gray-400">{mobileColOpen ? '▲' : '▼'}</span>
+                </button>
+                {mobileColOpen && (
+                  <div className="pb-3 pl-3 flex flex-col gap-0">
+                    {collections.map((col) => (
+                      <Link
+                        key={col}
+                        href={`/collection/${slugify(col)}`}
+                        className="py-2.5 text-xs text-gray-500 hover:text-black transition"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {col}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Link
+                href="/sale"
+                className="py-4 border-b border-gray-100 text-red-600"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {t('header.sale')}
+              </Link>
+            </nav>
+
+            {/* Auth — pinned to bottom */}
+            <div className="px-6 pb-10 pt-6 border-t border-gray-100" suppressHydrationWarning>
+              {!loading && (
+                user ? (
+                  <div className="flex flex-col gap-4">
+                    <Link
+                      href="/account"
+                      className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition"
+                      onClick={() => setMobileMenuOpen(false)}
+                      suppressHydrationWarning
+                    >
+                      <User size={18} suppressHydrationWarning />
+                      {t('header.account')}
+                    </Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center gap-3 text-sm font-medium text-gray-400 hover:text-black transition"
+                      suppressHydrationWarning
+                    >
+                      <LogOut size={18} suppressHydrationWarning />
+                      Sign Out
+                    </button>
+                  </div>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition"
+                    onClick={() => setMobileMenuOpen(false)}
+                    suppressHydrationWarning
+                  >
+                    <User size={18} suppressHydrationWarning />
+                    Sign In
+                  </Link>
+                )
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </header>
+      )}
+    </>
   );
 }
