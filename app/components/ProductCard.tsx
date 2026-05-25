@@ -130,7 +130,7 @@ export default function ProductCard({
         <img 
           src={img} 
           alt={name} 
-          className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500" 
+          className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
         {isOnSale && discount > 0 && (
