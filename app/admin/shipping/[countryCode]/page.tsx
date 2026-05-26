@@ -150,13 +150,13 @@ export default function ShippingCityManager() {
   const freeCount = cities.filter((c) => c.is_free_shipping).length;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-20 px-4 md:px-6">
+    <div className="min-h-screen bg-gray-50 py-30 px-4 md:px-6">
       <div className="max-w-4xl mx-auto">
 
         {/* Back Button */}
         <button
           onClick={() => router.push('/admin')}
-          className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 transition text-sm"
+          className="flex items-center gap-2 text-gray-500 hover:text-black mb-6 transition text-sm "
         >
           <ArrowLeft size={16} /> Back to Admin Panel
         </button>

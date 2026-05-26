@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { RefreshCw, X, Plus, Trash2, Check, Edit2, User } from 'lucide-react';
+import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 
 export default function AdminPanel() {
@@ -30,6 +30,16 @@ export default function AdminPanel() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [collections, setCollections] = useState<string[]>([]);
 
+  // ── Restock modal state ──
+  const [restockModal, setRestockModal] = useState<{
+    open: boolean;
+    productId: string;
+    productName: string;
+    variants: any[];
+  }>({ open: false, productId: '', productName: '', variants: [] });
+  const [restockAmounts, setRestockAmounts] = useState<Record<string, number>>({});
+  const [restocking, setRestocking] = useState(false);
+
   const [form, setForm] = useState({
     name: '',
     price: '',
@@ -42,6 +52,7 @@ export default function AdminPanel() {
   });
 
   const [variants, setVariants] = useState<any[]>([]);
+  
 
   const [promoForm, setPromoForm] = useState({
     code: '',
@@ -49,6 +60,8 @@ export default function AdminPanel() {
     expiresAt: '',
     neverExpires: false,
   });
+
+  const [allVariants, setAllVariants] = useState<any[]>([]);
 
   useEffect(() => {
     if (localStorage.getItem('isAdmin') !== 'true') {
@@ -61,7 +74,7 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoading(true);
 
-    const [productsRes, ordersRes, countriesRes, promoRes] = await Promise.all([
+    const [productsRes, ordersRes, countriesRes, promoRes, variantsRes] = await Promise.all([
       supabaseClient.from('products').select('*'),
       supabaseClient.from('orders').select(`
         *,
@@ -75,13 +88,15 @@ export default function AdminPanel() {
         )
       `).order('created_at', { ascending: false }),
       supabaseClient.from('supported_countries').select('*').order('name'),
-      supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false })
+      supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false }),
+      supabaseClient.from('product_variants').select('*'),
     ]);
 
     setProducts(productsRes.data || []);
     setOrders(ordersRes.data || []);
     setSupportedCountries(countriesRes.data || []);
     setPromoCodes(promoRes.data || []);
+    setAllVariants(variantsRes.data || []);
 
     const uniqueCollections = [...new Set(
       (productsRes.data || []).map((p: any) => p.collection).filter(Boolean)
@@ -89,6 +104,69 @@ export default function AdminPanel() {
     setCollections(uniqueCollections);
 
     setLoading(false);
+  };
+
+  // ==================== RESTOCK ====================
+  const openRestockModal = async (product: any) => {
+    const { data: productVariants } = await supabaseClient
+      .from('product_variants')
+      .select('*')
+      .eq('product_id', product.id)
+      .order('color');
+ 
+    const initial: Record<string, number> = {};
+    (productVariants || []).forEach((v: any) => { initial[v.id] = 0; });
+ 
+    setRestockAmounts(initial);
+    setRestockModal({
+      open: true,
+      productId: product.id,
+      productName: product.name,
+      variants: productVariants || [],
+    });
+  };
+ 
+  const submitRestock = async () => {
+    setRestocking(true);
+    try {
+      const updates = Object.entries(restockAmounts).filter(([, amt]) => amt > 0);
+ 
+      await Promise.all(
+        updates.map(([variantId, amount]) =>
+          supabaseClient.rpc('increment_stock', { variant_id: variantId, amount })
+            .then(async ({ error }) => {
+              // Fallback if RPC doesn't exist — do a manual fetch+update
+              if (error) {
+                const { data: v } = await supabaseClient
+                  .from('product_variants')
+                  .select('stock')
+                  .eq('id', variantId)
+                  .single();
+                await supabaseClient
+                  .from('product_variants')
+                  .update({ stock: (v?.stock || 0) + amount })
+                  .eq('id', variantId);
+              }
+            })
+        )
+      );
+ 
+      alert('✅ Stock updated successfully!');
+      setRestockModal({ open: false, productId: '', productName: '', variants: [] });
+      loadData();
+    } catch (err: any) {
+      alert('Failed to restock: ' + err.message);
+    }
+    setRestocking(false);
+  };
+ 
+  // Helper: does a product have any out-of-stock variants?
+  const hasOutOfStock = (productId: string) =>
+    allVariants.some(v => v.product_id === productId && v.stock === 0);
+ 
+  const isFullyOutOfStock = (productId: string) => {
+    const pv = allVariants.filter(v => v.product_id === productId);
+    return pv.length > 0 && pv.every(v => v.stock === 0);
   };
 
   // ==================== DELETE COLLECTION ====================
@@ -471,50 +549,79 @@ export default function AdminPanel() {
               </button>
 
               {products.length === 0 ? (
-                <p className="text-center py-20 text-xl text-gray-500">No products yet. Add your first product.</p>
+                <p className="text-center py-20 text-xl text-gray-500">No products yet.</p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {products
                     .filter(p => selectedCollection === null || p.collection === selectedCollection)
-                    .map((p) => (
-                      <div key={p.id} className="bg-white rounded-3xl overflow-hidden border">
-                        {p.images && p.images.length > 0 && (
-                          <img src={p.images[0]} alt={p.name} className="w-full h-64 object-cover" />
-                        )}
-                        <div className="p-6">
-                          <h3 className="font-medium text-lg mb-1">{p.name}</h3>
-                          <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            Category: <span className="font-medium text-black">{p.category || 'Uncategorized'}</span>
-                          </p>
-                          {p.collection && (
+                    .map((p) => {
+                      const outOfStock = isFullyOutOfStock(p.id);
+                      const partialStock = !outOfStock && hasOutOfStock(p.id);
+                      return (
+                        <div key={p.id} className={`bg-white rounded-3xl overflow-hidden border relative ${outOfStock ? 'border-red-300' : partialStock ? 'border-orange-300' : ''}`}>
+                          {/* Out of stock overlay */}
+                          {outOfStock && (
+                            <div className="absolute top-3 left-3 z-10 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                              OUT OF STOCK
+                            </div>
+                          )}
+                          {partialStock && (
+                            <div className="absolute top-3 left-3 z-10 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                              LOW STOCK
+                            </div>
+                          )}
+                          {p.images && p.images.length > 0 && (
+                            <img src={p.images[0]} alt={p.name} className={`w-full h-64 object-cover ${outOfStock ? 'opacity-50' : ''}`} />
+                          )}
+                          <div className="p-6">
+                            <h3 className="font-medium text-lg mb-1">{p.name}</h3>
+                            <p className="text-2xl font-medium">{formatPrice(p.price)}</p>
                             <p className="text-sm text-gray-500 mt-1">
-                              Collection: <span className="font-medium text-black">{p.collection}</span>
+                              Category: <span className="font-medium text-black">{p.category || 'Uncategorized'}</span>
                             </p>
-                          )}
-                          {p.is_on_sale && (
-                            <p className="text-red-600 text-sm font-medium mt-1">On Sale • -{p.discount_percentage}%</p>
-                          )}
-                          <div className="mt-6 flex gap-3">
-                            <button
-                              onClick={() => openModal(p)}
-                              className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                            >
-                              <Edit2 size={18} /> Edit
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm(`Delete "${p.name}" permanently?`)) deleteProduct(p.id);
-                              }}
-                              className="flex-1 text-red-600 hover:text-red-700 py-3 border border-red-200 hover:border-red-400 rounded-xl transition"
-                            >
-                              Delete
-                            </button>
+                            {p.collection && (
+                              <p className="text-sm text-gray-500 mt-1">Collection: <span className="font-medium text-black">{p.collection}</span></p>
+                            )}
+                            {p.is_on_sale && (
+                              <p className="text-red-600 text-sm font-medium mt-1">On Sale • -{p.discount_percentage}%</p>
+                            )}
+ 
+                            {/* Stock summary */}
+                            <div className="mt-3">
+                              {allVariants
+                                .filter(v => v.product_id === p.id)
+                                .map((v: any) => (
+                                  <span key={v.id} className={`inline-flex items-center gap-1 text-xs mr-2 mb-1 px-2 py-0.5 rounded-full ${
+                                    v.stock === 0 ? 'bg-red-100 text-red-700' : v.stock <= 3 ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {v.color} / {v.size}: {v.stock === 0 ? 'Out' : v.stock}
+                                  </span>
+                                ))
+                              }
+                            </div>
+ 
+                            <div className="mt-4 flex gap-2">
+                              <button onClick={() => openModal(p)} className="flex-1 bg-blue-600 text-white py-3 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm">
+                                <Edit2 size={16} /> Edit
+                              </button>
+                              {/* Restock button */}
+                              <button
+                                onClick={() => openRestockModal(p)}
+                                className="flex-1 bg-emerald-600 text-white py-3 rounded-xl hover:bg-emerald-700 transition flex items-center justify-center gap-2 text-sm"
+                              >
+                                <PackagePlus size={16} /> Restock
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${p.name}" permanently?`)) deleteProduct(p.id); }}
+                                className="text-red-600 hover:text-red-700 py-3 px-3 border border-red-200 hover:border-red-400 rounded-xl transition"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               )}
             </div>
@@ -974,6 +1081,62 @@ export default function AdminPanel() {
           )}
         </div>
       </div>
+
+      {/* ==================== RESTOCK MODAL ==================== */}
+      {restockModal.open && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setRestockModal({ open: false, productId: '', productName: '', variants: [] })} className="absolute top-6 right-6">
+              <X size={24} />
+            </button>
+ 
+            <div className="flex items-center gap-3 mb-2">
+              <PackagePlus size={24} className="text-emerald-600" />
+              <h2 className="text-2xl font-medium">Restock</h2>
+            </div>
+            <p className="text-gray-500 text-sm mb-8">{restockModal.productName} — enter the amount to add per variant</p>
+ 
+            <div className="space-y-4">
+              {restockModal.variants.map((v: any) => (
+                <div key={v.id} className={`flex items-center justify-between p-4 rounded-2xl border ${v.stock === 0 ? 'border-red-200 bg-red-50' : 'border-gray-200 bg-gray-50'}`}>
+                  <div>
+                    <p className="font-medium text-sm">{v.color} / {v.size}</p>
+                    <p className="text-xs text-gray-500 font-mono">{v.sku}</p>
+                    <p className={`text-xs mt-0.5 ${v.stock === 0 ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                      Current stock: {v.stock === 0 ? 'OUT OF STOCK' : v.stock}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-gray-400">+ Add</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={restockAmounts[v.id] || ''}
+                      onChange={(e) => setRestockAmounts(prev => ({ ...prev, [v.id]: Math.max(0, Number(e.target.value)) }))}
+                      className="w-20 border rounded-xl px-3 py-2 text-center text-lg font-medium focus:outline-none focus:border-black"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+ 
+            {/* Summary */}
+            {Object.values(restockAmounts).some(v => v > 0) && (
+              <div className="mt-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-sm text-emerald-700">
+                Adding stock to {Object.values(restockAmounts).filter(v => v > 0).length} variant(s) — total {Object.values(restockAmounts).reduce((a, b) => a + b, 0)} units
+              </div>
+            )}
+ 
+            <button
+              onClick={submitRestock}
+              disabled={restocking || !Object.values(restockAmounts).some(v => v > 0)}
+              className="mt-6 w-full bg-emerald-600 text-white py-4 rounded-2xl text-lg font-medium hover:bg-emerald-700 disabled:opacity-50 transition"
+            >
+              {restocking ? 'Updating stock...' : 'Confirm Restock'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ==================== ADD / EDIT MODAL ==================== */}
       {showAddModal && (

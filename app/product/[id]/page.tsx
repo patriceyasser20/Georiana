@@ -90,6 +90,10 @@ export default function ProductDetail() {
 
   const selectedStock = getStock(selectedColor, selectedSize);
 
+  // ── Stock status helpers ──────────────────────────────────────────────────────
+  const isLastStock = selectedColor && selectedSize && selectedStock === 1;
+  const isOutOfStock = selectedColor && selectedSize && selectedStock === 0;
+
   const [imageLoaded, setImageLoaded] = useState(true);
   const [displayIndex, setDisplayIndex] = useState(0);
 
@@ -208,10 +212,15 @@ export default function ProductDetail() {
                     }`}
                   />
 
-                  {/* Arrows — only show when multiple images */}
+                  {/* ── Last Stock badge on image ── */}
+                  {/* {isLastStock && (
+                    <div className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md tracking-wide animate-pulse">
+                      🔥 Last Stock
+                    </div>
+                  )} */}
+
                   {images.length > 1 && (
                     <>
-                      {/* Left Arrow */}
                       <button
                         onClick={prevImage}
                         className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm"
@@ -219,8 +228,6 @@ export default function ProductDetail() {
                       >
                         <ChevronLeft size={20} className="text-black" />
                       </button>
-
-                      {/* Right Arrow */}
                       <button
                         onClick={nextImage}
                         className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm"
@@ -228,17 +235,13 @@ export default function ProductDetail() {
                       >
                         <ChevronRight size={20} className="text-black" />
                       </button>
-
-                      {/* Dot indicators */}
                       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                         {images.map((_: string, i: number) => (
                           <button
                             key={i}
                             onClick={() => changeImage(i)}
                             className={`h-1.5 rounded-full transition-all duration-300 ${
-                              currentImageIndex === i
-                                ? 'bg-white w-4'
-                                : 'bg-white/50 hover:bg-white/80 w-1.5'
+                              currentImageIndex === i ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80 w-1.5'
                             }`}
                           />
                         ))}
@@ -250,7 +253,7 @@ export default function ProductDetail() {
 
               {/* Thumbnails */}
               {images.length > 1 && (
-                <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                <div className="flex gap-2 mt-3 px-25 overflow-x-auto pb-1">
                   {images.map((img: string, i: number) => (
                     <button
                       key={i}
@@ -331,21 +334,52 @@ export default function ProductDetail() {
                 <div className="flex gap-2 flex-wrap">
                   {allSizes.map((size: string) => {
                     const stock = getStock(selectedColor, size);
+                    const isThisLastStock = selectedColor && stock === 1;
+                    const isThisOutOfStock = selectedColor && stock === 0;
                     return (
                       <button
                         key={size}
-                        onClick={() => setSelectedSize(size)}
-                        disabled={!selectedColor || stock === 0}
-                        className={`px-5 py-2.5 border rounded-full text-sm transition ${
-                          selectedSize === size ? 'bg-black text-white' : 'hover:bg-gray-100'
-                        } ${stock === 0 ? 'opacity-50 line-through cursor-not-allowed' : ''}`}
+                        onClick={() => { if (selectedColor) setSelectedSize(size); }}
+                        disabled={!selectedColor}
+                        className={[
+                          'relative px-5 py-2.5 border rounded-full text-sm transition',
+                          selectedSize === size
+                            ? isThisOutOfStock
+                              ? 'bg-red-50 border-red-400 text-red-500'
+                              : 'bg-black text-white border-black'
+                            : 'hover:bg-gray-100',
+                          isThisOutOfStock ? 'opacity-50 line-through' : '',
+                          isThisLastStock && selectedSize !== size ? 'border-amber-400' : '',
+                        ].join(' ')}
                       >
                         {size}
+                        {isThisLastStock && (
+                          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white" />
+                        )}
                       </button>
                     );
                   })}
                 </div>
               </div>
+
+              {/* ── Stock status banner — appears after color + size selected ── */}
+              {selectedColor && selectedSize && (isOutOfStock || isLastStock) && (
+                <div className={`mt-4 flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium ${
+                  isOutOfStock
+                    ? 'bg-red-50 border border-red-200 text-red-700'
+                    : 'bg-amber-50 border border-amber-300 text-amber-800'
+                }`}>
+                  {isOutOfStock ? (
+                    <>
+                      <span>Out of stock — check back soon</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Last stock — only 1 left!</span>
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* Quantity */}
               <div className="mt-8">
@@ -428,7 +462,6 @@ export default function ProductDetail() {
                         </div>
                       ))}
 
-                      {/* See More / See Less button */}
                       {reviews.length > 3 && (
                         <button
                           onClick={() => setShowAllReviews(!showAllReviews)}
