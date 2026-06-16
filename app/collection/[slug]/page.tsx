@@ -7,6 +7,7 @@ import Footer from '../../components/Footer';
 import ProductCard from '../../components/ProductCard';
 import { supabaseClient } from '../../../lib/supabaseClient';
 import { useCurrency } from '../../context/CurrencyContext';
+import { getCached, setCached } from '../../../lib/productCache';
 
 const slugify = (text: string | null | undefined): string => {
   if (!text) return '';
@@ -27,23 +28,35 @@ export default function CollectionPage() {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data } = await supabaseClient
-        .from('products')
-        .select('*');
+      const cacheKey = `collection-${slug}`;
 
-      const filtered = (data || []).filter((p: any) => 
-        slugify(p.collection) === slug
+      const cached = getCached(cacheKey);
+      if (cached) {
+        setProducts(cached);
+        setDisplayName(cached[0]?.collection || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()));
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('products')
+        .select(`
+          id, name, price, images, is_on_sale, discount_percentage, category, description, collection,
+          product_variants (is_on_sale, discount_percentage)
+        `)
+        .order('created_at', { ascending: false });
+
+      // Filter by collection slug
+      const filtered = (data || []).filter(
+        (p: any) => slugify(p.collection) === slug
       );
 
-      setProducts(filtered);
-      
-      if (filtered.length > 0) {
-        setDisplayName(filtered[0].collection);
-      } else {
+      if (!error) {
+        setCached(cacheKey, filtered);
+        setProducts(filtered);
         setDisplayName(
-          (slug || '')
-            .replace(/-/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase())
+          filtered[0]?.collection ||
+          slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
         );
       }
 
@@ -77,8 +90,10 @@ export default function CollectionPage() {
                   name={p.name}
                   price={p.price}
                   img={p.images?.[0] || ''}
-                  isOnSale={p.is_on_sale}                    // ← NEW
-                  discountPercentage={p.discount_percentage}  // ← NEW
+                  isOnSale={p.is_on_sale}
+                  discountPercentage={p.discount_percentage}
+                  hasVariantSale={p.product_variants?.some((v: any) => v.is_on_sale)}
+                  maxVariantDiscount={Math.max(...(p.product_variants?.filter((v: any) => v.is_on_sale).map((v: any) => v.discount_percentage) || [0]))}
                 />
               ))}
             </div>

@@ -7,12 +7,13 @@ import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
-
+import { adminApi } from '../../lib/adminApi';
+import { invalidateCache } from '../../lib/productCache';
 export default function AdminPanel() {
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
-  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes'>('products');
+  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured'>('featured');
   const [skuSearchTerm, setSkuSearchTerm] = useState('');
   const [skuSearchResult, setSkuSearchResult] = useState<any>(null);
   const [searching, setSearching] = useState(false);
@@ -62,19 +63,41 @@ export default function AdminPanel() {
   });
 
   const [allVariants, setAllVariants] = useState<any[]>([]);
+  const [featuredIds, setFeaturedIds] = useState<string[]>([]);
+  const [featuredSaving, setFeaturedSaving] = useState<string | null>(null);
 
   useEffect(() => {
-    if (localStorage.getItem('isAdmin') !== 'true') {
-      router.push('/admin/login');
-      return;
-    }
-    loadData();
+    const verifyAdmin = async () => {
+      const token = localStorage.getItem('adminToken');
+      if (!token) { router.push('/admin/login'); return; }
+
+      // Verify token is real by hitting the protected API
+      const res = await fetch('/api/admin-ops', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
+        body: JSON.stringify({ action: 'ping', payload: {} }),
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminToken');
+        router.push('/admin/login');
+        return;
+      }
+
+      loadData(); // or init() for the shipping page
+    };
+
+    verifyAdmin();
   }, [router]);
 
   const loadData = async () => {
     setLoading(true);
 
-    const [productsRes, ordersRes, countriesRes, promoRes, variantsRes] = await Promise.all([
+    const [productsRes, ordersRes, countriesRes, promoRes, variantsRes, featuredRes] = await Promise.all([
       supabaseClient.from('products').select('*'),
       supabaseClient.from('orders').select(`
         *,
@@ -90,6 +113,7 @@ export default function AdminPanel() {
       supabaseClient.from('supported_countries').select('*').order('name'),
       supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false }),
       supabaseClient.from('product_variants').select('*'),
+      supabaseClient.from('featured_products').select('product_id').eq('section', 'new_this_week'),
     ]);
 
     setProducts(productsRes.data || []);
@@ -97,6 +121,7 @@ export default function AdminPanel() {
     setSupportedCountries(countriesRes.data || []);
     setPromoCodes(promoRes.data || []);
     setAllVariants(variantsRes.data || []);
+    setFeaturedIds((featuredRes.data || []).map((f: any) => f.product_id));
 
     const uniqueCollections = [...new Set(
       (productsRes.data || []).map((p: any) => p.collection).filter(Boolean)
@@ -132,23 +157,10 @@ export default function AdminPanel() {
       const updates = Object.entries(restockAmounts).filter(([, amt]) => amt > 0);
  
       await Promise.all(
-        updates.map(([variantId, amount]) =>
-          supabaseClient.rpc('increment_stock', { variant_id: variantId, amount })
-            .then(async ({ error }) => {
-              // Fallback if RPC doesn't exist — do a manual fetch+update
-              if (error) {
-                const { data: v } = await supabaseClient
-                  .from('product_variants')
-                  .select('stock')
-                  .eq('id', variantId)
-                  .single();
-                await supabaseClient
-                  .from('product_variants')
-                  .update({ stock: (v?.stock || 0) + amount })
-                  .eq('id', variantId);
-              }
-            })
-        )
+        updates.map(([variantId, amount]) => {
+          const variant = restockModal.variants.find((v: any) => v.id === variantId);
+          return adminApi.restock(variantId, (variant?.stock || 0) + amount);
+        })
       );
  
       alert('✅ Stock updated successfully!');
@@ -188,55 +200,35 @@ export default function AdminPanel() {
   // ==================== PROMO CODE FUNCTIONS ====================
   const addPromoCode = async () => {
     if (!promoForm.code.trim() || !promoForm.discountPercentage) {
-      alert('Code and discount percentage are required');
-      return;
+      alert('Code and discount percentage are required'); return;
     }
-
-    const expirationDate = promoForm.neverExpires ? null : promoForm.expiresAt || null;
-
-    const { error } = await supabaseClient
-      .from('promo_codes')
-      .insert({
+    try {
+      await adminApi.insertPromo({
         code: promoForm.code.trim().toUpperCase(),
         discount_percentage: Number(promoForm.discountPercentage),
-        expires_at: expirationDate,
+        expires_at: promoForm.neverExpires ? null : promoForm.expiresAt || null,
       });
-
-    if (error) alert('Error: ' + error.message);
-    else {
       alert('✅ Promo code added successfully!');
       setPromoForm({ code: '', discountPercentage: '', expiresAt: '', neverExpires: false });
       loadData();
-    }
+    } catch (err: any) { alert('Error: ' + err.message); }
   };
 
   const renewPromoCode = async (id: string) => {
     const newDate = prompt('Enter new expiration date (YYYY-MM-DD):');
     if (!newDate) return;
-
-    const { error } = await supabaseClient
-      .from('promo_codes')
-      .update({ expires_at: newDate })
-      .eq('id', id);
-
-    if (error) alert('Error: ' + error.message);
-    else loadData();
+    try { await adminApi.updatePromo(id, { expires_at: newDate }); loadData(); }
+    catch (err: any) { alert('Error: ' + err.message); }
   };
 
   const deletePromoCode = async (id: string) => {
     if (!confirm('Delete this promo code?')) return;
-
-    const { error } = await supabaseClient
-      .from('promo_codes')
-      .delete()
-      .eq('id', id);
-
-    if (error) alert('Error: ' + error.message);
-    else loadData();
+    try { await adminApi.deletePromo(id); loadData(); }
+    catch (err: any) { alert('Error: ' + err.message); }
   };
 
   const addVariant = () => {
-    setVariants([...variants, { color: '', size: '', stock: 0, sku: '', typeCode: '' }]);
+    setVariants([...variants, { color: '', size: '', stock: 0, sku: '', typeCode: '', isOnSale: false, discountPercentage: 0 }]);
   };
 
   const updateVariant = (index: number, field: string, value: any) => {
@@ -276,7 +268,9 @@ export default function AdminPanel() {
           size: v.size || '',
           stock: v.stock || 0,
           sku: v.sku || '',
-          typeCode: v.type_code || ''
+          typeCode: v.type_code || '',
+          isOnSale: v.is_on_sale || false,
+          discountPercentage: v.discount_percentage || 0,
         }))
       );
     } else {
@@ -344,37 +338,32 @@ export default function AdminPanel() {
       };
 
       if (editingProduct) {
-        const { error } = await supabaseClient
-          .from('products')
-          .update(productData)
-          .eq('id', editingProduct.id);
+        await adminApi.updateProduct(editingProduct.id, productData);
 
-        if (error) throw error;
+        await Promise.all(
+          variants.filter(v => v.id).map(v =>
+            adminApi.updateVariantDiscount(v.id, {
+              is_on_sale: v.isOnSale || false,
+              discount_percentage: v.isOnSale ? Number(v.discountPercentage) || 0 : 0,
+            })
+          )
+        );
+
         alert('✅ Product updated successfully!');
       } else {
-        const { data: newProduct, error: insertError } = await supabaseClient
-          .from('products')
-          .insert(productData)
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
+        const { data: newProduct } = await adminApi.insertProduct(productData);
         if (!newProduct) throw new Error('Product was not created');
 
-        const variantData = variants.map((v) => ({
+        await adminApi.insertVariants(variants.map((v) => ({
           product_id: newProduct.id,
           color: v.color.trim(),
           size: v.size.trim(),
           stock: Number(v.stock),
           sku: v.sku.trim(),
-          type_code: v.typeCode.trim().toUpperCase()
-        }));
-
-        const { error: variantsError } = await supabaseClient
-          .from('product_variants')
-          .insert(variantData);
-
-        if (variantsError) throw variantsError;
+          type_code: v.typeCode.trim().toUpperCase(),
+          is_on_sale: v.isOnSale || false,
+          discount_percentage: v.isOnSale ? Number(v.discountPercentage) || 0 : 0,
+        })));
       }
 
       setShowAddModal(false);
@@ -390,37 +379,35 @@ export default function AdminPanel() {
         images: []
       });
       setVariants([]);
+      invalidateCache('all-products');
+      invalidateCache('home-products');
+      invalidateCache(`category-${form.category.toLowerCase()}`);
+      if (form.collection) invalidateCache(`collection-${form.collection.toLowerCase().replace(/\s+/g, '-')}`);
+      invalidateCache('header-categories');
+      invalidateCache('header-collections');
       loadData();
     } catch (err: any) {
       console.error('Save product error:', err);
       alert('Failed to save product: ' + (err?.message || err));
     }
-
+    
     setUploading(false);
   };
 
   const deleteProduct = async (id: string) => {
     if (!confirm(`Delete "${id}" permanently?`)) return;
-
     try {
-      await supabaseClient.from('product_variants').delete().eq('product_id', id);
-      await supabaseClient.from('wishlist').delete().eq('product_id', id);
-
-      const { error } = await supabaseClient.from('products').delete().eq('id', id);
-      if (error) throw error;
-
-      alert('✅ Product deleted successfully');
-      loadData();
-    } catch (err: any) {
-      alert('Failed to delete: ' + err.message);
+      await adminApi.deleteProduct(id); 
+      alert('✅ Product deleted successfully'); 
+      loadData(); 
+      invalidateCache('all-products');
+      invalidateCache('home-products');
     }
+    catch (err: any) { alert('Failed to delete: ' + err.message); }
   };
 
   const toggleCountry = async (code: string, currentEnabled: boolean) => {
-    await supabaseClient
-      .from('supported_countries')
-      .update({ enabled: !currentEnabled })
-      .eq('code', code);
+    await adminApi.toggleCountry(code, !currentEnabled);
     loadData();
   };
 
@@ -469,6 +456,13 @@ export default function AdminPanel() {
 
           {/* Tabs — 2-col grid on mobile, single row on desktop */}
           <div className="grid grid-cols-2 md:flex md:flex-wrap gap-3 mb-8 border-b pb-4">
+            <button
+              onClick={() => setTab('featured')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'featured' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              <span className="md:hidden">Featured</span>
+              <span className="hidden md:inline">Home Page</span>
+            </button>
             <button
               onClick={() => setTab('products')}
               className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'products' ? 'bg-black text-white' : 'bg-white border'}`}
@@ -831,7 +825,7 @@ export default function AdminPanel() {
                         className="text-xs bg-black text-white px-3 py-1.5 rounded-xl hover:bg-gray-800 transition whitespace-nowrap shrink-0"
                       >
                         <span className="sm:hidden">🚚</span>
-                        <span className="hidden sm:inline"> Free Cities</span>
+                        <span className="hidden sm:inline">Delivery</span>
                       </button>
                     )}
                   </div>
@@ -896,7 +890,12 @@ export default function AdminPanel() {
 
                     {skuSearchResult.products?.is_on_sale && (
                       <p className="text-red-600 text-sm font-medium mt-1">
-                        On Sale • -{skuSearchResult.products.discount_percentage}%
+                        Product Sale • -{skuSearchResult.products.discount_percentage}%
+                      </p>
+                    )}
+                    {skuSearchResult.is_on_sale && (
+                      <p className="text-orange-600 text-sm font-medium mt-1">
+                        Color Sale • -{skuSearchResult.discount_percentage}% on {skuSearchResult.color}
                       </p>
                     )}
 
@@ -1079,8 +1078,101 @@ export default function AdminPanel() {
               </div>
             </div>
           )}
+          {/* ==================== FEATURED / HOME PAGE TAB ==================== */}
+          {tab === 'featured' && !loading && (
+            <div>
+              <h2 className="text-3xl font-light mb-2">Home Page — New This Week</h2>
+              <p className="text-gray-500 mb-8 text-sm">
+                Select which products appear in the <span className="font-medium text-black">"New This Week"</span> section on the home page. Selected products replace the default latest arrivals.
+              </p>
+
+              {/* Counter */}
+              <div className="mb-6 flex items-center gap-3">
+                <div className="bg-black text-white px-4 py-2 rounded-full text-sm font-medium">
+                  {featuredIds.length} selected
+                </div>
+                {featuredIds.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm('Remove all featured products?')) return;
+                      await supabaseClient
+                        .from('featured_products')
+                        .delete()
+                        .eq('section', 'new_this_week');
+                      setFeaturedIds([]);
+                    }}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((p) => {
+                  const isFeatured = featuredIds.includes(p.id);
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={async () => {
+                        setFeaturedSaving(p.id);
+                        if (isFeatured) {
+                          await supabaseClient
+                            .from('featured_products')
+                            .delete()
+                            .eq('product_id', p.id)
+                            .eq('section', 'new_this_week');
+                          setFeaturedIds(prev => prev.filter(id => id !== p.id));
+                        } else {
+                          await supabaseClient
+                            .from('featured_products')
+                            .insert({ product_id: p.id, section: 'new_this_week', position: featuredIds.length });
+                          setFeaturedIds(prev => [...prev, p.id]);
+                        }
+                        setFeaturedSaving(null);
+                      }}
+                      className={`bg-white rounded-3xl overflow-hidden border-2 cursor-pointer transition-all ${
+                        isFeatured
+                          ? 'border-black shadow-lg'
+                          : 'border-transparent hover:border-gray-300'
+                      } ${featuredSaving === p.id ? 'opacity-60 pointer-events-none' : ''}`}
+                    >
+                      {/* Featured badge */}
+                      <div className="relative">
+                        {p.images?.[0] && (
+                          <img src={p.images[0]} alt={p.name} className="w-full h-48 object-cover" />
+                        )}
+                        {isFeatured && (
+                          <div className="absolute top-3 left-3 bg-black text-white text-xs font-bold px-3 py-1 rounded-full">
+                            ✓ On Home Page
+                          </div>
+                        )}
+                        {/* Checkmark overlay */}
+                        <div className={`absolute top-3 right-3 w-7 h-7 rounded-full border-2 flex items-center justify-center transition ${
+                          isFeatured ? 'bg-black border-black' : 'bg-white border-gray-300'
+                        }`}>
+                          {isFeatured && <Check size={14} className="text-white" />}
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <p className="font-medium">{p.name}</p>
+                        <p className="text-gray-500 text-sm mt-0.5">{formatPrice(p.price)}</p>
+                        {p.is_on_sale && (
+                          <p className="text-red-500 text-xs mt-1">On Sale -{p.discount_percentage}%</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      
+      
 
       {/* ==================== RESTOCK MODAL ==================== */}
       {restockModal.open && (
@@ -1307,6 +1399,29 @@ export default function AdminPanel() {
                     <input type="text" placeholder="SKU (e.g. GM-DR-25S-SHR-001-BLK-S)" value={variant.sku || ''} onChange={(e) => updateVariant(index, 'sku', e.target.value.toUpperCase())} className="border rounded-2xl px-6 py-5 flex-2 min-w-[260px] font-mono tracking-widest text-lg uppercase" />
                     <input type="text" placeholder="Size" value={variant.size} onChange={(e) => updateVariant(index, 'size', e.target.value)} className="border rounded-2xl px-6 py-5 w-28 text-lg" />
                     <input type="number" placeholder="Stock" value={variant.stock} onChange={(e) => updateVariant(index, 'stock', e.target.value)} className="border rounded-2xl px-6 py-5 w-32 text-lg" />
+
+                    {/* ── Variant-level discount ── */}
+                    <div className="flex items-center gap-2 border rounded-2xl px-4 py-3 bg-orange-50 border-orange-200 min-w-[180px]">
+                      <input
+                        type="checkbox"
+                        checked={variant.isOnSale || false}
+                        onChange={(e) => updateVariant(index, 'isOnSale', e.target.checked)}
+                        className="w-4 h-4 accent-orange-600"
+                      />
+                      <span className="text-sm text-orange-700 whitespace-nowrap">Sale</span>
+                      <input
+                        type="number"
+                        placeholder="0"
+                        min={0}
+                        max={100}
+                        value={variant.discountPercentage || ''}
+                        onChange={(e) => updateVariant(index, 'discountPercentage', e.target.value)}
+                        disabled={!variant.isOnSale}
+                        className="w-16 border rounded-xl px-2 py-1 text-center text-sm font-medium focus:outline-none disabled:opacity-40"
+                      />
+                      <span className="text-sm text-orange-700">%</span>
+                    </div>
+
                     <button onClick={() => removeVariant(index)} className="text-red-600 hover:text-red-700 p-3"><Trash2 size={24} /></button>
                   </div>
                 ))}

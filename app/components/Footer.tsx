@@ -10,42 +10,39 @@ export default function Footer() {
     <footer className="bg-[#111] text-[#ddd] pt-14 md:pt-20 pb-8">
       <div className="max-w-7xl mx-auto px-6">
 
-        {/* ── Social Media row — full width on mobile ── */}
-        <div className="mb-10 md:mb-0">
-          <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-5">Follow Us</h3>
-          <div className="flex items-center gap-5">
-            <a
-              href="https://www.facebook.com/profile.php?id=61552738303653&mibextid=wwXIfr&rdid=uXmFuclixl3u7NSF&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DwuGFejMy%2F%3Fmibextid%3DwwXIfr#"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:scale-110 transition-transform"
-            >
-              <img src="/images/facebook.webp" alt="Facebook" className="h-10 w-10 md:h-14 md:w-14 rounded-xl" />
-            </a>
-            <a
-              href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:scale-110 transition-transform"
-            >
-              <img src="/images/instgram.webp" alt="Instagram" className="h-10 w-10 md:h-14 md:w-14 rounded-xl" />
-            </a>
-            <a
-              href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:scale-110 transition-transform"
-            >
-              <img src="/images/tiktok.png" alt="TikTok" className="h-10 w-10 md:h-14 md:w-14 rounded-xl" />
-            </a>
+        {/* ── 4-column grid — Follow Us now shares the same row as the other columns ── */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+
+          {/* Follow Us */}
+          <div className="col-span-2 md:col-span-1">
+            <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-4 md:mb-5">Follow Us</h3>
+            <div className="flex items-center gap-4">
+              <a
+                href="https://www.facebook.com/profile.php?id=61552738303653&mibextid=wwXIfr&rdid=uXmFuclixl3u7NSF&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DwuGFejMy%2F%3Fmibextid%3DwwXIfr#"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:scale-110 transition-transform"
+              >
+                <img src="/images/facebook.webp" alt="Facebook" className="h-10 w-10 md:h-14 md:w-14 rounded-xl" />
+              </a>
+              <a
+                href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:scale-110 transition-transform"
+              >
+                <img src="/images/instgram.webp" alt="Instagram" className="h-10 w-10 md:h-14 md:w-14 rounded-xl" />
+              </a>
+              <a
+                href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:scale-110 transition-transform"
+              >
+                <img src="/images/tiktok.png" alt="TikTok" className="h-10 w-10 md:h-14 md:w-14 rounded-xl" />
+              </a>
+            </div>
           </div>
-        </div>
-
-        {/* ── 3-column grid on mobile (Help / About / Newsletter), 4 cols on desktop ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 md:mt-10">
-
-          {/* Spacer on desktop (social media takes this slot) */}
-          <div className="hidden md:block" />
 
           {/* Help */}
           <div>
@@ -75,7 +72,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Newsletter — spans full width on mobile */}
+          {/* Newsletter */}
           <div className="col-span-2 md:col-span-1">
             <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-4 md:mb-5">
               {t('footer.newsletter')}

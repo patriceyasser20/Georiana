@@ -6,6 +6,8 @@ import { useEffect, useState } from 'react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '../context/LanguageContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { getCached, setCached } from '../../lib/productCache';
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -18,10 +20,13 @@ const languages = [
   { code: 'nl', name: 'Dutch' },
 ];
 
+
 const slugify = (text: string) =>
   text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
 export default function Header() {
+  const { currency, setCurrency } = useCurrency();
+  const currencies = ['EGP', 'USD', 'EUR', 'GBP', 'SAR', 'AED'];
   const router = useRouter();
   const pathname = usePathname();
   const { t, language, changeLanguage } = useTranslation();
@@ -37,7 +42,6 @@ export default function Header() {
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
   const [mobileColOpen, setMobileColOpen] = useState(false);
 
-  // Prevent body scroll when drawer is open
   useEffect(() => {
     if (mobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -64,35 +68,86 @@ export default function Header() {
       setReviewCount(saved ? JSON.parse(saved).length : 0);
     };
     updateCount();
-    const interval = setInterval(updateCount, 1000);
-    return () => clearInterval(interval);
+    window.addEventListener('storage', updateCount);
+    window.addEventListener('reviewOrderUpdated', updateCount);
+    return () => {
+      window.removeEventListener('storage', updateCount);
+      window.removeEventListener('reviewOrderUpdated', updateCount);
+    };
   }, []);
 
   useEffect(() => {
-    const fetchWishlistCount = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) { setWishlistCount(0); return; }
+    let channel: any = null;
+
+    const fetchCount = async (userId: string) => {
       const { count } = await supabaseClient
-        .from('wishlist').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+        .from('wishlist')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
       setWishlistCount(count || 0);
     };
-    fetchWishlistCount();
-    const interval = setInterval(fetchWishlistCount, 2000);
-    return () => clearInterval(interval);
+
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) { setWishlistCount(0); return; }
+
+      await fetchCount(user.id);
+
+      // Instant update on heart click (same page)
+      const handleWishlistUpdated = () => fetchCount(user.id);
+      window.addEventListener('wishlistUpdated', handleWishlistUpdated);
+
+      // Realtime update (cross-tab / other devices)
+      channel = supabaseClient
+        .channel('wishlist-count')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'wishlist',
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => fetchCount(user.id)
+        )
+        .subscribe();
+
+      return () => {
+        window.removeEventListener('wishlistUpdated', handleWishlistUpdated);
+      };
+    };
+
+    let cleanup: any;
+    setupRealtime().then(fn => { cleanup = fn; });
+
+    return () => {
+      if (cleanup) cleanup();
+      if (channel) supabaseClient.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
+      const cached = getCached('header-categories');
+      if (cached) { setCategories(cached as string[]); return; }
+
       const { data } = await supabaseClient.from('products').select('category').not('category', 'is', null);
-      setCategories([...new Set(data?.map((p: any) => p.category))].filter(Boolean));
+      const unique = [...new Set(data?.map((p: any) => p.category))].filter(Boolean) as string[];
+      setCached('header-categories', unique, 10 * 60 * 1000); // 10 min TTL
+      setCategories(unique);
     };
     fetchCategories();
   }, []);
 
   useEffect(() => {
     const fetchCollections = async () => {
+      const cached = getCached('header-collections');
+      if (cached) { setCollections(cached as string[]); return; }
+
       const { data } = await supabaseClient.from('products').select('collection').not('collection', 'is', null);
-      setCollections([...new Set(data?.map((p: any) => p.collection))].filter(Boolean));
+      const unique = [...new Set(data?.map((p: any) => p.collection))].filter(Boolean) as string[];
+      setCached('header-collections', unique, 10 * 60 * 1000); // 10 min TTL
+      setCollections(unique);
     };
     fetchCollections();
   }, []);
@@ -110,10 +165,21 @@ export default function Header() {
       <header suppressHydrationWarning className="bg-white border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
 
-          {/* ── Logo ── */}
-          <Link href="/" className="flex items-center">
+          {/* ── Logo + Slogan ── */}
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/images/logo.svg" alt="GEORIANA" className="h-10 md:h-15 w-auto" /> 
+            {/* Slogan — desktop only, separated by a subtle divider */}
+            <span className="hidden md:block text-gray-600 text-lg leading-none mx-0.5">·</span>
+            <span className="hidden md:block text-[10px] tracking-[0.35em] uppercase text-gray-600 font-light">
+              Wear Intuitively
+            </span>
+           </Link>
+          {/* <Link href="/" className="flex flex-col gap-0">
             <img src="/images/logo.svg" alt="GEORIANA" className="h-10 md:h-15 w-auto" />
-          </Link>
+            <span className="hidden md:block text-[10px] tracking-[0.42em] uppercase text-gray-400 font-light">
+              Wear Intuitively
+            </span>
+          </Link> */}
 
           {/* ── Desktop Nav ── */}
           <nav className="hidden md:flex gap-10 text-lg font-medium uppercase tracking-widest">
@@ -164,6 +230,16 @@ export default function Header() {
             >
               {languages.map(lang => (
                 <option key={lang.code} value={lang.code}>{lang.name}</option>
+              ))}
+            </select>
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+              className="hidden md:block bg-transparent border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none cursor-pointer"
+              suppressHydrationWarning
+            >
+              {currencies.map(c => (
+                <option key={c} value={c}>{c}</option>
               ))}
             </select>
 
@@ -239,16 +315,18 @@ export default function Header() {
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Panel — slides in from right */}
+          {/* Panel */}
           <div className="relative ml-auto w-4/5 max-w-xs h-full bg-white flex flex-col overflow-y-auto shadow-2xl">
 
             {/* Drawer header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <img src="/images/logo.svg" alt="GEORIANA" className="h-8 w-auto" />
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                suppressHydrationWarning
-              >
+              <div className="flex items-center gap-2">
+                <img src="/images/logo.svg" alt="GEORIANA" className="h-8 w-auto" />
+                <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400 font-light border-l border-gray-200 pl-2">
+                  Wear Intuitively
+                </span>
+              </div>
+              <button onClick={() => setMobileMenuOpen(false)} suppressHydrationWarning>
                 <X size={24} suppressHydrationWarning />
               </button>
             </div>

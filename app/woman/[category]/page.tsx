@@ -7,6 +7,7 @@ import Footer from '../../components/Footer';
 import ProductCard from '../../components/ProductCard';
 import { supabaseClient } from '../../../lib/supabaseClient';
 import { useCurrency } from '../../context/CurrencyContext';
+import { getCached, setCached } from '../../../lib/productCache';
 
 const slugify = (text: string) => 
   text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
@@ -21,13 +22,38 @@ export default function WomanCategoryPage() {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      const { data } = await supabaseClient.from('products').select('*');
-      const filtered = data?.filter((p: any) => slugify(p.category) === category) || [];
-      
-      setProducts(filtered);
-      setDisplayName(filtered[0]?.category || (category as string));
+      const cacheKey = `category-${category}`; // ← backticks, not single quotes
+
+      const cached = getCached(cacheKey);
+      if (cached) {
+        setProducts(cached);
+        setDisplayName(cached[0]?.category || String(category));
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('products')
+        .select(`
+          id, name, price, images, is_on_sale, discount_percentage, category, description,
+          product_variants (is_on_sale, discount_percentage)
+        `)
+        .order('created_at', { ascending: false });
+
+      // Filter by category slug after fetch
+      const filtered = (data || []).filter(
+        (p: any) => slugify(p.category) === category
+      );
+
+      if (!error) {
+        setCached(cacheKey, filtered);
+        setProducts(filtered);
+        setDisplayName(filtered[0]?.category || String(category));
+      }
+
       setLoading(false);
     };
+
     fetchProducts();
   }, [category]);
 
@@ -53,8 +79,10 @@ export default function WomanCategoryPage() {
                   name={p.name}
                   price={p.price}
                   img={p.images?.[0] || ''}
-                  isOnSale={p.is_on_sale}                    // ← Added
-                  discountPercentage={p.discount_percentage}  // ← Added
+                  isOnSale={p.is_on_sale}
+                  discountPercentage={p.discount_percentage}
+                  hasVariantSale={p.product_variants?.some((v: any) => v.is_on_sale)}
+                  maxVariantDiscount={Math.max(...(p.product_variants?.filter((v: any) => v.is_on_sale).map((v: any) => v.discount_percentage) || [0]))}
                 />
               ))}
             </div>

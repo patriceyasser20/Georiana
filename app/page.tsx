@@ -7,6 +7,7 @@ import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
 import { supabaseClient } from '../lib/supabaseClient';
 import { useTranslation } from './context/LanguageContext';
+import { getCached, setCached } from '../lib/productCache';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -15,12 +16,38 @@ export default function Home() {
 
   useEffect(() => {
     const fetchNewProducts = async () => {
-      const { data } = await supabaseClient
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(8);
-      setProducts(data || []);
+      const cacheKey = 'home-products';
+      const cached = getCached(cacheKey);
+      if (cached) {
+        setProducts(cached);
+        setLoading(false);
+        return;
+      }
+
+      const { data: featured } = await supabaseClient
+        .from('featured_products')
+        .select(`
+          position,
+          products (
+            id, name, price, images, is_on_sale, discount_percentage
+          )
+        `)
+        .eq('section', 'new_this_week')
+        .order('position');
+
+      if (featured && featured.length > 0) {
+        const mapped = featured.map((f: any) => f.products).filter(Boolean);
+        setCached(cacheKey, mapped);
+        setProducts(mapped);
+      } else {
+        const { data } = await supabaseClient
+          .from('products')
+          .select('id, name, price, images, is_on_sale, discount_percentage')
+          .order('created_at', { ascending: false })
+          .limit(8);
+        setCached(cacheKey, data || []);
+        setProducts(data || []);
+      }
       setLoading(false);
     };
     fetchNewProducts();

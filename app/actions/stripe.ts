@@ -93,6 +93,7 @@ async function verifyFirstOrderPromo(
 export async function createStripeCheckout(
   total: number,
   items: any[],
+  orderId: string, 
   promoCode?: string,      // only set when a first-order promo was applied
   discountPct?: number     // the percentage shown to the user on the checkout page
 ) {
@@ -145,6 +146,7 @@ export async function createStripeCheckout(
     cancel_url: `${siteUrl}/checkout`,
     // Metadata is read by the webhook to record promo usage after payment
     metadata: {
+      orderId, 
       userId:      user?.id ?? '',
       promoCode:   verifiedDiscountPct > 0 ? (promoCode ?? '').toUpperCase() : '',
       discountPct: String(verifiedDiscountPct),

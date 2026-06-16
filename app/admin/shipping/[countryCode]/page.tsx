@@ -37,14 +37,35 @@ export default function ShippingCityManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [newCityInput, setNewCityInput] = useState('');
+  const [newCityFee, setNewCityFee] = useState<number>(0);
 
   useEffect(() => {
-    if (localStorage.getItem('isAdmin') !== 'true') {
-      router.push('/admin/login');
-      return;
-    }
-    init();
-  }, [countryCode]);
+    const verifyAdmin = async () => {
+      const token = localStorage.getItem('adminToken');
+      if (!token) { router.push('/admin/login'); return; }
+
+      // Verify token is real by hitting the protected API
+      const res = await fetch('/api/admin-ops', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+        },
+        body: JSON.stringify({ action: 'ping', payload: {} }),
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminToken');
+        router.push('/admin/login');
+        return;
+      }
+
+      init(); // or init() for the shipping page
+    };
+
+    verifyAdmin();
+  }, [router]);
 
   const init = async () => {
     setLoading(true);
@@ -127,7 +148,12 @@ export default function ShippingCityManager() {
 
     const { data, error } = await supabaseClient
       .from('free_shipping_cities')
-      .insert({ country_code: countryCode, city_name: name, is_free_shipping: false })
+      .insert({
+        country_code: countryCode,
+        city_name: name,
+        is_free_shipping: false,
+        delivery_fee: newCityFee || 0,
+      })
       .select()
       .single();
 
@@ -138,6 +164,7 @@ export default function ShippingCityManager() {
         [...prev, data].sort((a, b) => a.city_name.localeCompare(b.city_name))
       );
       setNewCityInput('');
+      setNewCityFee(0);
     }
   };
 
@@ -234,13 +261,45 @@ export default function ShippingCityManager() {
                       >
                         {city.is_free_shipping && <Check size={12} className="text-white" />}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="font-medium text-sm">{city.city_name}</p>
-                        {city.is_free_shipping && (
+                        {city.is_free_shipping ? (
                           <p className="text-xs text-green-600 font-medium">Free shipping</p>
+                        ) : (
+                          <p className="text-xs text-gray-400">
+                            {city.delivery_fee > 0 ? `EGP ${city.delivery_fee}` : 'No fee set'}
+                          </p>
                         )}
                       </div>
                     </div>
+
+                    {/* Delivery fee input — only show when not free */}
+                    {!city.is_free_shipping && (
+                      <div
+                        className="flex items-center gap-1 mx-2 shrink-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="text-xs text-gray-400">EGP</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={city.delivery_fee || ''}
+                          placeholder="0"
+                          onChange={async (e) => {
+                            const fee = Number(e.target.value);
+                            // Optimistic update
+                            setCities(prev =>
+                              prev.map(c => c.id === city.id ? { ...c, delivery_fee: fee } : c)
+                            );
+                            await supabaseClient
+                              .from('free_shipping_cities')
+                              .update({ delivery_fee: fee })
+                              .eq('id', city.id);
+                          }}
+                          className="w-16 border rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:border-black"
+                        />
+                      </div>
+                    )}
 
                     {/* Delete */}
                     <button
@@ -267,8 +326,20 @@ export default function ShippingCityManager() {
                   value={newCityInput}
                   onChange={(e) => setNewCityInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addCity()}
-                  className="border rounded-2xl px-5 py-4 w-full text-base md:text-lg"
+                  className="border rounded-2xl px-5 py-4 flex-1 text-base md:text-lg"
                 />
+                <div className="flex items-center gap-2 border rounded-2xl px-5 py-4 bg-white">
+                  <span className="text-sm text-gray-500 whitespace-nowrap">Delivery fee</span>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={newCityFee || ''}
+                    onChange={(e) => setNewCityFee(Number(e.target.value))}
+                    className="w-20 text-center font-medium focus:outline-none text-base"
+                  />
+                  <span className="text-sm text-gray-400">EGP</span>
+                </div>
                 <button
                   onClick={addCity}
                   disabled={!newCityInput.trim()}

@@ -68,12 +68,25 @@ export default function ProductDetail() {
   }, [id]);
 
   // ==================== SALE LOGIC ====================
-  const isOnSale = product?.is_on_sale === true;
-  const discount = product?.discount_percentage || 0;
+  // Product-level sale
+  const productIsOnSale = product?.is_on_sale === true;
+  const productDiscount = product?.discount_percentage || 0;
   const originalPrice = Number(product?.price || 0);
+
+  // Variant-level sale — check selected color's variants
+  const selectedColorVariants = variants.filter(v => v.color === selectedColor);
+  const variantIsOnSale = selectedColorVariants.length > 0 &&
+    selectedColorVariants.every(v => v.is_on_sale);
+  const variantDiscount = variantIsOnSale
+    ? (selectedColorVariants[0]?.discount_percentage || 0)
+    : 0;
+
+  // Variant discount takes priority over product discount
+  const isOnSale = variantIsOnSale || productIsOnSale;
+  const discount = variantIsOnSale ? variantDiscount : productDiscount;
   const salePrice = isOnSale && discount > 0
     ? originalPrice * (1 - discount / 100)
-    : originalPrice;
+    : originalPrice;;
 
   // ==================== IMAGES, COLORS, SIZES, STOCK ====================
   const images = product?.images && product.images.length > 0
@@ -124,6 +137,9 @@ export default function ProductDetail() {
       id: product.id,
       name: product.name,
       price: isOnSale ? salePrice : originalPrice,
+      originalPrice: originalPrice,
+      discountPercentage: isOnSale ? discount : 0,
+      isOnSale: isOnSale,
       image_url: images[currentImageIndex] || '',
       size: selectedSize,
       color: selectedColor,
@@ -134,13 +150,16 @@ export default function ProductDetail() {
     const currentItems = saved ? JSON.parse(saved) : [];
     currentItems.push(newItem);
     localStorage.setItem('reviewOrder', JSON.stringify(currentItems));
+    localStorage.setItem('reviewOrderTimestamp', Date.now().toString());
+    window.dispatchEvent(new Event('reviewOrderUpdated'));
 
-    await supabaseClient
-      .from('product_variants')
-      .update({ stock: stock - quantity })
-      .eq('product_id', product.id)
-      .eq('color', selectedColor)
-      .eq('size', selectedSize);
+    const variant = variants.find(v => v.color === selectedColor && v.size === selectedSize);
+    if (variant) {
+      await supabaseClient.rpc('decrement_stock', {
+        variant_id: variant.id,
+        qty: quantity,
+      });
+    }
 
     router.push('/review-order');
   };
@@ -312,16 +331,24 @@ export default function ProductDetail() {
                 <div className="flex gap-2 flex-wrap">
                   {allColors.map((color: string) => {
                     const hasStock = variants.some(v => v.color === color && v.stock > 0);
+                    const colorOnSale = variants.some(v => v.color === color && v.is_on_sale && v.discount_percentage > 0);
+                    const colorDiscount = variants.find(v => v.color === color && v.is_on_sale)?.discount_percentage || 0;
+
                     return (
                       <button
                         key={color}
                         onClick={() => { setSelectedColor(color); setSelectedSize(''); setQuantity(1); }}
                         disabled={!hasStock}
-                        className={`px-5 py-2.5 border rounded-full text-sm transition ${
+                        className={`relative px-5 py-2.5 border rounded-full text-sm transition ${
                           selectedColor === color ? 'bg-black text-white' : 'hover:bg-gray-100'
                         } ${!hasStock ? 'opacity-50 line-through cursor-not-allowed' : ''}`}
                       >
                         {color}
+                        {colorOnSale && (
+                          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                            -{colorDiscount}%
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -349,13 +376,13 @@ export default function ProductDetail() {
                               : 'bg-black text-white border-black'
                             : 'hover:bg-gray-100',
                           isThisOutOfStock ? 'opacity-50 line-through' : '',
-                          isThisLastStock && selectedSize !== size ? 'border-amber-400' : '',
+                          // isThisLastStock && selectedSize !== size ? 'border-amber-400' : '',
                         ].join(' ')}
                       >
                         {size}
-                        {isThisLastStock && (
+                        {/* {isThisLastStock && (
                           <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-white" />
-                        )}
+                        )} */}
                       </button>
                     );
                   })}
@@ -371,11 +398,11 @@ export default function ProductDetail() {
                 }`}>
                   {isOutOfStock ? (
                     <>
-                      <span>Out of stock — check back soon</span>
+                      <span>Out Of Stock — Check Back Soon</span>
                     </>
                   ) : (
                     <>
-                      <span>Last stock — only 1 left!</span>
+                      <span>Last Stock — Only 1 Left!</span>
                     </>
                   )}
                 </div>

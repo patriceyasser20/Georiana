@@ -1,0 +1,35 @@
+// lib/adminApi.ts
+async function getToken(): Promise<string> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+  if (!token) throw new Error('Not authenticated. Please log in to your admin account.');
+  return token;
+}
+
+async function call(action: string, payload: any) {
+  const token = await getToken();
+  const res = await fetch('/api/admin-ops', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-admin-token': token,
+    },
+    body: JSON.stringify({ action, payload }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Admin API error');
+  return json;
+}
+
+export const adminApi = {
+  insertProduct:         (payload: any)                   => call('insert-product',          payload),
+  updateProduct:         (id: string, data: any)          => call('update-product',           { id, ...data }),
+  deleteProduct:         (id: string)                     => call('delete-product',           { id }),
+  insertVariants:        (variants: any[])                => call('insert-variants',          { variants }),
+  updateVariantDiscount: (id: string, data: any)          => call('update-variant-discount',  { id, ...data }),
+  restock:               (id: string, newStock: number)   => call('restock',                  { id, newStock }),
+  insertPromo:           (payload: any)                   => call('insert-promo',             payload),
+  updatePromo:           (id: string, data: any)          => call('update-promo',             { id, ...data }),
+  deletePromo:           (id: string)                     => call('delete-promo',             { id }),
+  toggleCountry:         (code: string, enabled: boolean) => call('toggle-country',           { code, enabled }),
+  upsertShipping:        (payload: any)                   => call('upsert-shipping-city',     payload),
+};

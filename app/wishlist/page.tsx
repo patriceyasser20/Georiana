@@ -36,6 +36,7 @@ export default function WishlistPage() {
         .select(`
           id,
           product_id,
+          created_at,
           products (
             id,
             name,

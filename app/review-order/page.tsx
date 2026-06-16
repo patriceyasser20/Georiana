@@ -36,6 +36,8 @@ export default function ReviewOrder() {
   };
 
   const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
+  const originalTotal = items.reduce((sum, item) => sum + Number(item.originalPrice || item.price) * Number(item.quantity), 0);
+  const totalSavings = originalTotal - total;
 
   const proceedToCheckout = () => {
     if (items.length === 0) return;
@@ -63,7 +65,15 @@ export default function ReviewOrder() {
                   <div className="flex-1">
                     <p className="font-medium text-lg">{item.name}</p>
                     <p className="text-sm text-gray-500">Size: {item.size} • Color: {item.color}</p>
-                    <p className="text-gray-600 mt-1">{formatPrice(Number(item.price))}</p>
+                    {item.isOnSale && item.originalPrice ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="line-through text-gray-400 text-sm">{formatPrice(Number(item.originalPrice))}</span>
+                        <span className="text-red-600 font-semibold">{formatPrice(Number(item.price))}</span>
+                        <span className="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">-{item.discountPercentage}%</span>
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 mt-1">{formatPrice(Number(item.price))}</p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-4">
@@ -79,6 +89,14 @@ export default function ReviewOrder() {
               ))}
 
               <div className="mt-12 border-t pt-8 text-right">
+                {totalSavings > 0 && (
+                  <div className="flex justify-end items-center gap-3 mb-3">
+                    <span className="text-gray-400 line-through text-xl">{formatPrice(originalTotal)}</span>
+                    <span className="bg-red-100 text-red-600 text-sm font-bold px-3 py-1 rounded-full">
+                      You save {formatPrice(totalSavings)}
+                    </span>
+                  </div>
+                )}
                 <p className="text-3xl font-medium">{t('reviewOrder.total')} {formatPrice(total)}</p>
                 <button
                   onClick={proceedToCheckout}
@@ -91,7 +109,6 @@ export default function ReviewOrder() {
           )}
         </div>
       </div>
-      <Footer />
     </>
   );
 }

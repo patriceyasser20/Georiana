@@ -14,7 +14,9 @@ interface ProductCardProps {
   img: string;
   isOnSale?: boolean;
   discountPercentage?: number;
-  onRemove?: (productId: string) => void; // ✅ NEW
+  hasVariantSale?: boolean;
+  maxVariantDiscount?: number;
+  onRemove?: (productId: string) => void;
 }
 
 export default function ProductCard({ 
@@ -24,8 +26,10 @@ export default function ProductCard({
   img, 
   isOnSale = false, 
   discountPercentage = 0,
-  onRemove // ✅ NEW
-}: ProductCardProps) {
+  hasVariantSale = false,
+  maxVariantDiscount = 0,
+  onRemove
+}: ProductCardProps) { 
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
@@ -97,6 +101,7 @@ export default function ProductCard({
         if (error) throw error;
 
         setIsWishlisted(false);
+        window.dispatchEvent(new Event('wishlistUpdated'));
 
         // ✅ Tell parent to remove this card
         if (onRemove) {
@@ -115,6 +120,7 @@ export default function ProductCard({
         if (error) throw error;
 
         setIsWishlisted(true);
+        window.dispatchEvent(new Event('wishlistUpdated'));
       }
 
     } catch (err: any) {
@@ -133,9 +139,14 @@ export default function ProductCard({
           className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
-        {isOnSale && discount > 0 && (
+        {(isOnSale && discount > 0) && (
           <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">
             -{discount}%
+          </div>
+        )}
+        {(!isOnSale || discount === 0) && hasVariantSale && maxVariantDiscount > 0 && (
+          <div className="absolute top-4 left-4 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">
+            Up to -{maxVariantDiscount}%
           </div>
         )}
 

@@ -7,6 +7,7 @@ import ProductCard from '../components/ProductCard';   // ← Added
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { ArrowUp } from 'lucide-react';
+import { getCached, setCached } from '../../lib/productCache';
 
 export default function Shop() {
   const { formatPrice } = useCurrency();
@@ -20,9 +21,14 @@ export default function Shop() {
   // Fetch all products
   useEffect(() => {
     const fetchProducts = async () => {
+      // ✅ Add ordering so newest products show first
       const { data, error } = await supabaseClient
         .from('products')
-        .select('*');
+        .select(`
+          id, name, price, images, is_on_sale, discount_percentage, category, description,
+          product_variants (is_on_sale, discount_percentage)
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching products:', error);
@@ -63,6 +69,30 @@ export default function Shop() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const fetchProducts = async () => {
+    const cacheKey = 'all-products';
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setProducts(cached);
+      setFilteredProducts(cached);
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabaseClient
+      .from('products')
+      .select(`
+        id, name, price, images, is_on_sale, discount_percentage, category, description,
+        product_variants (is_on_sale, discount_percentage)
+      `)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setCached(cacheKey, data);
+      setProducts(data);
+      setFilteredProducts(data);
+    }
+    setLoading(false);
   };
 
   return (
@@ -110,6 +140,8 @@ export default function Shop() {
                   img={product.images?.[0] || ''}
                   isOnSale={product.is_on_sale}
                   discountPercentage={product.discount_percentage}
+                  hasVariantSale={product.product_variants?.some((v: any) => v.is_on_sale)}
+                  maxVariantDiscount={Math.max(...(product.product_variants?.filter((v: any) => v.is_on_sale).map((v: any) => v.discount_percentage) || [0]))}
                 />
               ))}
             </div>

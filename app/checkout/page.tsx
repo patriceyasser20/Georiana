@@ -49,43 +49,33 @@ export default function Checkout() {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState('');
 
-  // Egyptian Governorates with delivery fees
-  const governorateFees: { [key: string]: number } = {
-    'Cairo': 50,
-    'Giza': 50,
-    'Alexandria': 80,
-    'Port Said': 100,
-    'Suez': 90,
-    'Luxor': 120,
-    'Aswan': 150,
-    'Ismailia': 80,
-    'Damietta': 70,
-    'Sharqia': 60,
-    'Dakahlia': 65,
-    'Beheira': 55,
-    'Kafr El Sheikh': 70,
-    'Matruh': 120,
-    'Red Sea': 130,
-    'South Sinai': 140,
-    'North Sinai': 110,
-    'Qena': 110,
-    'Sohag': 100,
-    'Assiut': 95,
-    'Beni Suef': 70,
-    'Fayoum': 65,
-    'Minya': 90,
-  };
+  // Dynamic cities based on selected country
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [cityLoading, setCityLoading] = useState(false);
+
 
   // ==================== PRE-FILL EMAIL & PHONE IF LOGGED IN ====================
+  // ✅ Run both fetches in parallel on mount instead of two separate effects
   useEffect(() => {
-    const getUserData = async () => {
-      const { data: { user } } = await supabaseClient.auth.getUser();
+    const init = async () => {
+      const [
+        { data: { user } },
+        { data: countries }
+      ] = await Promise.all([
+        supabaseClient.auth.getUser(),
+        supabaseClient
+          .from('supported_countries')
+          .select('*')
+          .eq('enabled', true)
+          .order('name'),
+      ]);
+
       if (user?.email) setEmail(user.email);
       if (user?.user_metadata?.phone) setPhone(user.user_metadata.phone);
+      setAllCountries(countries || []);
     };
-    getUserData();
+    init();
   }, []);
-
   useEffect(() => {
     const saved = localStorage.getItem('reviewOrder');
     if (saved) {
@@ -100,36 +90,41 @@ export default function Checkout() {
 
   // Load enabled countries
   useEffect(() => {
-    const fetchCountries = async () => {
-      const { data } = await supabaseClient
-        .from('supported_countries')
-        .select('*')
-        .eq('enabled', true)
-        .order('name');
-      setAllCountries(data || []);
-    };
-    fetchCountries();
-  }, []);
-
-  useEffect(() => {
     if (!country) {
       setIsCountrySupported(true);
+      setAvailableCities([]);
+      setGovernorate('');
       return;
     }
+
     const selected = allCountries.find(c => c.code === country);
     setIsCountrySupported(selected?.enabled || false);
+    setGovernorate('');
+    setDeliveryFee(0);
+    setIsFreeShipping(false);
+
+    // For other countries — fetch cities from DB
+    const fetchCities = async () => {
+      setCityLoading(true);
+      const { data } = await supabaseClient
+        .from('free_shipping_cities')
+        .select('city_name, is_free_shipping')
+        .eq('country_code', country)
+        .order('city_name');
+
+      setAvailableCities((data || []).map((c: any) => c.city_name));
+      setCityLoading(false);
+    };
+
+    fetchCities();
   }, [country, allCountries]);
 
-  // Update delivery fee when governorate changes (standard fee)
+  
   useEffect(() => {
-    if (governorate && governorateFees[governorate]) {
-      setDeliveryFee(governorateFees[governorate]);
-    } else {
-      setDeliveryFee(0);
-    }
-    // Reset free shipping when city changes (re-check below)
+    if (!governorate) { setDeliveryFee(0); return; }
+    setDeliveryFee(0);
     setIsFreeShipping(false);
-  }, [governorate]);
+  }, [governorate, country]);
 
   // ==================== CHECK FREE SHIPPING FROM DB ====================
   useEffect(() => {
@@ -138,7 +133,7 @@ export default function Checkout() {
     const checkFreeShipping = async () => {
       const { data } = await supabaseClient
         .from('free_shipping_cities')
-        .select('is_free_shipping')
+        .select('is_free_shipping, delivery_fee')
         .eq('country_code', country)
         .eq('city_name', governorate)
         .single();
@@ -148,10 +143,7 @@ export default function Checkout() {
         setIsFreeShipping(true);
       } else {
         setIsFreeShipping(false);
-        // Restore the standard fee
-        if (governorate && governorateFees[governorate]) {
-          setDeliveryFee(governorateFees[governorate]);
-        }
+        setDeliveryFee(data?.delivery_fee && data.delivery_fee > 0 ? data.delivery_fee : 0);
       }
     };
 
@@ -198,7 +190,7 @@ export default function Checkout() {
     }
 
     setAppliedPromo(data);
-    alert(`✅ Promo code applied! ${data.discount_percentage}% OFF`);
+    
   };
 
   // ==================== CREATE OR UPDATE ORDER ====================
@@ -306,7 +298,7 @@ export default function Checkout() {
           quantity: Number(item.quantity)
         }));
 
-        const result = await createStripeCheckout(finalTotal, stripeItems);
+        const result = await createStripeCheckout(finalTotal, stripeItems, orderId);
 
         if (result?.url) {
           localStorage.setItem('last_created_order_id', orderId);
@@ -376,26 +368,30 @@ export default function Checkout() {
 
               {/* Governorate / City Selector */}
               <div className="mt-6">
-                <label className="block text-sm font-medium mb-2">Governorate</label>
+                <label className="block text-sm font-medium mb-2">
+                  {country === 'EG' ? 'Governorate' : 'City'}
+                </label>
                 <select
                   value={governorate}
                   onChange={(e) => setGovernorate(e.target.value)}
-                  className="border rounded-2xl px-5 py-4 w-full focus:outline-none focus:border-black"
+                  disabled={!country || cityLoading || availableCities.length === 0}
+                  className="border rounded-2xl px-5 py-4 w-full focus:outline-none focus:border-black disabled:opacity-50"
                 >
-                  <option value="">Select Governorate</option>
-                  {Object.keys(governorateFees).map(gov => (
-                    <option key={gov} value={gov}>{gov}</option>
+                  <option value="">
+                    {!country
+                      ? 'Select a country first'
+                      : cityLoading
+                        ? 'Loading cities...'
+                        : availableCities.length === 0
+                          ? 'No cities available'
+                          : country === 'EG' ? 'Select Governorate' : 'Select City'
+                    }
+                  </option>
+                  {availableCities.map(city => (
+                    <option key={city} value={city}>{city}</option>
                   ))}
                 </select>
-
-                {/* Free Shipping Badge — shown below governorate selector */}
-                {isFreeShipping && governorate && (
-                  <div className="mt-3 flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 px-5 py-3 rounded-2xl text-sm font-medium">
-                    Free shipping available for <strong>{governorate}</strong>!
-                  </div>
-                )}
               </div>
-
               {!isCountrySupported && country && (
                 <p className="text-red-600 text-sm mt-3 font-medium">
                   {t('common.noShipment')}
@@ -436,8 +432,26 @@ export default function Checkout() {
                     <p className="text-sm text-gray-500">
                       Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
                     </p>
+                    {item.isOnSale && item.discountPercentage > 0 && (
+                      <span className="inline-block bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full mt-1">
+                        -{item.discountPercentage}% OFF
+                      </span>
+                    )}
                   </div>
-                  <p className="font-medium">{formatPrice(Number(item.price) * Number(item.quantity))}</p>
+                  <div className="text-right">
+                    {item.isOnSale && item.originalPrice ? (
+                      <>
+                        <p className="text-gray-400 line-through text-sm">
+                          {formatPrice(Number(item.originalPrice) * Number(item.quantity))}
+                        </p>
+                        <p className="font-medium text-red-600">
+                          {formatPrice(Number(item.price) * Number(item.quantity))}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="font-medium">{formatPrice(Number(item.price) * Number(item.quantity))}</p>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -468,10 +482,22 @@ export default function Checkout() {
 
               {/* Price Breakdown */}
               <div className="mt-10 space-y-3 text-lg">
+                {items.some(i => i.isOnSale) && (
+                  <div className="flex justify-between text-gray-400 line-through text-base">
+                    <span>Original</span>
+                    <span>{formatPrice(items.reduce((sum, i) => sum + Number(i.originalPrice || i.price) * Number(i.quantity), 0))}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
+                {items.some(i => i.isOnSale) && (
+                  <div className="flex justify-between text-red-600 text-sm">
+                    <span>Item Savings</span>
+                    <span>-{formatPrice(items.reduce((sum, i) => sum + (Number(i.originalPrice || i.price) - Number(i.price)) * Number(i.quantity), 0))}</span>
+                  </div>
+                )}
 
                 {/* Delivery Fee Row — shows Free or amount */}
                 {governorate && (
