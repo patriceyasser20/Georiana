@@ -1,4 +1,3 @@
-// app/api/stripe/webhook/route.ts
 import { headers } from 'next/headers';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
@@ -46,7 +45,6 @@ export async function POST(req: Request) {
           });
         }
 
-        // Send confirmation email here too, so it fires even if the user closes the tab
         await supabase.functions.invoke('resend-email', {
           body: { order_id: orderId },
         }).catch(err => console.error('Email sending failed:', err));

@@ -25,7 +25,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('language', code);
     document.documentElement.lang = code;
     document.documentElement.dir = code === 'ar' ? 'rtl' : 'ltr';
-    window.location.reload();
   };
 
   const t = (key: string) => {

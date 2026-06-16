@@ -21,6 +21,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  
 
   // Shipping form fields
   const [firstName, setFirstName] = useState('');
@@ -298,7 +299,7 @@ export default function Checkout() {
           quantity: Number(item.quantity)
         }));
 
-        const result = await createStripeCheckout(finalTotal, stripeItems, orderId);
+        const result = await createStripeCheckout(finalTotal, stripeItems, orderId);  
 
         if (result?.url) {
           localStorage.setItem('last_created_order_id', orderId);
