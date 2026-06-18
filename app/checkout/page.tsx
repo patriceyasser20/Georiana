@@ -9,6 +9,7 @@ import { CreditCard, Truck } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from '../context/LanguageContext';
 import { supabaseClient } from '../../lib/supabaseClient';
+import { calculateAllOffers, type Offer } from '../../lib/offers';
 
 type PaymentMethod = 'stripe' | 'fawry' | 'cod';
 
@@ -21,7 +22,6 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
-  
 
   // Shipping form fields
   const [firstName, setFirstName] = useState('');
@@ -50,18 +50,21 @@ export default function Checkout() {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState('');
 
+  // Offers (Buy X Get Y deals)
+  const [offers, setOffers] = useState<Offer[]>([]);
+
   // Dynamic cities based on selected country
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [cityLoading, setCityLoading] = useState(false);
 
 
   // ==================== PRE-FILL EMAIL & PHONE IF LOGGED IN ====================
-  // ✅ Run both fetches in parallel on mount instead of two separate effects
   useEffect(() => {
     const init = async () => {
       const [
         { data: { user } },
-        { data: countries }
+        { data: countries },
+        { data: offersData },
       ] = await Promise.all([
         supabaseClient.auth.getUser(),
         supabaseClient
@@ -69,14 +72,20 @@ export default function Checkout() {
           .select('*')
           .eq('enabled', true)
           .order('name'),
+        supabaseClient
+          .from('offers')
+          .select('*')
+          .eq('is_active', true),
       ]);
 
       if (user?.email) setEmail(user.email);
       if (user?.user_metadata?.phone) setPhone(user.user_metadata.phone);
       setAllCountries(countries || []);
+      setOffers((offersData || []) as Offer[]);
     };
     init();
   }, []);
+
   useEffect(() => {
     const saved = localStorage.getItem('reviewOrder');
     if (saved) {
@@ -120,7 +129,7 @@ export default function Checkout() {
     fetchCities();
   }, [country, allCountries]);
 
-  
+
   useEffect(() => {
     if (!governorate) { setDeliveryFee(0); return; }
     setDeliveryFee(0);
@@ -160,7 +169,11 @@ export default function Checkout() {
 
   const subtotal = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
   const discountAmount = appliedPromo ? (subtotal * appliedPromo.discount_percentage / 100) : 0;
-  const finalTotal = subtotal - discountAmount + deliveryFee;
+
+  // ── Buy X Get Y offers ──
+  const { results: offerResults, totalDiscount: offersDiscount } = calculateAllOffers(items, offers);
+
+  const finalTotal = Math.max(0, subtotal - discountAmount - offersDiscount + deliveryFee);
 
   // ==================== APPLY PROMO CODE ====================
   const applyPromoCode = async () => {
@@ -191,7 +204,7 @@ export default function Checkout() {
     }
 
     setAppliedPromo(data);
-    
+
   };
 
   // ==================== CREATE OR UPDATE ORDER ====================
@@ -200,6 +213,25 @@ export default function Checkout() {
 
     const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
     const { data: { user } } = await supabaseClient.auth.getUser();
+
+    // Cap the stored discount at what the customer actually owed (subtotal +
+    // delivery), so the order record can never imply a negative total even
+    // if a promo code and several "Buy X Get Y" offers stack past 100% off.
+    const rawDiscountAmount = (discountAmount + offersDiscount) || 0;
+    const totalDiscountAmount = Math.min(rawDiscountAmount, subtotal + deliveryFee);
+
+    // Record which offers applied and how much each contributed, so the
+    // account page and admin order tab can show "🏷️ Summer -EGP 3000" etc.
+    // instead of just a single combined discount number. If the combined
+    // discount had to be capped above, scale each offer's contribution down
+    // proportionally so the breakdown still sums to the capped total.
+    const offerScale = rawDiscountAmount > 0 ? totalDiscountAmount / rawDiscountAmount : 1;
+    const appliedOffers = offerResults
+      .filter((r) => r.offerApplied)
+      .map((r) => ({
+        name: r.offerApplied!.name,
+        discount: Math.round(r.totalDiscount * offerScale * 100) / 100,
+      }));
 
     if (!orderId) {
       const initialStatus = paymentMethod === 'cod' ? 'succeeded' : 'pending';
@@ -219,7 +251,8 @@ export default function Checkout() {
           delivery_fee: deliveryFee,
           status: initialStatus,
           promo_code: appliedPromo?.code || null,
-          discount_amount: discountAmount || 0
+          discount_amount: totalDiscountAmount,
+          applied_offers: appliedOffers
         })
         .select()
         .single();
@@ -265,7 +298,8 @@ export default function Checkout() {
           payment_method: paymentLabel,
           status: paymentMethod === 'cod' ? 'succeeded' : 'pending',
           promo_code: appliedPromo?.code || null,
-          discount_amount: discountAmount || 0
+          discount_amount: totalDiscountAmount,
+          applied_offers: appliedOffers
         })
         .eq('id', orderId);
 
@@ -299,7 +333,7 @@ export default function Checkout() {
           quantity: Number(item.quantity)
         }));
 
-        const result = await createStripeCheckout(finalTotal, stripeItems, orderId);  
+        const result = await createStripeCheckout(finalTotal, stripeItems, orderId);
 
         if (result?.url) {
           localStorage.setItem('last_created_order_id', orderId);
@@ -499,6 +533,14 @@ export default function Checkout() {
                     <span>-{formatPrice(items.reduce((sum, i) => sum + (Number(i.originalPrice || i.price) - Number(i.price)) * Number(i.quantity), 0))}</span>
                   </div>
                 )}
+
+                {/* Buy X Get Y offers */}
+                {offerResults.length > 0 && offerResults.map((r, i) => (
+                  <div key={i} className="flex justify-between text-emerald-600">
+                    <span>🏷️ {r.offerApplied?.name}</span>
+                    <span>-{formatPrice(r.totalDiscount)}</span>
+                  </div>
+                ))}
 
                 {/* Delivery Fee Row — shows Free or amount */}
                 {governorate && (

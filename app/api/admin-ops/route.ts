@@ -81,9 +81,25 @@ export async function POST(req: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ ok: true });
       }
-      case 'ping': {
+
+      // ── Offers (Buy X Get Y deals) ──────────────────────────────────────
+      case 'insert-offer': {
+        const { error } = await supabase.from('offers').insert(payload);
+        if (error) throw error;
         return NextResponse.json({ ok: true });
       }
+      case 'update-offer': {
+        const { id, ...rest } = payload;
+        const { error } = await supabase.from('offers').update(rest).eq('id', id);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+      case 'delete-offer': {
+        const { error } = await supabase.from('offers').delete().eq('id', payload.id);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+
       default:
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }

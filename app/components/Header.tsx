@@ -20,7 +20,6 @@ const languages = [
   { code: 'nl', name: 'Dutch' },
 ];
 
-
 const slugify = (text: string) =>
   text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
@@ -93,21 +92,14 @@ export default function Header() {
 
       await fetchCount(user.id);
 
-      // Instant update on heart click (same page)
       const handleWishlistUpdated = () => fetchCount(user.id);
       window.addEventListener('wishlistUpdated', handleWishlistUpdated);
 
-      // Realtime update (cross-tab / other devices)
       channel = supabaseClient
         .channel('wishlist-count')
         .on(
           'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'wishlist',
-            filter: `user_id=eq.${user.id}`,
-          },
+          { event: '*', schema: 'public', table: 'wishlist', filter: `user_id=eq.${user.id}` },
           () => fetchCount(user.id)
         )
         .subscribe();
@@ -130,10 +122,9 @@ export default function Header() {
     const fetchCategories = async () => {
       const cached = getCached('header-categories');
       if (cached) { setCategories(cached as string[]); return; }
-
       const { data } = await supabaseClient.from('products').select('category').not('category', 'is', null);
       const unique = [...new Set(data?.map((p: any) => p.category))].filter(Boolean) as string[];
-      setCached('header-categories', unique, 10 * 60 * 1000); // 10 min TTL
+      setCached('header-categories', unique, 10 * 60 * 1000);
       setCategories(unique);
     };
     fetchCategories();
@@ -143,10 +134,9 @@ export default function Header() {
     const fetchCollections = async () => {
       const cached = getCached('header-collections');
       if (cached) { setCollections(cached as string[]); return; }
-
       const { data } = await supabaseClient.from('products').select('collection').not('collection', 'is', null);
       const unique = [...new Set(data?.map((p: any) => p.collection))].filter(Boolean) as string[];
-      setCached('header-collections', unique, 10 * 60 * 1000); // 10 min TTL
+      setCached('header-collections', unique, 10 * 60 * 1000);
       setCollections(unique);
     };
     fetchCollections();
@@ -163,79 +153,100 @@ export default function Header() {
   return (
     <>
       <header suppressHydrationWarning className="bg-white border-b border-gray-200 z-50 fixed top-0 left-0 right-0">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-4">
 
-          {/* ── Logo + Slogan ── */}
-          <Link href="/" className="flex items-center gap-3">
-            <img src="/images/logo.svg" alt="GEORIANA" className="h-10 md:h-15 w-auto" /> 
-            {/* Slogan — desktop only, separated by a subtle divider */}
-            <span className="hidden md:block text-gray-600 text-lg leading-none mx-0.5">·</span>
-            <span className="hidden md:block text-[10px] tracking-[0.35em] uppercase text-gray-600 font-light">
-              Wear Intuitively
-            </span>
-           </Link>
-          {/* <Link href="/" className="flex flex-col gap-0">
-            <img src="/images/logo.svg" alt="GEORIANA" className="h-10 md:h-15 w-auto" />
-            <span className="hidden md:block text-[10px] tracking-[0.42em] uppercase text-gray-400 font-light">
-              Wear Intuitively
-            </span>
-          </Link> */}
+          {/* ════════════════════════════════
+              PART 1 — Logo + Slogan
+          ════════════════════════════════ */}
+          <div className="flex items-center flex-shrink-0">
+            <Link href="/" className="flex items-end gap-3">
+              <img src="/images/logo.svg" alt="GEORIANA" className="h-16 md:h-18 w-auto" />
+              <span className="hidden md:block text-gray-400 text-base leading-none mb-1">·</span>
+              <span className="hidden md:block text-[9px] tracking-[0.35em] uppercase text-gray-500 font-light mb-1">
+                Wear Intuitively
+              </span>
+            </Link>
+          </div>
 
-          {/* ── Desktop Nav ── */}
-          <nav className="hidden md:flex gap-10 text-lg font-medium uppercase tracking-widest">
-            <Link href="/shop">{t('header.shop')}</Link>
+          {/* ════════════════════════════════
+              PART 2 — Navigation (centered)
+          ════════════════════════════════ */}
+          <div className="hidden md:flex flex-1 justify-center">
+            <nav className="flex items-center gap-8 text-md font-medium uppercase tracking-widest">
 
-            <div className="relative group">
-              <button className="hover:text-gray-600 transition flex items-center gap-1">
-                {t('header.woman')} <span className="text-xs">▼</span>
-              </button>
-              <div className="absolute top-full left-0 mt-1 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                {categories.length > 0 ? categories.map((category) => (
-                  <Link key={category} href={`/woman/${slugify(category)}`} className="block px-6 py-3 hover:bg-gray-100 transition text-sm">
-                    {t(`category.${slugify(category)}`)}
-                  </Link>
-                )) : (
-                  <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
-                )}
+              <Link href="/shop" className="hover:text-gray-500 transition">
+                {t('header.shop')}
+              </Link>
+
+              {/* Woman dropdown */}
+              <div className="relative group">
+                <button className="hover:text-gray-500 transition flex items-center gap-1">
+                  {t('header.woman')} <span className="text-xs">▼</span>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-52 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  {categories.length > 0 ? categories.map((category) => (
+                    <Link
+                      key={category}
+                      href={`/woman/${slugify(category)}`}
+                      className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case"
+                    >
+                      {t(`category.${slugify(category)}`)}
+                    </Link>
+                  )) : (
+                    <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCategories')}</div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="relative group">
-              <button className="hover:text-gray-600 transition flex items-center gap-1">
-                {t('header.collections')} <span className="text-xs">▼</span>
-              </button>
-              <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                {collections.length > 0 ? collections.map((col) => (
-                  <Link key={col} href={`/collection/${slugify(col)}`} className="block px-6 py-3 hover:bg-gray-100 transition text-sm">
-                    {col}
-                  </Link>
-                )) : (
-                  <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCollections')}</div>
-                )}
+              {/* Collections dropdown */}
+              <div className="relative group">
+                <button className="hover:text-gray-500 transition flex items-center gap-1">
+                  {t('header.collections')} <span className="text-xs">▼</span>
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-60 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                  {collections.length > 0 ? collections.map((col) => (
+                    <Link
+                      key={col}
+                      href={`/collection/${slugify(col)}`}
+                      className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case"
+                    >
+                      {col}
+                    </Link>
+                  )) : (
+                    <div className="px-6 py-3 text-gray-400 text-sm">{t('common.noCollections')}</div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <Link href="/sale" className="text-red-600">{t('header.sale')}</Link>
-          </nav>
+              <Link href="/sale" className="text-red-600 hover:text-red-500 transition">
+                {t('header.sale')}
+              </Link>
 
-          {/* ── Right Icons ── */}
-          <div suppressHydrationWarning className="flex items-center gap-4 md:gap-8">
+            </nav>
+          </div>
+
+          {/* ════════════════════════════════
+              PART 3 — Icons + Auth (right)
+          ════════════════════════════════ */}
+          <div suppressHydrationWarning className="flex items-center gap-3 md:gap-5 flex-shrink-0">
 
             {/* Language — desktop only */}
             <select
               value={language}
               onChange={(e) => changeLanguage(e.target.value as any)}
-              className="hidden md:block bg-transparent border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none cursor-pointer"
+              className="hidden md:block bg-transparent border border-gray-300 rounded-full px-5 py-1 text-sm focus:outline-none cursor-pointer"
               suppressHydrationWarning
             >
               {languages.map(lang => (
                 <option key={lang.code} value={lang.code}>{lang.name}</option>
               ))}
             </select>
+
+            {/* Currency — desktop only */}
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="hidden md:block bg-transparent border border-gray-300 rounded-full px-4 py-1 text-sm focus:outline-none cursor-pointer"
+              className="hidden md:block bg-transparent border border-gray-300 rounded-full px-3 py-1 text-sm focus:outline-none cursor-pointer"
               suppressHydrationWarning
             >
               {currencies.map(c => (
@@ -246,19 +257,18 @@ export default function Header() {
             {/* Cart */}
             {reviewCount > 0 && (
               <Link href="/review-order" className="relative" suppressHydrationWarning>
-                <ShoppingBag size={22} suppressHydrationWarning />
+                <ShoppingBag size={22} />
                 <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-medium w-5 h-5 flex items-center justify-center rounded-full">
                   {reviewCount}
                 </span>
               </Link>
             )}
 
-            {/* Wishlist — only when logged in */}
+            {/* Wishlist — logged in only */}
             {!loading && user && (
               <Link href="/wishlist" className="relative" suppressHydrationWarning>
                 <Heart
                   size={22}
-                  suppressHydrationWarning
                   className={wishlistCount > 0 ? 'text-red-500 fill-red-500' : 'text-gray-700'}
                 />
                 {wishlistCount > 0 && (
@@ -269,25 +279,25 @@ export default function Header() {
               </Link>
             )}
 
-            {/* Desktop auth */}
+            {/* Auth — desktop only */}
             {!loading && (
-              <div className="hidden md:flex items-center gap-6" suppressHydrationWarning>
+              <div className="hidden md:flex items-center gap-4" suppressHydrationWarning>
                 {user ? (
                   <>
-                    <Link href="/account" className="text-sm hover:text-gray-600">
+                    <Link href="/account" className="text-sm hover:text-gray-500 transition">
                       {t('header.account')}
                     </Link>
                     <button
                       onClick={handleSignOut}
-                      className="flex items-center gap-2 text-sm hover:text-gray-600 transition"
+                      className="flex items-center text-sm hover:text-gray-500 transition"
                       suppressHydrationWarning
                     >
-                      <LogOut size={22} suppressHydrationWarning />
+                      <LogOut size={20} />
                     </button>
                   </>
                 ) : (
                   <Link href="/login" suppressHydrationWarning>
-                    <User size={22} suppressHydrationWarning />
+                    <User size={22} />
                   </Link>
                 )}
               </div>
@@ -300,47 +310,55 @@ export default function Header() {
               aria-label="Open menu"
               suppressHydrationWarning
             >
-              <Menu size={26} suppressHydrationWarning />
+              <Menu size={26} />
             </button>
+
           </div>
         </div>
       </header>
 
-      {/* ── Mobile Drawer ── */}
+      {/* ════════════════════════════════
+          MOBILE DRAWER
+      ════════════════════════════════ */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-[100] flex md:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
 
-          {/* Panel */}
           <div className="relative ml-auto w-4/5 max-w-xs h-full bg-white flex flex-col overflow-y-auto shadow-2xl">
 
             {/* Drawer header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <img src="/images/logo.svg" alt="GEORIANA" className="h-8 w-auto" />
-                <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400 font-light border-l border-gray-200 pl-2">
+                <span className="text-[9px] tracking-[0.3em] uppercase text-gray-400 font-light border-l border-gray-200 pl-2">
                   Wear Intuitively
                 </span>
               </div>
               <button onClick={() => setMobileMenuOpen(false)} suppressHydrationWarning>
-                <X size={24} suppressHydrationWarning />
+                <X size={24} />
               </button>
             </div>
 
-            {/* Language selector */}
-            <div className="px-6 pt-5 pb-2">
+            {/* Language + Currency */}
+            <div className="px-6 pt-5 pb-2 flex gap-3">
               <select
                 value={language}
                 onChange={(e) => changeLanguage(e.target.value as any)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
                 suppressHydrationWarning
               >
                 {languages.map(lang => (
                   <option key={lang.code} value={lang.code}>{lang.name}</option>
+                ))}
+              </select>
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
+                suppressHydrationWarning
+              >
+                {currencies.map(c => (
+                  <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </div>
@@ -348,11 +366,7 @@ export default function Header() {
             {/* Nav links */}
             <nav className="flex flex-col px-6 py-4 gap-0 text-sm font-medium uppercase tracking-widest flex-1">
 
-              <Link
-                href="/shop"
-                className="py-4 border-b border-gray-100 hover:text-gray-500 transition"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+              <Link href="/shop" className="py-4 border-b border-gray-100 hover:text-gray-500 transition" onClick={() => setMobileMenuOpen(false)}>
                 {t('header.shop')}
               </Link>
 
@@ -408,46 +422,28 @@ export default function Header() {
                 )}
               </div>
 
-              <Link
-                href="/sale"
-                className="py-4 border-b border-gray-100 text-red-600"
-                onClick={() => setMobileMenuOpen(false)}
-              >
+              <Link href="/sale" className="py-4 border-b border-gray-100 text-red-600" onClick={() => setMobileMenuOpen(false)}>
                 {t('header.sale')}
               </Link>
             </nav>
 
-            {/* Auth — pinned to bottom */}
+            {/* Auth — bottom */}
             <div className="px-6 pb-10 pt-6 border-t border-gray-100" suppressHydrationWarning>
               {!loading && (
                 user ? (
                   <div className="flex flex-col gap-4">
-                    <Link
-                      href="/account"
-                      className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition"
-                      onClick={() => setMobileMenuOpen(false)}
-                      suppressHydrationWarning
-                    >
-                      <User size={18} suppressHydrationWarning />
+                    <Link href="/account" className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition" onClick={() => setMobileMenuOpen(false)} suppressHydrationWarning>
+                      <User size={18} />
                       {t('header.account')}
                     </Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="flex items-center gap-3 text-sm font-medium text-gray-400 hover:text-black transition"
-                      suppressHydrationWarning
-                    >
-                      <LogOut size={18} suppressHydrationWarning />
+                    <button onClick={handleSignOut} className="flex items-center gap-3 text-sm font-medium text-gray-400 hover:text-black transition" suppressHydrationWarning>
+                      <LogOut size={18} />
                       Sign Out
                     </button>
                   </div>
                 ) : (
-                  <Link
-                    href="/login"
-                    className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition"
-                    onClick={() => setMobileMenuOpen(false)}
-                    suppressHydrationWarning
-                  >
-                    <User size={18} suppressHydrationWarning />
+                  <Link href="/login" className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition" onClick={() => setMobileMenuOpen(false)} suppressHydrationWarning>
+                    <User size={18} />
                     Sign In
                   </Link>
                 )

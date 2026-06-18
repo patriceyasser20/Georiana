@@ -8,11 +8,16 @@ import ProductCard from './components/ProductCard';
 import { supabaseClient } from '../lib/supabaseClient';
 import { useTranslation } from './context/LanguageContext';
 import { getCached, setCached } from '../lib/productCache';
+import { type Offer, isOfferLive, offerBadgeText } from '../lib/offers';
 
 export default function Home() {
   const { t } = useTranslation();
   const [products, setProducts] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const slugify = (text: string) =>
+    text.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
   useEffect(() => {
     const fetchNewProducts = async () => {
@@ -24,12 +29,13 @@ export default function Home() {
         return;
       }
 
+      // Try featured products first
       const { data: featured } = await supabaseClient
         .from('featured_products')
         .select(`
           position,
           products (
-            id, name, price, images, is_on_sale, discount_percentage
+            id, name, price, images, is_on_sale, discount_percentage, category, collection
           )
         `)
         .eq('section', 'new_this_week')
@@ -40,9 +46,10 @@ export default function Home() {
         setCached(cacheKey, mapped);
         setProducts(mapped);
       } else {
+        // Fall back to latest products if no featured set
         const { data } = await supabaseClient
           .from('products')
-          .select('id, name, price, images, is_on_sale, discount_percentage')
+          .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
           .order('created_at', { ascending: false })
           .limit(8);
         setCached(cacheKey, data || []);
@@ -52,6 +59,77 @@ export default function Home() {
     };
     fetchNewProducts();
   }, []);
+
+  useEffect(() => {
+    const fetchOffers = async () => {
+      const cacheKey = 'active-offers';
+      const cached = getCached(cacheKey);
+      if (cached) { setOffers(cached as Offer[]); return; }
+
+      const { data } = await supabaseClient
+        .from('offers')
+        .select('*')
+        .eq('is_active', true);
+
+      setCached(cacheKey, data || [], 5 * 60 * 1000);
+      setOffers((data || []) as Offer[]);
+    };
+    fetchOffers();
+  }, []);
+
+  // Separate, broader product fetch used only to resolve a representative
+  // image for each offer (category/collection offers won't usually match
+  // anything inside the small "New This Week" set above).
+  const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
+  useEffect(() => {
+    const fetchCatalog = async () => {
+      const cacheKey = 'all-products';
+      const cached = getCached(cacheKey);
+      if (cached) { setCatalogProducts(cached); return; }
+
+      const { data } = await supabaseClient
+        .from('products')
+        .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
+        .order('created_at', { ascending: false });
+
+      setCached(cacheKey, data || []);
+      setCatalogProducts(data || []);
+    };
+    fetchCatalog();
+  }, []);
+
+  // Resolve each live offer to a representative product (for its image)
+  // and the right destination link based on its scope. Offers with no
+  // matching product anywhere in the catalog are silently dropped, since
+  // showing a deal banner with no way to act on it would be confusing.
+  const liveOffers = offers.filter(isOfferLive);
+  const displayableOffers = liveOffers
+    .map((offer) => {
+      let matchingProduct: any = null;
+      let href = '/shop';
+      let scopeDescription = '';
+
+      if (offer.scope_type === 'all') {
+        matchingProduct = catalogProducts[0] || null;
+        href = '/shop';
+        scopeDescription = 'Storewide';
+      } else if (offer.scope_type === 'product') {
+        matchingProduct = catalogProducts.find((p) => p.id === offer.scope_value) || null;
+        href = matchingProduct ? `/product/${matchingProduct.id}` : '/shop';
+        scopeDescription = matchingProduct?.name || '';
+      } else if (offer.scope_type === 'category') {
+        matchingProduct = catalogProducts.find((p) => p.category === offer.scope_value) || null;
+        href = `/woman/${slugify(offer.scope_value)}`;
+        scopeDescription = offer.scope_value;
+      } else if (offer.scope_type === 'collection') {
+        matchingProduct = catalogProducts.find((p) => p.collection === offer.scope_value) || null;
+        href = `/collection/${slugify(offer.scope_value)}`;
+        scopeDescription = offer.scope_value;
+      }
+
+      return { offer, product: matchingProduct, href, scopeDescription };
+    })
+    .filter((d) => d.product !== null);
 
   return (
     <>
@@ -95,8 +173,59 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ==================== ACTIVE OFFERS — only renders if a live offer exists ==================== */}
+      {displayableOffers.length > 0 && (
+        <section className="py-14 md:py-10 bg-[#f8f4f0] relative overflow-hidden">
+          <div className="hidden md:block absolute top-10 left-10 text-6xl text-[#e8c4ad] opacity-30 pointer-events-none">🌷</div>
+          <div className="hidden md:block absolute bottom-10 right-10 text-6xl text-[#e8c4ad] opacity-30 pointer-events-none">🌼</div>
+
+          <div className="max-w-5xl mx-auto px-5 md:px-6 relative z-10">
+            <div className="text-center mb-10 md:mb-14">
+              <span className="text-[#c9a38f] text-xs md:text-sm tracking-[0.35em] uppercase">
+                Limited Time
+              </span>
+              <h2 className="text-2xl md:text-4xl font-light tracking-widest mt-3 text-[#3a2f2f]">
+                Current Offers
+              </h2>
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false }}
+              transition={{ duration: 0.6 }}
+              className="flex flex-col gap-5 md:gap-6 max-w-2xl mx-auto"
+            >
+              {displayableOffers.map(({ offer, href, scopeDescription }) => (
+                <div
+                  key={offer.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-white rounded-2xl md:rounded-3xl px-7 py-6 md:px-9 md:py-7 shadow-sm"
+                >
+                  <div>
+                    <span className="inline-block text-[#c9a38f] text-[11px] font-medium tracking-[0.2em] uppercase mb-2">
+                      {offerBadgeText(offer)}
+                    </span>
+                    <p className="font-light text-lg md:text-xl tracking-wide text-[#3a2f2f]">{offer.name}</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {scopeDescription}
+                    </p>
+                  </div>
+
+                  <a
+                    href={href}
+                    className="shrink-0 bg-[#3a2f2f] text-white text-sm tracking-widest px-8 py-3.5 rounded-full hover:bg-[#2a2222] transition text-center"
+                  >
+                    Shop Now
+                  </a>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
+
       {/* ==================== ZIGZAG MODEL GALLERY ==================== */}
-      <section className="py-14 md:py-20 bg-white overflow-hidden">
+      <section className=" bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 md:px-6">
 
           {/* ── Mobile: simple vertical stack ── */}
@@ -258,6 +387,9 @@ export default function Home() {
                   img={p.images?.[0] || ''}
                   isOnSale={p.is_on_sale}
                   discountPercentage={p.discount_percentage}
+                  category={p.category}
+                  collection={p.collection}
+                  offers={offers}
                 />
               ))}
             </motion.div>

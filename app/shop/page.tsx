@@ -3,17 +3,19 @@
 import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import ProductCard from '../components/ProductCard';   // ← Added
+import ProductCard from '../components/ProductCard';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { ArrowUp } from 'lucide-react';
 import { getCached, setCached } from '../../lib/productCache';
+import { type Offer } from '../../lib/offers';
 
 export default function Shop() {
   const { formatPrice } = useCurrency();
 
   const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showTopButton, setShowTopButton] = useState(false);
@@ -21,11 +23,19 @@ export default function Shop() {
   // Fetch all products
   useEffect(() => {
     const fetchProducts = async () => {
-      // ✅ Add ordering so newest products show first
+      const cacheKey = 'all-products';
+      const cached = getCached(cacheKey);
+      if (cached) {
+        setProducts(cached);
+        setFilteredProducts(cached);
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabaseClient
         .from('products')
         .select(`
-          id, name, price, images, is_on_sale, discount_percentage, category, description,
+          id, name, price, images, is_on_sale, discount_percentage, category, description, collection,
           product_variants (is_on_sale, discount_percentage)
         `)
         .order('created_at', { ascending: false });
@@ -33,6 +43,7 @@ export default function Shop() {
       if (error) {
         console.error('Error fetching products:', error);
       } else {
+        setCached(cacheKey, data || []);
         setProducts(data || []);
         setFilteredProducts(data || []);
       }
@@ -40,6 +51,24 @@ export default function Shop() {
     };
 
     fetchProducts();
+  }, []);
+
+  // Fetch active offers (for product badges)
+  useEffect(() => {
+    const fetchOffers = async () => {
+      const cacheKey = 'active-offers';
+      const cached = getCached(cacheKey);
+      if (cached) { setOffers(cached as Offer[]); return; }
+
+      const { data } = await supabaseClient
+        .from('offers')
+        .select('*')
+        .eq('is_active', true);
+
+      setCached(cacheKey, data || [], 5 * 60 * 1000); // 5 min TTL
+      setOffers((data || []) as Offer[]);
+    };
+    fetchOffers();
   }, []);
 
   // Filter products when search term changes
@@ -69,30 +98,6 @@ export default function Shop() {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-  const fetchProducts = async () => {
-    const cacheKey = 'all-products';
-    const cached = getCached(cacheKey);
-    if (cached) {
-      setProducts(cached);
-      setFilteredProducts(cached);
-      setLoading(false);
-      return;
-    }
-    const { data, error } = await supabaseClient
-      .from('products')
-      .select(`
-        id, name, price, images, is_on_sale, discount_percentage, category, description,
-        product_variants (is_on_sale, discount_percentage)
-      `)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setCached(cacheKey, data);
-      setProducts(data);
-      setFilteredProducts(data);
-    }
-    setLoading(false);
   };
 
   return (
@@ -142,6 +147,9 @@ export default function Shop() {
                   discountPercentage={product.discount_percentage}
                   hasVariantSale={product.product_variants?.some((v: any) => v.is_on_sale)}
                   maxVariantDiscount={Math.max(...(product.product_variants?.filter((v: any) => v.is_on_sale).map((v: any) => v.discount_percentage) || [0]))}
+                  category={product.category}
+                  collection={product.collection}
+                  offers={offers}
                 />
               ))}
             </div>

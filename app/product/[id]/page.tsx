@@ -144,6 +144,8 @@ export default function ProductDetail() {
       size: selectedSize,
       color: selectedColor,
       quantity: quantity,
+      category: product.category || null,     // ← ADD
+      collection: product.collection || null,  // ← ADD
     };
 
     const saved = localStorage.getItem('reviewOrder');

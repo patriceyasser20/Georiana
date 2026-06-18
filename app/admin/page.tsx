@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus } from 'lucide-react';
+import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus, Tag } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { adminApi } from '../../lib/adminApi';
 import { invalidateCache } from '../../lib/productCache';
+
 export default function AdminPanel() {
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
-  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured'>('featured');
+  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured' | 'offers'>('featured');
   const [skuSearchTerm, setSkuSearchTerm] = useState('');
   const [skuSearchResult, setSkuSearchResult] = useState<any>(null);
   const [searching, setSearching] = useState(false);
@@ -65,6 +66,24 @@ export default function AdminPanel() {
   const [allVariants, setAllVariants] = useState<any[]>([]);
   const [featuredIds, setFeaturedIds] = useState<string[]>([]);
   const [featuredSaving, setFeaturedSaving] = useState<string | null>(null);
+  const [offers, setOffers] = useState<any[]>([]);
+
+  // ── Offers tab — local form state (inlined, no separate component) ──
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<any>(null);
+  const [offerForm, setOfferForm] = useState({
+    name: '',
+    offer_type: 'bxgy_free' as 'bxgy_free' | 'bxgy_percent',
+    buy_quantity: 2,
+    get_quantity: 1,
+    discount_percentage: 100,
+    scope_type: 'product' as 'product' | 'category' | 'collection' | 'all',
+    scope_value: '',
+    require_same_variant: false,
+    is_active: true,
+    ends_at: '',
+  });
+  const [savingOffer, setSavingOffer] = useState(false);
 
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -97,7 +116,7 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoading(true);
 
-    const [productsRes, ordersRes, countriesRes, promoRes, variantsRes, featuredRes] = await Promise.all([
+    const [productsRes, ordersRes, countriesRes, promoRes, variantsRes, featuredRes, offersRes] = await Promise.all([
       supabaseClient.from('products').select('*'),
       supabaseClient.from('orders').select(`
         *,
@@ -114,6 +133,7 @@ export default function AdminPanel() {
       supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false }),
       supabaseClient.from('product_variants').select('*'),
       supabaseClient.from('featured_products').select('product_id').eq('section', 'new_this_week'),
+      supabaseClient.from('offers').select('*').order('created_at', { ascending: false }),
     ]);
 
     setProducts(productsRes.data || []);
@@ -122,6 +142,7 @@ export default function AdminPanel() {
     setPromoCodes(promoRes.data || []);
     setAllVariants(variantsRes.data || []);
     setFeaturedIds((featuredRes.data || []).map((f: any) => f.product_id));
+    setOffers(offersRes.data || []);
 
     const uniqueCollections = [...new Set(
       (productsRes.data || []).map((p: any) => p.collection).filter(Boolean)
@@ -385,6 +406,7 @@ export default function AdminPanel() {
       if (form.collection) invalidateCache(`collection-${form.collection.toLowerCase().replace(/\s+/g, '-')}`);
       invalidateCache('header-categories');
       invalidateCache('header-collections');
+      invalidateCache('active-offers');
       loadData();
     } catch (err: any) {
       console.error('Save product error:', err);
@@ -447,6 +469,129 @@ export default function AdminPanel() {
     setSearching(false);
   };
 
+  // ==================== OFFERS FUNCTIONS (inlined) ====================
+  const offerCategories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
+
+  const openOfferModal = (offer?: any) => {
+    if (offer) {
+      setEditingOffer(offer);
+      setOfferForm({
+        name: offer.name,
+        offer_type: offer.offer_type,
+        buy_quantity: offer.buy_quantity,
+        get_quantity: offer.get_quantity,
+        discount_percentage: offer.discount_percentage,
+        scope_type: offer.scope_type,
+        scope_value: offer.scope_value,
+        require_same_variant: offer.require_same_variant,
+        is_active: offer.is_active,
+        ends_at: offer.ends_at ? offer.ends_at.slice(0, 10) : '',
+      });
+    } else {
+      setEditingOffer(null);
+      setOfferForm({
+        name: '',
+        offer_type: 'bxgy_free',
+        buy_quantity: 2,
+        get_quantity: 1,
+        discount_percentage: 100,
+        scope_type: 'product',
+        scope_value: '',
+        require_same_variant: false,
+        is_active: true,
+        ends_at: '',
+      });
+    }
+    setShowOfferModal(true);
+  };
+
+  const saveOffer = async () => {
+    if (!offerForm.name.trim()) {
+      alert('Offer name is required');
+      return;
+    }
+    if (offerForm.scope_type !== 'all' && !offerForm.scope_value) {
+      alert('Please select a target product/category/collection, or choose "All Products"');
+      return;
+    }
+    if (offerForm.buy_quantity < 1 || offerForm.get_quantity < 1) {
+      alert('Buy and Get quantities must be at least 1');
+      return;
+    }
+
+    setSavingOffer(true);
+    try {
+      const payload = {
+        name: offerForm.name.trim(),
+        offer_type: offerForm.offer_type,
+        buy_quantity: Number(offerForm.buy_quantity),
+        get_quantity: Number(offerForm.get_quantity),
+        discount_percentage: offerForm.offer_type === 'bxgy_free' ? 100 : Number(offerForm.discount_percentage),
+        scope_type: offerForm.scope_type,
+        scope_value: offerForm.scope_type === 'all' ? 'all' : offerForm.scope_value,
+        require_same_variant: offerForm.scope_type === 'all' ? false : offerForm.require_same_variant,
+        is_active: offerForm.is_active,
+        ends_at: offerForm.ends_at || null,
+      };
+
+      if (editingOffer) {
+        await adminApi.updateOffer(editingOffer.id, payload);
+      } else {
+        await adminApi.insertOffer(payload);
+      }
+
+      setShowOfferModal(false);
+      setEditingOffer(null);
+      invalidateCache('active-offers');
+      loadData();
+    } catch (err: any) {
+      alert('Failed to save offer: ' + (err?.message || err));
+    }
+    setSavingOffer(false);
+  };
+
+  const deleteOffer = async (id: string) => {
+    if (!confirm('Delete this offer?')) return;
+    try {
+      await adminApi.deleteOffer(id);
+      invalidateCache('active-offers');
+      loadData();
+    } catch (err: any) {
+      alert('Failed to delete: ' + err.message);
+    }
+  };
+
+  const toggleOfferActive = async (offer: any) => {
+    try {
+      await adminApi.updateOffer(offer.id, { is_active: !offer.is_active });
+      invalidateCache('active-offers');
+      loadData();
+    } catch (err: any) {
+      alert('Failed to update: ' + err.message);
+    }
+  };
+
+  const offerScopeOptions =
+    offerForm.scope_type === 'product' ? products.map(p => ({ value: p.id, label: p.name })) :
+    offerForm.scope_type === 'category' ? offerCategories.map(c => ({ value: c, label: c })) :
+    offerForm.scope_type === 'collection' ? collections.map(c => ({ value: c, label: c })) :
+    [];
+
+  const describeOffer = (o: any) => {
+    const action = o.offer_type === 'bxgy_free'
+      ? `Get ${o.get_quantity} Free`
+      : `Get ${o.get_quantity} at -${o.discount_percentage}%`;
+    return `Buy ${o.buy_quantity} ${action}`;
+  };
+
+  const offerScopeLabel = (o: any) => {
+    if (o.scope_type === 'all') return 'All Products';
+    if (o.scope_type === 'product') {
+      return products.find(p => p.id === o.scope_value)?.name || o.scope_value;
+    }
+    return o.scope_value;
+  };
+
   return (
     <>
       <Header />
@@ -494,6 +639,12 @@ export default function AdminPanel() {
             >
               <span className="md:hidden">Promos</span>
               <span className="hidden md:inline">Promo Codes</span>
+            </button>
+            <button
+              onClick={() => setTab('offers')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'offers' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              Offers
             </button>
           </div>
 
@@ -640,7 +791,7 @@ export default function AdminPanel() {
               ) : (
                 orders.map((order) => {
                   const isFreeShipping = !order.delivery_fee || Number(order.delivery_fee) === 0;
-                  const orderTotal = Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0);
+                  const orderTotal = Math.max(0, Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0));
 
                   return (
                     <div key={order.id} className="bg-white rounded-3xl p-8 border">
@@ -739,12 +890,30 @@ export default function AdminPanel() {
                         )}
                       </div>
 
-                      {/* ── Promo / Discount Row (if any) ── */}
-                      {Number(order.discount_amount) > 0 && (
+                      {/* ── Buy X Get Y Offer Rows (if any) ── */}
+                      {Array.isArray(order.applied_offers) && order.applied_offers.length > 0 && (
+                        order.applied_offers.map((o: any, i: number) => (
+                          <div key={i} className="flex justify-between text-lg mt-2 text-emerald-600">
+                            <span>🏷️ {o.name}</span>
+                            <span className="font-medium">-EGP {Number(o.discount).toFixed(2)}</span>
+                          </div>
+                        ))
+                      )}
+
+                      {/* ── Promo Code Row (if any) ── */}
+                      {order.promo_code && (
                         <div className="flex justify-between text-lg mt-2">
-                          <span className="text-gray-600">
-                            Discount{order.promo_code ? ` (${order.promo_code})` : ''}
+                          <span className="text-gray-600">Promo ({order.promo_code})</span>
+                          <span className="font-medium text-red-600">
+                            -EGP {Math.max(0, Number(order.discount_amount || 0) - (order.applied_offers || []).reduce((s: number, o: any) => s + Number(o.discount || 0), 0)).toFixed(2)}
                           </span>
+                        </div>
+                      )}
+
+                      {/* ── Fallback combined discount row — only when neither breakdown above applies ── */}
+                      {!order.promo_code && (!order.applied_offers || order.applied_offers.length === 0) && Number(order.discount_amount) > 0 && (
+                        <div className="flex justify-between text-lg mt-2">
+                          <span className="text-gray-600">Discount</span>
                           <span className="font-medium text-red-600">
                             -EGP {Number(order.discount_amount).toFixed(2)}
                           </span>
@@ -1078,6 +1247,84 @@ export default function AdminPanel() {
               </div>
             </div>
           )}
+
+          {/* ==================== OFFERS TAB (inlined, no separate component) ==================== */}
+          {tab === 'offers' && !loading && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-3xl font-light">Offers</h2>
+                <button
+                  onClick={() => openOfferModal()}
+                  className="bg-black text-white px-6 py-3 rounded-full flex items-center gap-2 hover:bg-gray-800 transition text-sm"
+                >
+                  <Plus size={18} /> New Offer
+                </button>
+              </div>
+              <p className="text-gray-500 mb-8 text-sm">
+                Create promotions like "Buy 2 Get 1 Free" on a product, category, collection, or your whole store. These apply automatically in cart and checkout.
+              </p>
+
+              {offers.length === 0 ? (
+                <p className="text-center py-20 text-xl text-gray-500">No offers yet. Create one to get started.</p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {offers.map((o) => {
+                    const expired = o.ends_at && new Date(o.ends_at) < new Date();
+                    return (
+                      <div
+                        key={o.id}
+                        className={`bg-white border rounded-3xl p-6 ${expired ? 'border-red-300 bg-red-50' : o.is_active ? 'border-green-300' : 'border-gray-200 opacity-60'}`}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-2">
+                            <Tag size={18} className="text-emerald-600" />
+                            <p className="font-medium text-lg">{o.name}</p>
+                          </div>
+                          <button onClick={() => deleteOffer(o.id)} className="text-red-600 hover:text-red-700">
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+
+                        <p className="text-emerald-700 font-semibold">{describeOffer(o)}</p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {o.scope_type === 'all' ? 'Scope' : o.scope_type === 'product' ? 'Product' : o.scope_type === 'category' ? 'Category' : 'Collection'}:{' '}
+                          <span className="text-black font-medium">{offerScopeLabel(o)}</span>
+                        </p>
+                        {o.scope_type !== 'all' && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            {o.require_same_variant ? 'Must be same size & color to qualify' : 'Any size/color mix qualifies — cheapest item is free'}
+                          </p>
+                        )}
+
+                        {expired && <p className="text-red-600 text-sm font-medium mt-3">Expired</p>}
+                        {o.ends_at && !expired && (
+                          <p className="text-xs text-gray-500 mt-3">Ends: {new Date(o.ends_at).toLocaleDateString()}</p>
+                        )}
+
+                        <div className="mt-5 flex gap-2">
+                          <button
+                            onClick={() => openOfferModal(o)}
+                            className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl hover:bg-blue-700 transition flex items-center justify-center gap-2 text-sm"
+                          >
+                            <Edit2 size={14} /> Edit
+                          </button>
+                          <button
+                            onClick={() => toggleOfferActive(o)}
+                            className={`flex-1 py-2.5 rounded-xl transition text-sm font-medium ${
+                              o.is_active ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                            }`}
+                          >
+                            {o.is_active ? 'Pause' : 'Activate'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ==================== FEATURED / HOME PAGE TAB ==================== */}
           {tab === 'featured' && !loading && (
             <div>
@@ -1226,6 +1473,170 @@ export default function AdminPanel() {
             >
               {restocking ? 'Updating stock...' : 'Confirm Restock'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== OFFER ADD / EDIT MODAL (inlined) ==================== */}
+      {showOfferModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setShowOfferModal(false)} className="absolute top-6 right-6">
+              <X size={24} />
+            </button>
+
+            <h2 className="text-2xl font-medium mb-8">{editingOffer ? 'Edit Offer' : 'New Offer'}</h2>
+
+            <div className="space-y-5">
+              <input
+                type="text"
+                placeholder="Offer name (e.g. Summer Jacket Deal)"
+                value={offerForm.name}
+                onChange={(e) => setOfferForm({ ...offerForm, name: e.target.value })}
+                className="border rounded-2xl px-5 py-3.5 w-full"
+              />
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Offer Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setOfferForm({ ...offerForm, offer_type: 'bxgy_free' })}
+                    className={`py-3 rounded-xl text-sm font-medium border transition ${offerForm.offer_type === 'bxgy_free' ? 'bg-black text-white border-black' : 'border-gray-300'}`}
+                  >
+                    Buy X Get Y Free
+                  </button>
+                  <button
+                    onClick={() => setOfferForm({ ...offerForm, offer_type: 'bxgy_percent' })}
+                    className={`py-3 rounded-xl text-sm font-medium border transition ${offerForm.offer_type === 'bxgy_percent' ? 'bg-black text-white border-black' : 'border-gray-300'}`}
+                  >
+                    Buy X Get Y % Off
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Buy Quantity</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={offerForm.buy_quantity}
+                    onChange={(e) => setOfferForm({ ...offerForm, buy_quantity: Number(e.target.value) })}
+                    className="border rounded-2xl px-5 py-3.5 w-full"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Get Quantity</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={offerForm.get_quantity}
+                    onChange={(e) => setOfferForm({ ...offerForm, get_quantity: Number(e.target.value) })}
+                    className="border rounded-2xl px-5 py-3.5 w-full"
+                  />
+                </div>
+              </div>
+
+              {offerForm.offer_type === 'bxgy_percent' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Discount % on the "Get" items</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={offerForm.discount_percentage}
+                    onChange={(e) => setOfferForm({ ...offerForm, discount_percentage: Number(e.target.value) })}
+                    className="border rounded-2xl px-5 py-3.5 w-full"
+                  />
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 bg-gray-50 rounded-xl px-4 py-3">
+                Preview: <span className="font-medium text-black">
+                  Buy {offerForm.buy_quantity} {offerForm.offer_type === 'bxgy_free' ? `Get ${offerForm.get_quantity} Free` : `Get ${offerForm.get_quantity} at -${offerForm.discount_percentage}%`}
+                </span>
+                {' '}— the cheapest qualifying item(s) get the discount.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Applies To</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                  {(['product', 'category', 'collection', 'all'] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setOfferForm({ ...offerForm, scope_type: type, scope_value: '' })}
+                      className={`py-2.5 rounded-xl text-sm capitalize border transition ${offerForm.scope_type === type ? 'bg-black text-white border-black' : 'border-gray-300'}`}
+                    >
+                      {type === 'all' ? 'All Products' : type}
+                    </button>
+                  ))}
+                </div>
+
+                {offerForm.scope_type === 'all' ? (
+                  <p className="text-xs text-gray-500 bg-gray-50 border rounded-2xl px-5 py-3.5">
+                    This offer applies storewide — every product qualifies, no selection needed.
+                  </p>
+                ) : (
+                  <select
+                    value={offerForm.scope_value}
+                    onChange={(e) => setOfferForm({ ...offerForm, scope_value: e.target.value })}
+                    className="border rounded-2xl px-5 py-3.5 w-full bg-white"
+                  >
+                    <option value="">Select {offerForm.scope_type}</option>
+                    {offerScopeOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {offerForm.scope_type !== 'all' && (
+                <div className="flex items-center gap-3 bg-gray-50 border rounded-2xl px-5 py-4">
+                  <input
+                    type="checkbox"
+                    checked={offerForm.require_same_variant}
+                    onChange={(e) => setOfferForm({ ...offerForm, require_same_variant: e.target.checked })}
+                    className="w-5 h-5 accent-black"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Require same size & color</p>
+                    <p className="text-xs text-gray-500">
+                      {offerForm.require_same_variant
+                        ? 'Customer must pick matching size & color to qualify — e.g. 2 of the same Red/M skirt to get a 3rd Red/M free.'
+                        : `Leave unchecked (recommended) so the customer can mix any sizes/colors of this item — e.g. pick 2 different skirts and the cheapest of the ${offerForm.buy_quantity + offerForm.get_quantity} becomes free.`}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium mb-2">End Date (optional)</label>
+                <input
+                  type="date"
+                  value={offerForm.ends_at}
+                  onChange={(e) => setOfferForm({ ...offerForm, ends_at: e.target.value })}
+                  className="border rounded-2xl px-5 py-3.5 w-full"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={offerForm.is_active}
+                  onChange={(e) => setOfferForm({ ...offerForm, is_active: e.target.checked })}
+                  className="w-5 h-5 accent-black"
+                />
+                <label className="text-sm font-medium">Active immediately</label>
+              </div>
+
+              <button
+                onClick={saveOffer}
+                disabled={savingOffer}
+                className="w-full bg-black text-white py-4 rounded-2xl text-lg hover:bg-gray-800 disabled:opacity-70 transition"
+              >
+                {savingOffer ? 'Saving...' : editingOffer ? 'Update Offer' : 'Create Offer'}
+              </button>
+            </div>
           </div>
         </div>
       )}

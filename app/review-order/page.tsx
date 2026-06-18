@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from '../context/LanguageContext';
+import { supabaseClient } from '../../lib/supabaseClient';
+import { calculateAllOffers, type Offer } from '../../lib/offers';
 
 export default function ReviewOrder() {
   const router = useRouter();
@@ -15,10 +17,22 @@ export default function ReviewOrder() {
   const { t } = useTranslation();
 
   const [items, setItems] = useState<any[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem('reviewOrder');
     if (saved) setItems(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    const fetchOffers = async () => {
+      const { data } = await supabaseClient
+        .from('offers')
+        .select('*')
+        .eq('is_active', true);
+      setOffers((data || []) as Offer[]);
+    };
+    fetchOffers();
   }, []);
 
   const updateQuantity = (index: number, newQty: number) => {
@@ -38,6 +52,9 @@ export default function ReviewOrder() {
   const total = items.reduce((sum, item) => sum + Number(item.price) * Number(item.quantity), 0);
   const originalTotal = items.reduce((sum, item) => sum + Number(item.originalPrice || item.price) * Number(item.quantity), 0);
   const totalSavings = originalTotal - total;
+
+  const { results: offerResults, totalDiscount: offersDiscount } = calculateAllOffers(items, offers);
+  const finalTotalWithOffers = total - offersDiscount;
 
   const proceedToCheckout = () => {
     if (items.length === 0) return;
@@ -97,7 +114,22 @@ export default function ReviewOrder() {
                     </span>
                   </div>
                 )}
-                <p className="text-3xl font-medium">{t('reviewOrder.total')} {formatPrice(total)}</p>
+
+                {offerResults.length > 0 && (
+                  <div className="mt-2 mb-6 space-y-2">
+                    {offerResults.map((r, i) => (
+                      <div
+                        key={i}
+                        className="flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-3"
+                      >
+                        <span className="text-emerald-700 text-sm font-medium">🏷️ {r.offerApplied?.name}</span>
+                        <span className="text-emerald-700 font-semibold">-{formatPrice(r.totalDiscount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-3xl font-medium">{t('reviewOrder.total')} {formatPrice(finalTotalWithOffers)}</p>
                 <button
                   onClick={proceedToCheckout}
                   className="mt-8 bg-black text-white px-16 py-5 rounded-full text-sm tracking-widest hover:bg-gray-800 transition"

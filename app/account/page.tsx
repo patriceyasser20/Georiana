@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
-import { supabaseClient } from '../../lib/supabaseClient';
 import { useTranslation } from '../context/LanguageContext';
 import { useSearchParams } from 'next/navigation';
 import { useCurrency } from '../context/CurrencyContext';
+import { supabaseClient } from '../../lib/supabaseClient';
 
 export default function Account() {
   const { t } = useTranslation();
@@ -92,7 +91,13 @@ export default function Account() {
 
           {orders.map((order) => {
             const isFreeShipping = !order.delivery_fee || Number(order.delivery_fee) === 0;
-            const displayTotal = Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0);
+            const appliedOffers: any[] = Array.isArray(order.applied_offers) ? order.applied_offers : [];
+            const offersDiscountTotal = appliedOffers.reduce((s, o) => s + Number(o.discount || 0), 0);
+            const promoDiscountAmount = Math.max(0, Number(order.discount_amount || 0) - offersDiscountTotal);
+            const displayTotal = Math.max(
+              0,
+              Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0)
+            );
 
             return (
               <div key={order.id} className="bg-white rounded-3xl p-8 mb-8 border">
@@ -203,12 +208,32 @@ export default function Account() {
                     )}
                   </div>
 
-                  {/* Discount row — only if a promo was applied */}
-                  {Number(order.discount_amount) > 0 && (
+                  {/* Buy X Get Y offer rows — only if this order had any applied */}
+                  {appliedOffers.map((o, i) => (
+                    <div key={i} className="flex justify-between text-lg">
+                      <span className="text-gray-600">🏷️ {o.name}</span>
+                      <span className="font-medium text-emerald-600">
+                        -{formatPrice(Number(o.discount))}
+                      </span>
+                    </div>
+                  ))}
+
+                  {/* Promo code row — only if a promo was applied */}
+                  {order.promo_code && (
                     <div className="flex justify-between text-lg">
                       <span className="text-gray-600">
-                        Discount{order.promo_code ? ` (${order.promo_code})` : ''}
+                        Discount ({order.promo_code})
                       </span>
+                      <span className="font-medium text-red-600">
+                        -{formatPrice(promoDiscountAmount)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Fallback — only when there's a discount but no promo and no itemized offers */}
+                  {!order.promo_code && appliedOffers.length === 0 && Number(order.discount_amount) > 0 && (
+                    <div className="flex justify-between text-lg">
+                      <span className="text-gray-600">Discount</span>
                       <span className="font-medium text-red-600">
                         -{formatPrice(Number(order.discount_amount))}
                       </span>

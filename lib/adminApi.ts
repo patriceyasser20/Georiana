@@ -32,4 +32,7 @@ export const adminApi = {
   deletePromo:           (id: string)                     => call('delete-promo',             { id }),
   toggleCountry:         (code: string, enabled: boolean) => call('toggle-country',           { code, enabled }),
   upsertShipping:        (payload: any)                   => call('upsert-shipping-city',     payload),
+  insertOffer:           (payload: any)                   => call('insert-offer',             payload),
+  updateOffer:           (id: string, data: any)          => call('update-offer',              { id, ...data }),
+  deleteOffer:           (id: string)                     => call('delete-offer',             { id }),
 };

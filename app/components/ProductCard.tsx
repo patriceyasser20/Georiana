@@ -6,6 +6,7 @@ import { Heart } from 'lucide-react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { useEffect, useState } from 'react';
+import { findOfferForProduct, offerBadgeText, type Offer } from '../../lib/offers';
 
 interface ProductCardProps {
   id: string;
@@ -17,19 +18,25 @@ interface ProductCardProps {
   hasVariantSale?: boolean;
   maxVariantDiscount?: number;
   onRemove?: (productId: string) => void;
+  category?: string;
+  collection?: string;
+  offers?: Offer[];
 }
 
-export default function ProductCard({ 
-  id, 
-  name, 
-  price, 
-  img, 
-  isOnSale = false, 
+export default function ProductCard({
+  id,
+  name,
+  price,
+  img,
+  isOnSale = false,
   discountPercentage = 0,
   hasVariantSale = false,
   maxVariantDiscount = 0,
-  onRemove
-}: ProductCardProps) { 
+  onRemove,
+  category,
+  collection,
+  offers = [],
+}: ProductCardProps) {
   const router = useRouter();
   const { formatPrice } = useCurrency();
 
@@ -38,6 +45,9 @@ export default function ProductCard({
 
   const discount = discountPercentage || 0;
   const salePrice = isOnSale ? Number(price) * (1 - discount / 100) : Number(price);
+
+  const activeOffer = findOfferForProduct({ id, category, collection }, offers);
+  const hasSaleBadge = (isOnSale && discount > 0) || (!isOnSale && hasVariantSale && maxVariantDiscount > 0);
 
   // Check if this product is already in wishlist
   useEffect(() => {
@@ -53,7 +63,7 @@ export default function ProductCard({
           .select('id')
           .eq('user_id', user.id)
           .eq('product_id', id)
-          .maybeSingle();   // ← Changed from .single() to .maybeSingle()
+          .maybeSingle();
 
         if (error) {
           console.error('Wishlist check error:', error);
@@ -85,13 +95,11 @@ export default function ProductCard({
       const { data: { user } } = await supabaseClient.auth.getUser();
 
       if (!user) {
-        // alert("Please log in to use wishlist");
         router.push('/login');
         return;
       }
 
       if (isWishlisted) {
-        // 🔥 REMOVE
         const { error } = await supabaseClient
           .from('wishlist')
           .delete()
@@ -103,18 +111,16 @@ export default function ProductCard({
         setIsWishlisted(false);
         window.dispatchEvent(new Event('wishlistUpdated'));
 
-        // ✅ Tell parent to remove this card
         if (onRemove) {
           onRemove(id);
         }
 
       } else {
-        // ADD
         const { error } = await supabaseClient
           .from('wishlist')
-          .insert({ 
-            user_id: user.id, 
-            product_id: id 
+          .insert({
+            user_id: user.id,
+            product_id: id
           });
 
         if (error) throw error;
@@ -133,9 +139,9 @@ export default function ProductCard({
   return (
     <Link href={`/product/${id}`} className="group block">
       <div className="flex flex-col h-full relative overflow-hidden rounded-3xl bg-white border">
-        <img 
-          src={img} 
-          alt={name} 
+        <img
+          src={img}
+          alt={name}
           className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500"
         />
 
@@ -150,20 +156,29 @@ export default function ProductCard({
           </div>
         )}
 
-        <button 
+        {activeOffer && (
+          <div
+            className="absolute left-4 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10"
+            style={{ top: hasSaleBadge ? '3.25rem' : '1rem' }}
+          >
+            {offerBadgeText(activeOffer)}
+          </div>
+        )}
+
+        <button
           onClick={toggleWishlist}
           disabled={loading}
           className="absolute top-4 right-4 p-2 bg-white rounded-full shadow hover:bg-red-50 hover:scale-110 transition z-10"
         >
-          <Heart 
-            size={22} 
-            className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'} 
+          <Heart
+            size={22}
+            className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'}
           />
         </button>
 
         <div className="p-4">
           <p className="font-medium text-lg">{name}</p>
-          
+
           <div className="flex items-baseline gap-2 mt-1">
             {isOnSale && discount > 0 ? (
               <>

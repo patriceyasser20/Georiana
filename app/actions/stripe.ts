@@ -87,13 +87,15 @@ async function verifyFirstOrderPromo(
 // ─── Main export: create a Stripe Checkout session ───────────────────────────
 //
 // Signature is backward-compatible:
-//   createStripeCheckout(total, items)              ← existing callers unchanged
-//   createStripeCheckout(total, items, promoCode, discountPct)  ← new promo path
+//   createStripeCheckout(total, items)                          ← legacy callers
+//   createStripeCheckout(total, items, orderId)                 ← current checkout flow
+//   createStripeCheckout(total, items, orderId, promoCode, pct) ← with first-order promo
 //
 export async function createStripeCheckout(
   total: number,
   items: any[],
-  orderId: string, 
+  orderId?: string,        // your internal order row id — written into Stripe metadata
+                            // so the webhook can mark the correct order as paid
   promoCode?: string,      // only set when a first-order promo was applied
   discountPct?: number     // the percentage shown to the user on the checkout page
 ) {
@@ -144,9 +146,10 @@ export async function createStripeCheckout(
     ...(customerId && { customer: customerId }),
     success_url: `${siteUrl}/checkout/success`,
     cancel_url: `${siteUrl}/checkout`,
-    // Metadata is read by the webhook to record promo usage after payment
+    // Metadata is read by the webhook to mark the right order as paid and
+    // to record promo usage after payment.
     metadata: {
-      orderId, 
+      orderId:     orderId ?? '',
       userId:      user?.id ?? '',
       promoCode:   verifiedDiscountPct > 0 ? (promoCode ?? '').toUpperCase() : '',
       discountPct: String(verifiedDiscountPct),
