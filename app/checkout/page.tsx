@@ -15,7 +15,7 @@ type PaymentMethod = 'stripe' | 'fawry' | 'cod';
 
 export default function Checkout() {
   const router = useRouter();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, currency, currentRate } = useCurrency();
   const { t } = useTranslation();
 
   const [items, setItems] = useState<any[]>([]);
@@ -50,6 +50,11 @@ export default function Checkout() {
   const [appliedPromo, setAppliedPromo] = useState<any>(null);
   const [promoError, setPromoError] = useState('');
 
+  // First-order welcome discount — auto-applied, no code needed, for any
+  // logged-in account that has never placed an order before.
+  const FIRST_ORDER_DISCOUNT_PCT = 5;
+  const [isFirstOrder, setIsFirstOrder] = useState(false);
+
   // Offers (Buy X Get Y deals)
   const [offers, setOffers] = useState<Offer[]>([]);
 
@@ -82,6 +87,21 @@ export default function Checkout() {
       if (user?.user_metadata?.phone) setPhone(user.user_metadata.phone);
       setAllCountries(countries || []);
       setOffers((offersData || []) as Offer[]);
+
+      // ── Check first-order eligibility ──
+      // Guests aren't eligible (nothing to tie the discount to, and they
+      // could just refresh/clear localStorage to "re-qualify" endlessly).
+      // Only logged-in accounts with zero prior orders qualify.
+      if (user?.id) {
+        const { count, error: orderCountError } = await supabaseClient
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        if (!orderCountError) {
+          setIsFirstOrder((count || 0) === 0);
+        }
+      }
     };
     init();
   }, []);
@@ -173,7 +193,10 @@ export default function Checkout() {
   // ── Buy X Get Y offers ──
   const { results: offerResults, totalDiscount: offersDiscount } = calculateAllOffers(items, offers);
 
-  const finalTotal = Math.max(0, subtotal - discountAmount - offersDiscount + deliveryFee);
+  // ── First-order welcome discount (5%, auto-applied) ──
+  const firstOrderDiscountAmount = isFirstOrder ? subtotal * (FIRST_ORDER_DISCOUNT_PCT / 100) : 0;
+
+  const finalTotal = Math.max(0, subtotal - discountAmount - offersDiscount - firstOrderDiscountAmount + deliveryFee);
 
   // ==================== APPLY PROMO CODE ====================
   const applyPromoCode = async () => {
@@ -214,17 +237,34 @@ export default function Checkout() {
     const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
     const { data: { user } } = await supabaseClient.auth.getUser();
 
+    // Re-verify first-order eligibility right before charging, rather than
+    // trusting the isFirstOrder flag computed on page load — guards against
+    // a customer placing an order in one tab and finishing a stale checkout
+    // session in another, or simply leaving this tab open for a long time.
+    let verifiedFirstOrderDiscount = 0;
+    if (user?.id) {
+      const { count: existingOrderCount } = await supabaseClient
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if ((existingOrderCount || 0) === 0) {
+        verifiedFirstOrderDiscount = subtotal * (FIRST_ORDER_DISCOUNT_PCT / 100);
+      }
+    }
+
     // Cap the stored discount at what the customer actually owed (subtotal +
     // delivery), so the order record can never imply a negative total even
     // if a promo code and several "Buy X Get Y" offers stack past 100% off.
-    const rawDiscountAmount = (discountAmount + offersDiscount) || 0;
+    const rawDiscountAmount = (discountAmount + offersDiscount + verifiedFirstOrderDiscount) || 0;
     const totalDiscountAmount = Math.min(rawDiscountAmount, subtotal + deliveryFee);
 
     // Record which offers applied and how much each contributed, so the
     // account page and admin order tab can show "🏷️ Summer -EGP 3000" etc.
     // instead of just a single combined discount number. If the combined
-    // discount had to be capped above, scale each offer's contribution down
-    // proportionally so the breakdown still sums to the capped total.
+    // discount had to be capped above, scale each contribution down
+    // proportionally so the breakdown still sums to the capped total. The
+    // welcome discount is folded in here too, labeled like any other offer.
     const offerScale = rawDiscountAmount > 0 ? totalDiscountAmount / rawDiscountAmount : 1;
     const appliedOffers = offerResults
       .filter((r) => r.offerApplied)
@@ -233,14 +273,28 @@ export default function Checkout() {
         discount: Math.round(r.totalDiscount * offerScale * 100) / 100,
       }));
 
+    if (verifiedFirstOrderDiscount > 0) {
+      appliedOffers.push({
+        name: 'Welcome — First Order',
+        discount: Math.round(verifiedFirstOrderDiscount * offerScale * 100) / 100,
+      });
+    }
+
     if (!orderId) {
       const initialStatus = paymentMethod === 'cod' ? 'succeeded' : 'pending';
+
+      // For logged-in users, the authoritative email is the one on their
+      // Supabase session — never the typed field, which the customer could
+      // set to any address and thereby inject orders into another account.
+      // For guests (user === null) we use the typed email so they can still
+      // look up their order via the confirmation email link.
+      const orderEmail = user?.email || email || 'guest@georgiana.com';
 
       const { data: newOrder, error } = await supabaseClient
         .from('orders')
         .insert({
           user_id: user?.id || null,
-          user_email: email || 'guest@georgiana.com',
+          user_email: orderEmail,
           phone: phone || null,
           total: subtotal,
           payment_method: paymentLabel,
@@ -252,7 +306,9 @@ export default function Checkout() {
           status: initialStatus,
           promo_code: appliedPromo?.code || null,
           discount_amount: totalDiscountAmount,
-          applied_offers: appliedOffers
+          applied_offers: appliedOffers,
+          currency: currency,
+          currency_rate: currentRate
         })
         .select()
         .single();
@@ -288,7 +344,7 @@ export default function Checkout() {
         .from('orders')
         .update({
           user_id: user?.id || null,
-          user_email: email || 'guest@georgiana.com',
+          user_email: user?.email || email || 'guest@georgiana.com',
           phone: phone || null,
           street: street || null,
           apartment: apartment || null,
@@ -299,14 +355,16 @@ export default function Checkout() {
           status: paymentMethod === 'cod' ? 'succeeded' : 'pending',
           promo_code: appliedPromo?.code || null,
           discount_amount: totalDiscountAmount,
-          applied_offers: appliedOffers
+          applied_offers: appliedOffers,
+          currency: currency,
+          currency_rate: currentRate
         })
         .eq('id', orderId);
 
       if (updateError) console.error('Update error:', updateError);
     }
 
-    return orderId;
+    return { orderId, verifiedFirstOrderDiscount };
   };
 
   const handlePayment = async () => {
@@ -324,7 +382,15 @@ export default function Checkout() {
     setError('');
 
     try {
-      const orderId = await createOrUpdateOrder();
+      const { orderId, verifiedFirstOrderDiscount } = await createOrUpdateOrder();
+
+      // Reconcile the amount we're about to charge with what the server
+      // actually verified, in case the optimistic isFirstOrder flag from
+      // page load was stale (e.g. an order completed in another tab).
+      const reconciledTotal = Math.max(
+        0,
+        finalTotal - (verifiedFirstOrderDiscount - firstOrderDiscountAmount)
+      );
 
       if (paymentMethod === 'stripe') {
         const stripeItems = items.map(item => ({
@@ -333,7 +399,7 @@ export default function Checkout() {
           quantity: Number(item.quantity)
         }));
 
-        const result = await createStripeCheckout(finalTotal, stripeItems, orderId);
+        const result = await createStripeCheckout(reconciledTotal, stripeItems, orderId);
 
         if (result?.url) {
           localStorage.setItem('last_created_order_id', orderId);
@@ -536,11 +602,19 @@ export default function Checkout() {
 
                 {/* Buy X Get Y offers */}
                 {offerResults.length > 0 && offerResults.map((r, i) => (
-                  <div key={i} className="flex justify-between text-emerald-600">
-                    <span>🏷️ {r.offerApplied?.name}</span>
-                    <span>-{formatPrice(r.totalDiscount)}</span>
+                  <div key={i} className="flex justify-between items-start gap-4 text-emerald-600">
+                    <span className="min-w-0">🏷️ {r.offerApplied?.name}</span>
+                    <span className="shrink-0 whitespace-nowrap">-{formatPrice(r.totalDiscount)}</span>
                   </div>
                 ))}
+
+                {/* Welcome first-order discount — auto-applied, no code needed */}
+                {isFirstOrder && firstOrderDiscountAmount > 0 && (
+                  <div className="flex justify-between items-start gap-4 text-emerald-600">
+                    <span className="min-w-0">🎉 Welcome offer ({FIRST_ORDER_DISCOUNT_PCT}% off)</span>
+                    <span className="shrink-0 whitespace-nowrap">-{formatPrice(firstOrderDiscountAmount)}</span>
+                  </div>
+                )}
 
                 {/* Delivery Fee Row — shows Free or amount */}
                 {governorate && (
@@ -557,9 +631,9 @@ export default function Checkout() {
                 )}
 
                 {appliedPromo && (
-                  <div className="flex justify-between text-red-600">
-                    <span>Discount ({appliedPromo.discount_percentage}%)</span>
-                    <span>-{formatPrice(discountAmount)}</span>
+                  <div className="flex justify-between items-start gap-4 text-red-600">
+                    <span className="min-w-0">Discount ({appliedPromo.discount_percentage}%)</span>
+                    <span className="shrink-0 whitespace-nowrap">-{formatPrice(discountAmount)}</span>
                   </div>
                 )}
 

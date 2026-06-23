@@ -35,4 +35,13 @@ export const adminApi = {
   insertOffer:           (payload: any)                   => call('insert-offer',             payload),
   updateOffer:           (id: string, data: any)          => call('update-offer',              { id, ...data }),
   deleteOffer:           (id: string)                     => call('delete-offer',             { id }),
+  setFeatured:           (productId: string, section: string, position: number) =>
+                                                               call('set-featured',             { productId, section, position }),
+  unsetFeatured:         (productId: string, section: string) =>
+                                                               call('unset-featured',           { productId, section }),
+  clearFeatured:         (section: string)                 => call('clear-featured',           { section }),
+  getFeatured:           async (section: string): Promise<string[]> => {
+                                                               const res = await call('get-featured', { section });
+                                                               return (res.data || []).map((r: any) => r.product_id);
+                                                             },
 };

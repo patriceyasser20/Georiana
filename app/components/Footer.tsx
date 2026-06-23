@@ -8,13 +8,13 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#111] text-[#ddd] pt-14 md:pt-20 pb-8">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="max-w-4xl mx-auto px-6">
 
-        {/* ── 4-column grid — Follow Us now shares the same row as the other columns ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+        {/* ── 3-column grid, centered ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center md:text-left">
 
           {/* Follow Us */}
-          <div className="col-span-2 md:col-span-1">
+          <div className="flex flex-col items-center md:items-start">
             <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-4 md:mb-5">Follow Us</h3>
             <div className="flex items-center gap-4">
               <a
@@ -45,7 +45,7 @@ export default function Footer() {
           </div>
 
           {/* Help */}
-          <div>
+          <div className="flex flex-col items-center md:items-start">
             <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-4 md:mb-5">
               {t('footer.help')}
             </h3>
@@ -60,7 +60,7 @@ export default function Footer() {
           </div>
 
           {/* About */}
-          <div>
+          <div className="flex flex-col items-center md:items-start">
             <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-4 md:mb-5">
               {t('footer.aboutZara')}
             </h3>
@@ -70,36 +70,6 @@ export default function Footer() {
               <li><a href="#" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
               <li><a href="#" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
             </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div className="col-span-2 md:col-span-1">
-            <h3 className="text-white text-sm font-medium uppercase tracking-wider mb-4 md:mb-5">
-              {t('footer.newsletter')}
-            </h3>
-            <p className="mb-4 leading-relaxed text-sm">
-              {t('footer.newsletterText')}
-            </p>
-            <form className="space-y-3">
-              <input
-                type="email"
-                placeholder={t('footer.emailPlaceholder')}
-                required
-                className="w-full px-4 py-3 bg-[#222] border border-[#444] text-white placeholder-gray-500 focus:outline-none focus:border-white rounded-sm text-sm"
-              />
-              <button
-                type="submit"
-                className="w-full py-3 bg-white text-black font-medium tracking-wider hover:bg-gray-200 transition-colors rounded-sm text-sm"
-              >
-                {t('footer.subscribe')}
-              </button>
-            </form>
-
-            {/* Payment icons */}
-            <div className="flex gap-4 mt-6">
-              <img src="/images/visa.jpg" alt="Visa" className="h-6 opacity-80" />
-              <img src="/images/mastercard.jpg" alt="Mastercard" className="h-6 opacity-80" />
-            </div>
           </div>
 
         </div>

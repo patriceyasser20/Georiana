@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -12,7 +12,7 @@ import { invalidateCache } from '../../lib/productCache';
 
 export default function AdminPanel() {
   const router = useRouter();
-  const { formatPrice } = useCurrency();
+  const { formatPrice, formatPriceAs } = useCurrency();
 
   const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured' | 'offers'>('featured');
   const [skuSearchTerm, setSkuSearchTerm] = useState('');
@@ -65,6 +65,12 @@ export default function AdminPanel() {
 
   const [allVariants, setAllVariants] = useState<any[]>([]);
   const [featuredIds, setFeaturedIds] = useState<string[]>([]);
+  // Tracks the next position to assign when featuring a product. A ref
+  // (not state) so it updates synchronously and can never be stale even if
+  // two cards are clicked in quick succession — unlike reading
+  // featuredIds.length from a closure, which can lag behind rapid clicks
+  // and cause two products to be written with the same position.
+  const nextFeaturedPositionRef = useRef(0);
   const [featuredSaving, setFeaturedSaving] = useState<string | null>(null);
   const [offers, setOffers] = useState<any[]>([]);
 
@@ -116,24 +122,34 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoading(true);
 
-    const [productsRes, ordersRes, countriesRes, promoRes, variantsRes, featuredRes, offersRes] = await Promise.all([
-      supabaseClient.from('products').select('*'),
-      supabaseClient.from('orders').select(`
-        *,
-        order_items (
-          product_name,
-          size,
-          color,
-          quantity,
-          price,
-          image_url
-        )
-      `).order('created_at', { ascending: false }),
-      supabaseClient.from('supported_countries').select('*').order('name'),
-      supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false }),
-      supabaseClient.from('product_variants').select('*'),
-      supabaseClient.from('featured_products').select('product_id').eq('section', 'new_this_week'),
-      supabaseClient.from('offers').select('*').order('created_at', { ascending: false }),
+    const [
+      [productsRes, ordersRes, countriesRes, promoRes, variantsRes, offersRes],
+      featuredProductIds,
+    ] = await Promise.all([
+      Promise.all([
+        supabaseClient.from('products').select('*'),
+        supabaseClient.from('orders').select(`
+          *,
+          order_items (
+            product_name,
+            size,
+            color,
+            quantity,
+            price,
+            image_url
+          )
+        `).order('created_at', { ascending: false }),
+        supabaseClient.from('supported_countries').select('*').order('name'),
+        supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false }),
+        supabaseClient.from('product_variants').select('*'),
+        supabaseClient.from('offers').select('*').order('created_at', { ascending: false }),
+      ]),
+      // Routed through the service role (like every write on this tab)
+      // instead of the anon-key client directly — a missing SELECT policy
+      // on featured_products silently returns an empty array rather than
+      // an error, which is what made this tab show "0 selected" even when
+      // rows existed, and then try to re-insert a row that already existed.
+      adminApi.getFeatured('new_this_week').catch(() => [] as string[]),
     ]);
 
     setProducts(productsRes.data || []);
@@ -141,7 +157,8 @@ export default function AdminPanel() {
     setSupportedCountries(countriesRes.data || []);
     setPromoCodes(promoRes.data || []);
     setAllVariants(variantsRes.data || []);
-    setFeaturedIds((featuredRes.data || []).map((f: any) => f.product_id));
+    setFeaturedIds(featuredProductIds);
+    nextFeaturedPositionRef.current = featuredProductIds.length;
     setOffers(offersRes.data || []);
 
     const uniqueCollections = [...new Set(
@@ -793,6 +810,13 @@ export default function AdminPanel() {
                   const isFreeShipping = !order.delivery_fee || Number(order.delivery_fee) === 0;
                   const orderTotal = Math.max(0, Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0));
 
+                  // Orders placed before this feature shipped have no stored
+                  // currency/rate — default to EGP at a 1:1 rate, matching
+                  // how every amount on the order was already stored.
+                  const orderCurrency = order.currency || 'EGP';
+                  const orderRate = order.currency_rate || 1;
+                  const orderFormatPrice = (egpAmount: number) => formatPriceAs(egpAmount, orderCurrency, orderRate);
+
                   return (
                     <div key={order.id} className="bg-white rounded-3xl p-8 border">
 
@@ -874,7 +898,7 @@ export default function AdminPanel() {
                               Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
                             </p>
                           </div>
-                          <p className="font-medium">{formatPrice(item.price)}</p>
+                          <p className="font-medium">{orderFormatPrice(item.price)}</p>
                         </div>
                       ))}
 
@@ -886,7 +910,7 @@ export default function AdminPanel() {
                              Free
                           </span>
                         ) : (
-                          <span className="font-medium">EGP {order.delivery_fee}</span>
+                          <span className="font-medium">{orderFormatPrice(Number(order.delivery_fee))}</span>
                         )}
                       </div>
 
@@ -895,7 +919,7 @@ export default function AdminPanel() {
                         order.applied_offers.map((o: any, i: number) => (
                           <div key={i} className="flex justify-between text-lg mt-2 text-emerald-600">
                             <span>🏷️ {o.name}</span>
-                            <span className="font-medium">-EGP {Number(o.discount).toFixed(2)}</span>
+                            <span className="font-medium">-{orderFormatPrice(Number(o.discount))}</span>
                           </div>
                         ))
                       )}
@@ -905,7 +929,7 @@ export default function AdminPanel() {
                         <div className="flex justify-between text-lg mt-2">
                           <span className="text-gray-600">Promo ({order.promo_code})</span>
                           <span className="font-medium text-red-600">
-                            -EGP {Math.max(0, Number(order.discount_amount || 0) - (order.applied_offers || []).reduce((s: number, o: any) => s + Number(o.discount || 0), 0)).toFixed(2)}
+                            -{orderFormatPrice(Math.max(0, Number(order.discount_amount || 0) - (order.applied_offers || []).reduce((s: number, o: any) => s + Number(o.discount || 0), 0)))}
                           </span>
                         </div>
                       )}
@@ -915,7 +939,7 @@ export default function AdminPanel() {
                         <div className="flex justify-between text-lg mt-2">
                           <span className="text-gray-600">Discount</span>
                           <span className="font-medium text-red-600">
-                            -EGP {Number(order.discount_amount).toFixed(2)}
+                            -{orderFormatPrice(Number(order.discount_amount))}
                           </span>
                         </div>
                       )}
@@ -923,7 +947,7 @@ export default function AdminPanel() {
                       {/* ── Total ── */}
                       <div className="mt-6 flex justify-between text-2xl font-medium border-t pt-6">
                         <span>Total</span>
-                        <span>EGP {orderTotal.toFixed(2)}</span>
+                        <span>{orderFormatPrice(orderTotal)}</span>
                       </div>
                     </div>
                   );
@@ -1342,11 +1366,14 @@ export default function AdminPanel() {
                   <button
                     onClick={async () => {
                       if (!confirm('Remove all featured products?')) return;
-                      await supabaseClient
-                        .from('featured_products')
-                        .delete()
-                        .eq('section', 'new_this_week');
-                      setFeaturedIds([]);
+                      try {
+                        await adminApi.clearFeatured('new_this_week');
+                        setFeaturedIds([]);
+                        nextFeaturedPositionRef.current = 0;
+                        invalidateCache('home-products');
+                      } catch (err: any) {
+                        alert('Failed to clear featured products: ' + err.message);
+                      }
                     }}
                     className="text-sm text-red-600 hover:underline"
                   >
@@ -1363,18 +1390,27 @@ export default function AdminPanel() {
                       key={p.id}
                       onClick={async () => {
                         setFeaturedSaving(p.id);
-                        if (isFeatured) {
-                          await supabaseClient
-                            .from('featured_products')
-                            .delete()
-                            .eq('product_id', p.id)
-                            .eq('section', 'new_this_week');
-                          setFeaturedIds(prev => prev.filter(id => id !== p.id));
-                        } else {
-                          await supabaseClient
-                            .from('featured_products')
-                            .insert({ product_id: p.id, section: 'new_this_week', position: featuredIds.length });
-                          setFeaturedIds(prev => [...prev, p.id]);
+                        try {
+                          if (isFeatured) {
+                            await adminApi.unsetFeatured(p.id, 'new_this_week');
+                            setFeaturedIds(prev => prev.filter(id => id !== p.id));
+                          } else {
+                            // Read-and-increment a ref, not featuredIds.length:
+                            // the ref updates synchronously the instant this
+                            // line runs, so two cards clicked back-to-back
+                            // can never read the same position — whereas
+                            // featuredIds.length could still be the stale
+                            // pre-update value if the first click's state
+                            // update hasn't flushed yet. Stays a small plain
+                            // integer (unlike Date.now(), which overflows a
+                            // standard 32-bit integer column).
+                            const position = nextFeaturedPositionRef.current++;
+                            await adminApi.setFeatured(p.id, 'new_this_week', position);
+                            setFeaturedIds(prev => [...prev, p.id]);
+                          }
+                          invalidateCache('home-products');
+                        } catch (err: any) {
+                          alert('Failed to update home page selection: ' + err.message);
                         }
                         setFeaturedSaving(null);
                       }}

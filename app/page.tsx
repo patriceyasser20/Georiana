@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProductCard from './components/ProductCard';
@@ -21,38 +21,74 @@ export default function Home() {
 
   useEffect(() => {
     const fetchNewProducts = async () => {
-      const cacheKey = 'home-products';
-      const cached = getCached(cacheKey);
-      if (cached) {
-        setProducts(cached);
-        setLoading(false);
-        return;
-      }
+      // Deliberately not cached: this section is curated live from the
+      // admin panel, and the product cache is just an in-memory Map scoped
+      // to whichever browser tab's JS context happens to hold it. Calling
+      // invalidateCache('home-products') from the admin tab has no effect
+      // on a separately-open home page tab's own cache instance, so a
+      // cached version here can silently show a stale selection from
+      // before the admin's most recent change — which is exactly what
+      // happened. Always fetching fresh trades one extra round-trip per
+      // page load for guaranteed correctness on the page that matters most.
 
-      // Try featured products first
-      const { data: featured } = await supabaseClient
+      // Try featured products first. Fetched as two explicit queries rather
+      // than a nested embed (`products (...)`) — PostgREST embeds require it
+      // to unambiguously resolve the FK relationship between the two tables,
+      // and when that fails it silently returns null per row instead of an
+      // error, which makes a real selection look like "no featured products"
+      // and silently falls through to showing the wrong set entirely.
+      const { data: featuredRowsRaw } = await supabaseClient
         .from('featured_products')
-        .select(`
-          position,
-          products (
-            id, name, price, images, is_on_sale, discount_percentage, category, collection
-          )
-        `)
+        .select('product_id, position, created_at')
         .eq('section', 'new_this_week')
         .order('position');
 
-      if (featured && featured.length > 0) {
-        const mapped = featured.map((f: any) => f.products).filter(Boolean);
-        setCached(cacheKey, mapped);
-        setProducts(mapped);
-      } else {
+      // De-duplicate by product_id, keeping the most recently created row
+      // for each — guards against leftover duplicate rows from before a
+      // unique-constraint/upsert fix, which could otherwise cause a product
+      // to silently vanish if an earlier, orphaned row pointed at a product
+      // that no longer matches, while a newer valid row for the same
+      // product gets shadowed by ordering quirks.
+      const dedupedByProduct = new Map<string, any>();
+      for (const row of featuredRowsRaw || []) {
+        const existing = dedupedByProduct.get(row.product_id);
+        if (!existing || new Date(row.created_at) > new Date(existing.created_at)) {
+          dedupedByProduct.set(row.product_id, row);
+        }
+      }
+      const featuredRows = [...dedupedByProduct.values()].sort((a, b) => a.position - b.position);
+
+      if (featuredRows.length > 0) {
+        const productIds = featuredRows.map((f: any) => f.product_id);
+        const { data: featuredProducts } = await supabaseClient
+          .from('products')
+          .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
+          .in('id', productIds);
+
+        // Re-order to match the admin's chosen position, since `.in()`
+        // doesn't guarantee result order matches the input array order.
+        const byId = new Map((featuredProducts || []).map((p: any) => [p.id, p]));
+        const mapped = featuredRows
+          .map((f: any) => byId.get(f.product_id))
+          .filter(Boolean);
+
+        if (mapped.length > 0) {
+          setProducts(mapped);
+          setLoading(false);
+          return;
+        }
+        // Featured rows existed but none resolved to a real product (e.g.
+        // a featured product was since deleted) — fall through to latest
+        // arrivals below rather than showing an empty section.
+      }
+
+      {
         // Fall back to latest products if no featured set
         const { data } = await supabaseClient
           .from('products')
           .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
           .order('created_at', { ascending: false })
           .limit(8);
-        setCached(cacheKey, data || []);
         setProducts(data || []);
       }
       setLoading(false);
@@ -89,7 +125,10 @@ export default function Home() {
 
       const { data } = await supabaseClient
         .from('products')
-        .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
+        .select(`
+          id, name, price, images, is_on_sale, discount_percentage, category, collection,
+          product_variants ( id, color, size, sku, is_on_sale, discount_percentage )
+        `)
         .order('created_at', { ascending: false });
 
       setCached(cacheKey, data || []);
@@ -103,7 +142,7 @@ export default function Home() {
   // matching product anywhere in the catalog are silently dropped, since
   // showing a deal banner with no way to act on it would be confusing.
   const liveOffers = offers.filter(isOfferLive);
-  const displayableOffers = liveOffers
+  const offerSlides = liveOffers
     .map((offer) => {
       let matchingProduct: any = null;
       let href = '/shop';
@@ -127,9 +166,70 @@ export default function Home() {
         scopeDescription = offer.scope_value;
       }
 
-      return { offer, product: matchingProduct, href, scopeDescription };
+      if (!matchingProduct) return null;
+
+      return {
+        key: `offer-${offer.id}`,
+        kind: 'offer' as const,
+        badgeText: offerBadgeText(offer),
+        title: offer.name,
+        subtitle: scopeDescription,
+        href,
+        image: null as string | null,
+      };
     })
-    .filter((d) => d.product !== null);
+    .filter((s): s is NonNullable<typeof s> => s !== null);
+
+  // Product-level sales — the whole product is marked is_on_sale.
+  const productSaleSlides = catalogProducts
+    .filter((p: any) => p.is_on_sale && Number(p.discount_percentage) > 0)
+    .map((p: any) => ({
+      key: `product-sale-${p.id}`,
+      kind: 'sale' as const,
+      badgeText: `-${p.discount_percentage}% OFF`,
+      title: p.name,
+      subtitle: 'On Sale',
+      href: `/product/${p.id}`,
+      image: p.images?.[0] || null,
+    }));
+
+  // Variant-level sales — a specific color/size of a product is on sale,
+  // even if the product overall isn't. Shown as its own slide since the
+  // discount only applies to that particular variant.
+  const variantSaleSlides = catalogProducts.flatMap((p: any) =>
+    (p.product_variants || [])
+      .filter((v: any) => v.is_on_sale && Number(v.discount_percentage) > 0 && !p.is_on_sale)
+      .map((v: any) => ({
+        key: `variant-sale-${v.id}`,
+        kind: 'sale' as const,
+        badgeText: `-${v.discount_percentage}% OFF`,
+        title: p.name,
+        subtitle: [v.color, v.size].filter(Boolean).join(' / ') || 'Selected variant',
+        href: `/product/${p.id}`,
+        image: p.images?.[0] || null,
+      }))
+  );
+
+  const displayableOffers = [...offerSlides, ...productSaleSlides, ...variantSaleSlides];
+
+  // ── Offer carousel — auto-advances and loops, only when there's more
+  // than one slide to cycle between. A single slide just sits still.
+  const [offerSlide, setOfferSlide] = useState(0);
+  const offerCount = displayableOffers.length;
+
+  useEffect(() => {
+    if (offerCount <= 1) return;
+    const interval = setInterval(() => {
+      setOfferSlide((prev) => (prev + 1) % offerCount);
+    }, 4500);
+    return () => clearInterval(interval);
+  }, [offerCount]);
+
+  // If the slide list changes such that the current index is now out of
+  // range (e.g. an offer expired or a sale ended), snap back to the first.
+  useEffect(() => {
+    if (offerSlide >= offerCount && offerCount > 0) setOfferSlide(0);
+  }, [offerCount, offerSlide]);
 
   return (
     <>
@@ -175,11 +275,11 @@ export default function Home() {
 
       {/* ==================== ACTIVE OFFERS — only renders if a live offer exists ==================== */}
       {displayableOffers.length > 0 && (
-        <section className="py-14 md:py-10 bg-[#f8f4f0] relative overflow-hidden">
+        <section className="py-14 md:py-24 bg-[#f8f4f0] relative overflow-hidden">
           <div className="hidden md:block absolute top-10 left-10 text-6xl text-[#e8c4ad] opacity-30 pointer-events-none">🌷</div>
-          <div className="hidden md:block absolute bottom-10 right-10 text-6xl text-[#e8c4ad] opacity-30 pointer-events-none">🌼</div>
+          <div className="hidden md:block absolute bottom-10 right-10 text-6xl text-[#e8c4ad] opacity-30 pointer-events-none">🌷</div>
 
-          <div className="max-w-5xl mx-auto px-5 md:px-6 relative z-10">
+          <div className="max-w-6xl mx-auto px-5 md:px-6 relative z-10">
             <div className="text-center mb-10 md:mb-14">
               <span className="text-[#c9a38f] text-xs md:text-sm tracking-[0.35em] uppercase">
                 Limited Time
@@ -189,43 +289,108 @@ export default function Home() {
               </h2>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false }}
-              transition={{ duration: 0.6 }}
-              className="flex flex-col gap-5 md:gap-6 max-w-2xl mx-auto"
-            >
-              {displayableOffers.map(({ offer, href, scopeDescription }) => (
-                <div
-                  key={offer.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-white rounded-2xl md:rounded-3xl px-7 py-6 md:px-9 md:py-7 shadow-sm"
-                >
-                  <div>
-                    <span className="inline-block text-[#c9a38f] text-[11px] font-medium tracking-[0.2em] uppercase mb-2">
-                      {offerBadgeText(offer)}
-                    </span>
-                    <p className="font-light text-lg md:text-xl tracking-wide text-[#3a2f2f]">{offer.name}</p>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {scopeDescription}
-                    </p>
-                  </div>
+            {(() => {
+              const count = displayableOffers.length;
+              const prevIndex = (offerSlide - 1 + count) % count;
+              const nextIndex = (offerSlide + 1) % count;
+              const showLeftPeek = count > 2;
+              const showRightPeek = count > 1;
 
-                  <a
-                    href={href}
-                    className="shrink-0 bg-[#3a2f2f] text-white text-sm tracking-widest px-8 py-3.5 rounded-full hover:bg-[#2a2222] transition text-center"
-                  >
-                    Shop Now
-                  </a>
+              type Slide = typeof displayableOffers[number];
+
+              const SlideCard = ({ slide, active }: { slide: Slide; active: boolean }) => (
+                <div
+                  className={`flex shrink-0 rounded-2xl md:rounded-3xl bg-white overflow-hidden transition-all duration-500 ${
+                    active
+                      ? 'w-[82vw] sm:w-[480px] md:w-[560px] shadow-lg scale-100 opacity-100'
+                      : 'hidden sm:flex w-[180px] md:w-[240px] shadow-sm scale-95 opacity-40 pointer-events-none'
+                  }`}
+                >
+                  {/* Image — only on sale slides and only on the active card */}
+                  {active && slide.image && (
+                    <div className="w-44 md:w-52 shrink-0">
+                      <img
+                        src={slide.image}
+                        alt={slide.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+
+                  {/* Text content */}
+                  <div className={`flex flex-col justify-center gap-3 ${active ? 'p-7 md:p-9' : 'p-4 items-center text-center'}`}>
+                    <span className={`text-[#c9a38f] font-medium tracking-[0.2em] uppercase ${active ? 'text-xs' : 'text-[10px]'}`}>
+                      {slide.badgeText}
+                    </span>
+                    <p className={`font-light tracking-wide text-[#3a2f2f] ${active ? 'text-xl md:text-2xl' : 'text-sm leading-snug'}`}>
+                      {slide.title}
+                    </p>
+                    {active && (
+                      <>
+                        <p className="text-gray-500 text-sm">{slide.subtitle}</p>
+                        <a
+                          href={slide.href}
+                          className="mt-1 self-start inline-block bg-[#3a2f2f] text-white text-xs tracking-widest px-7 py-3 rounded-full hover:bg-[#2a2222] transition"
+                        >
+                          Shop Now
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </motion.div>
+              );
+
+              return (
+                <div className="relative overflow-hidden">
+                  <AnimatePresence initial={false} mode="wait">
+                    <motion.div
+                      key={displayableOffers[offerSlide].key}
+                      initial={{ x: 60, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -60, opacity: 0 }}
+                      transition={{ duration: 0.45, ease: 'easeInOut' }}
+                      className="flex items-center justify-center gap-4 md:gap-6"
+                    >
+                      {showLeftPeek && (
+                        <button onClick={() => setOfferSlide(prevIndex)} aria-label="Previous" className="shrink-0">
+                          <SlideCard slide={displayableOffers[prevIndex]} active={false} />
+                        </button>
+                      )}
+
+                      <SlideCard slide={displayableOffers[offerSlide]} active={true} />
+
+                      {showRightPeek && (
+                        <button onClick={() => setOfferSlide(nextIndex)} aria-label="Next" className="shrink-0">
+                          <SlideCard slide={displayableOffers[nextIndex]} active={false} />
+                        </button>
+                      )}
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              );
+            })()}
+
+            {/* Dot indicators — only shown when there's more than one offer */}
+            {displayableOffers.length > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                {displayableOffers.map((d, i) => (
+                  <button
+                    key={d.key}
+                    onClick={() => setOfferSlide(i)}
+                    aria-label={`Show offer ${i + 1}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      i === offerSlide ? 'w-6 bg-[#3a2f2f]' : 'w-2 bg-[#3a2f2f]/25 hover:bg-[#3a2f2f]/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
       )}
 
       {/* ==================== ZIGZAG MODEL GALLERY ==================== */}
-      <section className=" bg-white overflow-hidden">
+      <section className="py-14 md:py-20 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 md:px-6">
 
           {/* ── Mobile: simple vertical stack ── */}

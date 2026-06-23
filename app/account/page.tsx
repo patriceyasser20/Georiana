@@ -11,7 +11,7 @@ export default function Account() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const orderIdParam = searchParams.get('order_id');
-  const { formatPrice } = useCurrency();
+  const { formatPriceAs } = useCurrency();
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,11 +42,16 @@ export default function Account() {
         .order('created_at', { ascending: false });
 
       if (orderIdParam) {
+        // Guest order lookup via the confirmation link — safe because the
+        // order UUID is only known to whoever received the confirmation email.
         query = query.eq('id', orderIdParam);
       } else {
         const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user?.email) {
-          query = query.eq('user_email', user.email);
+        if (user?.id) {
+          // Logged-in: always filter by the authenticated user_id, never by
+          // user_email. Email is just a contact field that could be set to
+          // any value at checkout, so it's not a safe ownership key.
+          query = query.eq('user_id', user.id);
         } else {
           setOrders([]);
           setLoading(false);
@@ -98,6 +103,13 @@ export default function Account() {
               0,
               Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0)
             );
+
+            // Orders placed before this feature shipped have no stored
+            // currency/rate — default to EGP at a 1:1 rate, which is how
+            // every amount on the order was already stored.
+            const orderCurrency = order.currency || 'EGP';
+            const orderRate = order.currency_rate || 1;
+            const formatPrice = (egpAmount: number) => formatPriceAs(egpAmount, orderCurrency, orderRate);
 
             return (
               <div key={order.id} className="bg-white rounded-3xl p-8 mb-8 border">

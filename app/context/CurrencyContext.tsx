@@ -16,6 +16,16 @@ type CurrencyContextType = {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
   formatPrice: (egpPrice: number) => string;
+  // The conversion factor from EGP to the currently selected currency
+  // (i.e. targetRate / egpRate). Exposed so a checkout flow can snapshot
+  // "what rate was active when this order was placed" and store it,
+  // instead of only ever being able to format at today's live rate.
+  currentRate: number;
+  // Formats an EGP amount using an explicit currency + rate, instead of
+  // the live selection — used to show historical orders in the currency
+  // they were actually placed in, even if the shopper has since switched
+  // their display currency or rates have moved since then.
+  formatPriceAs: (egpPrice: number, currency: Currency, rate: number) => string;
   wishlist: any[];
   setWishlist: React.Dispatch<React.SetStateAction<any[]>>;
 };
@@ -31,7 +41,7 @@ const countryToCurrency: Record<string, string> = {
   MT: 'EUR', CY: 'EUR',
   SG: 'SGD',   // ← Added Singapore
 };
-const CURRENCY_TTL = 60 * 60 * 1000;
+
 export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [currency, setCurrencyState] = useState<Currency>('EGP');
   const [rates, setRates] = useState<Record<string, number>>({});
@@ -40,78 +50,95 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const setCurrency = (newCurrency: Currency) => {
     setCurrencyState(newCurrency);
     localStorage.setItem('currency', newCurrency);
-    localStorage.setItem('currency_ts', String(Date.now()));
-    localStorage.setItem('currency_source', 'manual');
   };
 
   const formatPrice = (egpPrice: number) => {
-    // EGP is the base currency stored in the DB — never convert it
-    if (currency === 'EGP') {
-      return `EGP ${egpPrice.toFixed(2)}`;
-    }
-
-    // If rates haven't loaded yet, show EGP as a safe fallback
-    if (!rates.EGP || !rates[currency]) {
-      return `EGP ${egpPrice.toFixed(2)}`;
-    }
-
-    const egpRate = rates.EGP;
-    const targetRate = rates[currency];
+    const egpRate = rates.EGP || 48.5;
+    const targetRate = rates[currency] || 1;
     const converted = (egpPrice * (targetRate / egpRate)).toFixed(2);
     const symbol = currencySymbols[currency] || `${currency} `;
     return `${symbol}${converted}`;
   };
 
+  // The live EGP → current-currency factor, exposed so callers (like
+  // checkout) can snapshot it at a point in time and persist it.
+  const currentRate = (() => {
+    const egpRate = rates.EGP || 48.5;
+    const targetRate = rates[currency] || 1;
+    return targetRate / egpRate;
+  })();
+
+  // Formats using an explicit currency + rate rather than the live
+  // selection/rates — used to render historical orders in the currency
+  // they were actually placed in.
+  const formatPriceAs = (egpPrice: number, orderCurrency: Currency, rate: number) => {
+    const safeRate = rate && rate > 0 ? rate : 1;
+    const converted = (egpPrice * safeRate).toFixed(2);
+    const symbol = currencySymbols[orderCurrency] || `${orderCurrency} `;
+    return `${symbol}${converted}`;
+  };
+
   // Auto-detect country + fetch exchange rates
   useEffect(() => {
-    const savedCurrency = localStorage.getItem('currency');
-    const currencyTs    = localStorage.getItem('currency_ts');
-    const source        = localStorage.getItem('currency_source');
-    const currencyFresh = currencyTs && Date.now() - Number(currencyTs) < CURRENCY_TTL;
+    const saved = localStorage.getItem('currency');
+    if (saved === 'USD') localStorage.removeItem('currency');
 
-    if (source === 'manual' && savedCurrency) {
-      setCurrencyState(savedCurrency);
-    } else if (savedCurrency && currencyFresh) {
-      setCurrencyState(savedCurrency);
-    } else {
-      fetch('https://ipapi.co/json/')
-        .then(res => res.json())
-        .then(data => {
-          const detected = countryToCurrency[data.country_code] || 'EGP';
-          setCurrencyState(detected);
-          localStorage.setItem('currency', detected);
-          localStorage.setItem('currency_ts', String(Date.now()));
-          localStorage.setItem('currency_source', 'auto');
-        })
-        .catch(() => {
-          setCurrencyState(savedCurrency || 'EGP');
-        });
-    }
+    fetch('https://ipapi.co/json/')
+      .then(res => res.json())
+      .then(data => {
+        const detected = countryToCurrency[data.country_code] || 'EGP';
+        setCurrencyState(detected);
+        localStorage.setItem('currency', detected);
+        console.log(`🌍 Detected country: ${data.country_code} → Currency: ${detected}`);
+      })
+      .catch(() => setCurrencyState('EGP'));
 
-    // ── Exchange rates (THIS WAS MISSING) ──
-    const RATES_TTL = 60 * 60 * 1000;
-    const savedRates = localStorage.getItem('exchange_rates');
-    const ratesTs = localStorage.getItem('exchange_rates_ts');
-    const ratesFresh = ratesTs && Date.now() - Number(ratesTs) < RATES_TTL;
-
-    if (savedRates && ratesFresh) {
-      setRates(JSON.parse(savedRates));
-    } else {
-      fetch('https://api.exchangerate-api.com/v4/latest/USD')
-        .then(res => res.json())
-        .then(data => {
-          if (data.rates) {
-            setRates(data.rates);
-            localStorage.setItem('exchange_rates', JSON.stringify(data.rates));
-            localStorage.setItem('exchange_rates_ts', String(Date.now()));
-          }
-        })
-        .catch(() => {
-          if (savedRates) setRates(JSON.parse(savedRates));
-        });
-    }
+    fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      .then(res => res.json())
+      .then(data => {
+        if (data.rates) setRates(data.rates);
+      })
+      .catch(() => {});
   }, []);
 
+  // Safe Wishlist Fetch
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user?.id) {
+        setWishlist([]);
+        return;
+      }
+
+      const { data, error } = await supabaseClient
+        .from('wishlist')
+        .select(`
+          id,
+          product_id,
+          created_at,
+          products (
+            id,
+            name,
+            price,
+            images,
+            is_on_sale,
+            discount_percentage
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Wishlist fetch error in context:', error);
+        setWishlist([]);
+        return;
+      }
+
+      setWishlist(data || []);
+    };
+
+    fetchWishlist();
+  }, []);
 
   return (
     <CurrencyContext.Provider 
@@ -119,6 +146,8 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         currency, 
         setCurrency, 
         formatPrice,
+        currentRate,
+        formatPriceAs,
         wishlist,
         setWishlist 
       }}

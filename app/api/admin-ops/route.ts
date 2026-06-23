@@ -21,6 +21,12 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (action) {
+      case 'ping': {
+        // Used by the admin panel on load purely to confirm the stored
+        // token is still valid (a 401 from verifyAdmin() above would have
+        // already redirected to login before reaching here).
+        return NextResponse.json({ ok: true });
+      }
       case 'insert-product': {
         const { data, error } = await supabase.from('products').insert(payload).select().single();
         if (error) throw error;
@@ -96,6 +102,54 @@ export async function POST(req: NextRequest) {
       }
       case 'delete-offer': {
         const { error } = await supabase.from('offers').delete().eq('id', payload.id);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+
+      // ── Featured products (Home Page tab) ───────────────────────────────
+      // These previously went straight through the browser's anon-key
+      // Supabase client and were silently blocked by RLS with no error
+      // surfaced to the admin — routed through the service role here like
+      // every other admin write/read, so toggling a product reliably
+      // persists and the admin panel reliably sees what's actually saved.
+      case 'get-featured': {
+        const { data, error } = await supabase
+          .from('featured_products')
+          .select('product_id')
+          .eq('section', payload.section);
+        if (error) throw error;
+        return NextResponse.json({ data });
+      }
+      case 'set-featured': {
+        const { productId, section, position } = payload;
+        // Upsert instead of plain insert: if a row for this product+section
+        // already exists (stale client state, a double-click, or a second
+        // admin tab), this becomes a harmless no-op update instead of
+        // throwing a unique-constraint error.
+        const { error } = await supabase
+          .from('featured_products')
+          .upsert(
+            { product_id: productId, section, position },
+            { onConflict: 'product_id,section' }
+          );
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+      case 'unset-featured': {
+        const { productId, section } = payload;
+        const { error } = await supabase
+          .from('featured_products')
+          .delete()
+          .eq('product_id', productId)
+          .eq('section', section);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+      case 'clear-featured': {
+        const { error } = await supabase
+          .from('featured_products')
+          .delete()
+          .eq('section', payload.section);
         if (error) throw error;
         return NextResponse.json({ ok: true });
       }
