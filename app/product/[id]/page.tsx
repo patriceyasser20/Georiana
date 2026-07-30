@@ -31,6 +31,7 @@ export default function ProductDetail() {
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [userHasReviewed, setUserHasReviewed] = useState(false);
+  
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -67,6 +68,8 @@ export default function ProductDetail() {
     fetchAll();
   }, [id]);
 
+  
+
   // ==================== SALE LOGIC ====================
   // Product-level sale
   const productIsOnSale = product?.is_on_sale === true;
@@ -89,9 +92,12 @@ export default function ProductDetail() {
     : originalPrice;;
 
   // ==================== IMAGES, COLORS, SIZES, STOCK ====================
-  const images = product?.images && product.images.length > 0
+  const allImages = product?.images && product.images.length > 0
     ? product.images
     : (product?.image_url ? [product.image_url] : []);
+
+  const colorTaggedImages = selectedColor ? product?.images_by_color?.[selectedColor] : null;
+  const images = (colorTaggedImages && colorTaggedImages.length > 0) ? colorTaggedImages : allImages;
 
   const allColors = [...new Set(variants.map(v => v.color))];
   const allSizes = [...new Set(variants.map(v => v.size))];
@@ -109,6 +115,18 @@ export default function ProductDetail() {
 
   const [imageLoaded, setImageLoaded] = useState(true);
   const [displayIndex, setDisplayIndex] = useState(0);
+  const [isZooming, setIsZooming] = useState(false);
+  const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 }); // percentage
+  const [mobileZoomOpen, setMobileZoomOpen] = useState(false); // tap fallback for touch devices
+
+  
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setZoomPos({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) });
+  };
+
 
   const changeImage = (newIndex: number) => {
     setImageLoaded(false);
@@ -225,13 +243,34 @@ export default function ProductDetail() {
             <div className="relative group mb-6 md:mb-0">
               {images.length > 0 && (
                 <div className="relative">
-                  <img
-                    src={images[displayIndex]}
-                    alt={product.name}
-                    className={`w-full aspect-[3/4.3] object-cover rounded-2xl md:rounded-3xl transition-all duration-300 group-hover:scale-95 ${
-                      imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
-                    }`}
-                  />
+                  <div
+                    className="relative overflow-hidden rounded-2xl md:rounded-3xl"
+                    onMouseEnter={() => setIsZooming(true)}
+                    onMouseLeave={() => setIsZooming(false)}
+                    onMouseMove={handleMouseMove}
+                    onClick={() => setMobileZoomOpen(true)}
+                  >
+                    <img
+                      src={images[displayIndex]}
+                      alt={product.name}
+                      className={`w-full aspect-[3/4.3] object-cover transition-all duration-300 group-hover:scale-95 cursor-zoom-in ${
+                        imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
+                      }`}
+                    />
+
+                    {/* Magnified layer — only rendered on hover, desktop pointer only */}
+                    {isZooming && (
+                      <div
+                        className="hidden md:block absolute inset-0 pointer-events-none"
+                        style={{
+                          backgroundImage: `url(${images[displayIndex]})`,
+                          backgroundSize: '220%',
+                          backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                          backgroundRepeat: 'no-repeat',
+                        }}
+                      />
+                    )}
+                  </div>
 
                   {/* ── Last Stock badge on image ── */}
                   {/* {isLastStock && (
@@ -244,14 +283,14 @@ export default function ProductDetail() {
                     <>
                       <button
                         onClick={prevImage}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm"
+                        className="absolute left-5 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm"
                         aria-label="Previous image"
                       >
                         <ChevronLeft size={20} className="text-black" />
                       </button>
                       <button
                         onClick={nextImage}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm"
+                        className="absolute right-5 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm"
                         aria-label="Next image"
                       >
                         <ChevronRight size={20} className="text-black" />
@@ -274,7 +313,7 @@ export default function ProductDetail() {
 
               {/* Thumbnails */}
               {images.length > 1 && (
-                <div className="flex gap-2 mt-3 px-25 overflow-x-auto pb-1">
+                <div className="flex gap-2 mt-3 px-15 overflow-x-auto pb-1">
                   {images.map((img: string, i: number) => (
                     <button
                       key={i}
@@ -339,7 +378,7 @@ export default function ProductDetail() {
                     return (
                       <button
                         key={color}
-                        onClick={() => { setSelectedColor(color); setSelectedSize(''); setQuantity(1); }}
+                        onClick={() => { setSelectedColor(color); setSelectedSize(''); setQuantity(1); setDisplayIndex(0); setCurrentImageIndex(0); }}
                         disabled={!hasStock}
                         className={`relative px-5 py-2.5 border rounded-full text-sm transition ${
                           selectedColor === color ? 'bg-black text-white' : 'hover:bg-gray-100'
@@ -521,6 +560,28 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+      {/* ── Mobile tap-to-zoom fallback ── */}
+      {mobileZoomOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center px-4"
+          onClick={() => setMobileZoomOpen(false)}
+        >
+          <button
+            onClick={() => setMobileZoomOpen(false)}
+            className="absolute top-6 right-6 text-white/80 hover:text-white"
+            aria-label="Close"
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={images[displayIndex]}
+            alt={product.name}
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl"
+          />
+        </div>
+      )}
     </>
   );
 }

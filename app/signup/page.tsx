@@ -21,6 +21,16 @@ export default function Signup() {
 
   // Helper to validate phone in real-time
   const isPhoneValid = phone.replace(/\D/g, '').length === 11;
+  const signInWithProvider = async (provider: 'google') => {
+    setLoading(true);
+    setError('');
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/callback` },
+    });
+    if (error) setError(error.message);
+    setLoading(false);
+  };
 
   const handleSignup = async () => {
     setLoading(true);
@@ -162,15 +172,14 @@ export default function Signup() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <button className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition">
-              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-6" />
-            </button>
-            <button className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition">
-              <Apple size={24} />
-            </button>
-            <button className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center gap-2 transition">
-              <Twitter size={24} />
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => signInWithProvider('google')}
+              disabled={loading}
+              className="w-full border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl flex items-center justify-center gap-3 transition"
+            >
+              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-5" />
+              <span className="text-sm font-medium text-gray-700">Continue with Google</span>
             </button>
           </div>
 

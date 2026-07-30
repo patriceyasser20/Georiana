@@ -21,34 +21,12 @@ export default function Home() {
 
   useEffect(() => {
     const fetchNewProducts = async () => {
-      // Deliberately not cached: this section is curated live from the
-      // admin panel, and the product cache is just an in-memory Map scoped
-      // to whichever browser tab's JS context happens to hold it. Calling
-      // invalidateCache('home-products') from the admin tab has no effect
-      // on a separately-open home page tab's own cache instance, so a
-      // cached version here can silently show a stale selection from
-      // before the admin's most recent change — which is exactly what
-      // happened. Always fetching fresh trades one extra round-trip per
-      // page load for guaranteed correctness on the page that matters most.
-
-      // Try featured products first. Fetched as two explicit queries rather
-      // than a nested embed (`products (...)`) — PostgREST embeds require it
-      // to unambiguously resolve the FK relationship between the two tables,
-      // and when that fails it silently returns null per row instead of an
-      // error, which makes a real selection look like "no featured products"
-      // and silently falls through to showing the wrong set entirely.
       const { data: featuredRowsRaw } = await supabaseClient
         .from('featured_products')
         .select('product_id, position, created_at')
         .eq('section', 'new_this_week')
         .order('position');
 
-      // De-duplicate by product_id, keeping the most recently created row
-      // for each — guards against leftover duplicate rows from before a
-      // unique-constraint/upsert fix, which could otherwise cause a product
-      // to silently vanish if an earlier, orphaned row pointed at a product
-      // that no longer matches, while a newer valid row for the same
-      // product gets shadowed by ordering quirks.
       const dedupedByProduct = new Map<string, any>();
       for (const row of featuredRowsRaw || []) {
         const existing = dedupedByProduct.get(row.product_id);
@@ -65,8 +43,6 @@ export default function Home() {
           .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
           .in('id', productIds);
 
-        // Re-order to match the admin's chosen position, since `.in()`
-        // doesn't guarantee result order matches the input array order.
         const byId = new Map((featuredProducts || []).map((p: any) => [p.id, p]));
         const mapped = featuredRows
           .map((f: any) => byId.get(f.product_id))
@@ -77,20 +53,14 @@ export default function Home() {
           setLoading(false);
           return;
         }
-        // Featured rows existed but none resolved to a real product (e.g.
-        // a featured product was since deleted) — fall through to latest
-        // arrivals below rather than showing an empty section.
       }
 
-      {
-        // Fall back to latest products if no featured set
-        const { data } = await supabaseClient
-          .from('products')
-          .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
-          .order('created_at', { ascending: false })
-          .limit(8);
-        setProducts(data || []);
-      }
+      const { data } = await supabaseClient
+        .from('products')
+        .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
+        .order('created_at', { ascending: false })
+        .limit(8);
+      setProducts(data || []);
       setLoading(false);
     };
     fetchNewProducts();
@@ -113,9 +83,6 @@ export default function Home() {
     fetchOffers();
   }, []);
 
-  // Separate, broader product fetch used only to resolve a representative
-  // image for each offer (category/collection offers won't usually match
-  // anything inside the small "New This Week" set above).
   const [catalogProducts, setCatalogProducts] = useState<any[]>([]);
   useEffect(() => {
     const fetchCatalog = async () => {
@@ -137,10 +104,6 @@ export default function Home() {
     fetchCatalog();
   }, []);
 
-  // Resolve each live offer to a representative product (for its image)
-  // and the right destination link based on its scope. Offers with no
-  // matching product anywhere in the catalog are silently dropped, since
-  // showing a deal banner with no way to act on it would be confusing.
   const liveOffers = offers.filter(isOfferLive);
   const offerSlides = liveOffers
     .map((offer) => {
@@ -180,7 +143,6 @@ export default function Home() {
     })
     .filter((s): s is NonNullable<typeof s> => s !== null);
 
-  // Product-level sales — the whole product is marked is_on_sale.
   const productSaleSlides = catalogProducts
     .filter((p: any) => p.is_on_sale && Number(p.discount_percentage) > 0)
     .map((p: any) => ({
@@ -193,12 +155,10 @@ export default function Home() {
       image: p.images?.[0] || null,
     }));
 
-  // Variant-level sales — a specific color/size of a product is on sale,
-  // even if the product overall isn't. Shown as its own slide since the
-  // discount only applies to that particular variant.
+  // ── Only include variant slides where v.id is defined ──
   const variantSaleSlides = catalogProducts.flatMap((p: any) =>
     (p.product_variants || [])
-      .filter((v: any) => v.is_on_sale && Number(v.discount_percentage) > 0 && !p.is_on_sale)
+      .filter((v: any) => v.id && v.is_on_sale && Number(v.discount_percentage) > 0 && !p.is_on_sale)
       .map((v: any) => ({
         key: `variant-sale-${v.id}`,
         kind: 'sale' as const,
@@ -212,8 +172,6 @@ export default function Home() {
 
   const displayableOffers = [...offerSlides, ...productSaleSlides, ...variantSaleSlides];
 
-  // ── Offer carousel — auto-advances and loops, only when there's more
-  // than one slide to cycle between. A single slide just sits still.
   const [offerSlide, setOfferSlide] = useState(0);
   const offerCount = displayableOffers.length;
 
@@ -225,8 +183,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [offerCount]);
 
-  // If the slide list changes such that the current index is now out of
-  // range (e.g. an offer expired or a sale ended), snap back to the first.
   useEffect(() => {
     if (offerSlide >= offerCount && offerCount > 0) setOfferSlide(0);
   }, [offerCount, offerSlide]);
@@ -237,15 +193,11 @@ export default function Home() {
 
       {/* ==================== HERO ==================== */}
       <section className="relative min-h-[100svh] md:h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden pt-20 md:pt-0">
-        {/* Floral side decorations — hidden on mobile */}
         <div className="hidden md:block absolute left-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30" />
         <div className="hidden md:block absolute right-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30" />
 
         <div className="max-w-7xl mx-auto px-5 md:px-6 w-full relative z-10">
-          {/* Mobile: stacked, image first */}
           <div className="flex flex-col-reverse md:grid md:grid-cols-2 md:gap-12 items-center gap-8">
-
-            {/* Text */}
             <div className="space-y-5 md:space-y-8 text-center md:text-left pb-8 md:pb-0">
               <h1 className="text-5xl sm:text-6xl md:text-[5.5rem] leading-none font-light tracking-widest text-[#3a2f2f]">
                 SPRING<br />2026
@@ -261,7 +213,6 @@ export default function Home() {
               </a>
             </div>
 
-            {/* Image */}
             <div className="relative w-full">
               <img
                 src="https://www.thefashionlaw.com/wp-content/uploads/2017/04/Steven-Meisel-ZARA-Spring-2017-1024x579.jpg"
@@ -273,7 +224,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ==================== ACTIVE OFFERS — only renders if a live offer exists ==================== */}
+      {/* ==================== ACTIVE OFFERS ==================== */}
       {displayableOffers.length > 0 && (
         <section className="py-14 md:py-24 bg-[#f8f4f0] relative overflow-hidden">
           <div className="hidden md:block absolute top-10 left-10 text-6xl text-[#e8c4ad] opacity-30 pointer-events-none">🌷</div>
@@ -281,12 +232,8 @@ export default function Home() {
 
           <div className="max-w-6xl mx-auto px-5 md:px-6 relative z-10">
             <div className="text-center mb-10 md:mb-14">
-              <span className="text-[#c9a38f] text-xs md:text-sm tracking-[0.35em] uppercase">
-                Limited Time
-              </span>
-              <h2 className="text-2xl md:text-4xl font-light tracking-widest mt-3 text-[#3a2f2f]">
-                Current Offers
-              </h2>
+              <span className="text-[#c9a38f] text-xs md:text-sm tracking-[0.35em] uppercase">Limited Time</span>
+              <h2 className="text-2xl md:text-4xl font-light tracking-widest mt-3 text-[#3a2f2f]">Current Offers</h2>
             </div>
 
             {(() => {
@@ -299,25 +246,16 @@ export default function Home() {
               type Slide = typeof displayableOffers[number];
 
               const SlideCard = ({ slide, active }: { slide: Slide; active: boolean }) => (
-                <div
-                  className={`flex shrink-0 rounded-2xl md:rounded-3xl bg-white overflow-hidden transition-all duration-500 ${
-                    active
-                      ? 'w-[82vw] sm:w-[480px] md:w-[560px] shadow-lg scale-100 opacity-100'
-                      : 'hidden sm:flex w-[180px] md:w-[240px] shadow-sm scale-95 opacity-40 pointer-events-none'
-                  }`}
-                >
-                  {/* Image — only on sale slides and only on the active card */}
+                <div className={`flex shrink-0 rounded-2xl md:rounded-3xl bg-white overflow-hidden transition-all duration-500 ${
+                  active
+                    ? 'w-[82vw] sm:w-[480px] md:w-[560px] shadow-lg scale-100 opacity-100'
+                    : 'hidden sm:flex w-[180px] md:w-[240px] shadow-sm scale-95 opacity-40 pointer-events-none'
+                }`}>
                   {active && slide.image && (
                     <div className="w-44 md:w-52 shrink-0">
-                      <img
-                        src={slide.image}
-                        alt={slide.title}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
                     </div>
                   )}
-
-                  {/* Text content */}
                   <div className={`flex flex-col justify-center gap-3 ${active ? 'p-7 md:p-9' : 'p-4 items-center text-center'}`}>
                     <span className={`text-[#c9a38f] font-medium tracking-[0.2em] uppercase ${active ? 'text-xs' : 'text-[10px]'}`}>
                       {slide.badgeText}
@@ -328,10 +266,7 @@ export default function Home() {
                     {active && (
                       <>
                         <p className="text-gray-500 text-sm">{slide.subtitle}</p>
-                        <a
-                          href={slide.href}
-                          className="mt-1 self-start inline-block bg-[#3a2f2f] text-white text-xs tracking-widest px-7 py-3 rounded-full hover:bg-[#2a2222] transition"
-                        >
+                        <a href={slide.href} className="mt-1 self-start inline-block bg-[#3a2f2f] text-white text-xs tracking-widest px-7 py-3 rounded-full hover:bg-[#2a2222] transition">
                           Shop Now
                         </a>
                       </>
@@ -356,9 +291,7 @@ export default function Home() {
                           <SlideCard slide={displayableOffers[prevIndex]} active={false} />
                         </button>
                       )}
-
                       <SlideCard slide={displayableOffers[offerSlide]} active={true} />
-
                       {showRightPeek && (
                         <button onClick={() => setOfferSlide(nextIndex)} aria-label="Next" className="shrink-0">
                           <SlideCard slide={displayableOffers[nextIndex]} active={false} />
@@ -370,12 +303,11 @@ export default function Home() {
               );
             })()}
 
-            {/* Dot indicators — only shown when there's more than one offer */}
             {displayableOffers.length > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 {displayableOffers.map((d, i) => (
                   <button
-                    key={d.key}
+                    key={`dot-${i}`}
                     onClick={() => setOfferSlide(i)}
                     aria-label={`Show offer ${i + 1}`}
                     className={`h-2 rounded-full transition-all duration-300 ${
@@ -392,44 +324,15 @@ export default function Home() {
       {/* ==================== ZIGZAG MODEL GALLERY ==================== */}
       <section className="py-14 md:py-20 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 md:px-6">
-
-          {/* ── Mobile: simple vertical stack ── */}
           <div className="flex flex-col gap-10 md:hidden">
             {[
-              {
-                img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg',
-                title: 'Shoflna ba2a kalam yat2al',
-                sub: 'Effortless style meets everyday comfort',
-              },
-              {
-                img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png',
-                title: 'a2ol 7aga',
-                sub: 'Light, breathable, and effortlessly elegant',
-              },
-              {
-                img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg',
-                title: '3shan ana mesh 3raf',
-                sub: 'Luxurious fabrics for the modern woman',
-              },
-              {
-                img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg',
-                title: '5alas',
-                sub: 'Fresh looks inspired by MARIANA',
-              },
+              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg', title: 'Shoflna ba2a kalam yat2al', sub: 'Effortless style meets everyday comfort' },
+              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png', title: 'a2ol 7aga', sub: 'Light, breathable, and effortlessly elegant' },
+              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg', title: '3shan ana mesh 3raf', sub: 'Luxurious fabrics for the modern woman' },
+              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg', title: '5alas', sub: 'Fresh looks inspired by MARIANA' },
             ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false }}
-                transition={{ duration: 0.5, delay: 0.1 * i }}
-                className="flex flex-row items-center gap-5"
-              >
-                <img
-                  src={item.img}
-                  alt={item.title}
-                  className="w-40 h-48 object-cover rounded-2xl shadow-lg flex-shrink-0"
-                />
+              <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false }} transition={{ duration: 0.5, delay: 0.1 * i }} className="flex flex-row items-center gap-5">
+                <img src={item.img} alt={item.title} className="w-40 h-48 object-cover rounded-2xl shadow-lg flex-shrink-0" />
                 <div>
                   <h3 className="text-xl font-light leading-snug">{item.title}</h3>
                   <p className="text-gray-500 mt-2 text-sm leading-snug">{item.sub}</p>
@@ -438,41 +341,17 @@ export default function Home() {
             ))}
           </div>
 
-          {/* ── Desktop: original zigzag layout ── */}
           <div className="hidden md:grid grid-cols-2 gap-16 items-center">
-
-            {/* Left Column */}
             <div className="space-y-20">
-              <motion.div
-                initial={{ opacity: 0, x: -60 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex justify-end gap-12 items-center"
-              >
-                <img
-                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg"
-                  alt="Model 1"
-                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
-                />
+              <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg" alt="Model 1" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
                 <div className="max-w-[220px]">
                   <h3 className="text-3xl font-light">Shoflna ba2a kalam yat2al</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Effortless style meets everyday comfort</p>
                 </div>
               </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: -60 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex justify-end gap-12 items-center"
-              >
-                <img
-                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png"
-                  alt="Model 2"
-                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
-                />
+              <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png" alt="Model 2" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
                 <div className="max-w-[220px]">
                   <h3 className="text-3xl font-light">a2ol 7aga</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Light, breathable, and effortlessly elegant</p>
@@ -480,46 +359,23 @@ export default function Home() {
               </motion.div>
             </div>
 
-            {/* Right Column */}
             <div className="space-y-20 lg:mt-90">
-              <motion.div
-                initial={{ opacity: 0, x: 60 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex justify-start gap-12 items-center"
-              >
+              <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
                 <div className="max-w-[220px] text-left">
                   <h3 className="text-3xl font-light">3shan ana mesh 3raf</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Luxurious fabrics for the modern woman</p>
                 </div>
-                <img
-                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg"
-                  alt="Model 3"
-                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
-                />
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg" alt="Model 3" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
               </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, x: 60 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: false }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex justify-start gap-12 items-center"
-              >
+              <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
                 <div className="max-w-[220px] text-right">
                   <h3 className="text-3xl font-light">5alas</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Fresh looks inspired by MARIANA</p>
                 </div>
-                <img
-                  src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg"
-                  alt="Model 4"
-                  className="w-96 rounded-3xl shadow-xl flex-shrink-0"
-                />
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg" alt="Model 4" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
               </motion.div>
             </div>
           </div>
-
         </div>
       </section>
 
@@ -565,33 +421,26 @@ export default function Home() {
       {/* ==================== ABOUT ==================== */}
       <section className="py-14 md:py-24 bg-[#f8f4f0] relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-5 md:px-6 text-center relative z-10">
-          <h2 className="text-2xl md:text-4xl font-light tracking-widest mb-5 md:mb-6">
-            About GEORIANA
-          </h2>
+          <h2 className="text-2xl md:text-4xl font-light tracking-widest mb-5 md:mb-6">About GEORIANA</h2>
           <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            GEORIANA is a global fashion brand that brings the latest trends to life
-            with exceptional quality and timeless feminine elegance.
+            GEORIANA is a global fashion brand that brings the latest trends to life with exceptional quality and timeless feminine elegance.
           </p>
-
-          <div className="grid grid-cols-2 md:grid-cols-2 gap-6 md:gap-12 mt-10 md:mt-16">
-            <div className="relative">
+          <div className="grid grid-cols-2 gap-6 md:gap-12 mt-10 md:mt-16">
+            <div>
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">🌸</div>
               <h3 className="text-base md:text-xl font-medium">Timeless Style</h3>
               <p className="text-gray-600 mt-2 text-sm md:text-base">Modern silhouettes with classic feminine appeal</p>
             </div>
-            <div className="relative">
+            <div>
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">🌿</div>
               <h3 className="text-base md:text-xl font-medium">Sustainable Future</h3>
               <p className="text-gray-600 mt-2 text-sm md:text-base">Committed to responsible and ethical fashion</p>
             </div>
           </div>
         </div>
-
-        {/* Subtle background flowers — smaller on mobile */}
         <div className="absolute bottom-0 left-4 md:left-12 text-[120px] md:text-[220px] text-[#f5e8d3] opacity-10 pointer-events-none">🌺</div>
         <div className="absolute top-4 md:top-12 right-4 md:right-12 text-[100px] md:text-[180px] text-[#f5e8d3] opacity-10 pointer-events-none">🌼</div>
       </section>
-
     </>
   );
 }

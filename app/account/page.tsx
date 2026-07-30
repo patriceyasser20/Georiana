@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Header from '../components/Header';
 import { useTranslation } from '../context/LanguageContext';
 import { useSearchParams } from 'next/navigation';
 import { useCurrency } from '../context/CurrencyContext';
 import { supabaseClient } from '../../lib/supabaseClient';
 
-export default function Account() {
+function AccountContent() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const orderIdParam = searchParams.get('order_id');
@@ -42,15 +42,10 @@ export default function Account() {
         .order('created_at', { ascending: false });
 
       if (orderIdParam) {
-        // Guest order lookup via the confirmation link — safe because the
-        // order UUID is only known to whoever received the confirmation email.
         query = query.eq('id', orderIdParam);
       } else {
         const { data: { user } } = await supabaseClient.auth.getUser();
         if (user?.id) {
-          // Logged-in: always filter by the authenticated user_id, never by
-          // user_email. Email is just a contact field that could be set to
-          // any value at checkout, so it's not a safe ownership key.
           query = query.eq('user_id', user.id);
         } else {
           setOrders([]);
@@ -104,9 +99,6 @@ export default function Account() {
               Number(order.total || 0) + Number(order.delivery_fee || 0) - Number(order.discount_amount || 0)
             );
 
-            // Orders placed before this feature shipped have no stored
-            // currency/rate — default to EGP at a 1:1 rate, which is how
-            // every amount on the order was already stored.
             const orderCurrency = order.currency || 'EGP';
             const orderRate = order.currency_rate || 1;
             const formatPrice = (egpAmount: number) => formatPriceAs(egpAmount, orderCurrency, orderRate);
@@ -114,7 +106,6 @@ export default function Account() {
             return (
               <div key={order.id} className="bg-white rounded-3xl p-8 mb-8 border">
 
-                {/* ── Top row ── */}
                 <div className="flex justify-between mb-6">
                   <div>
                     <p className="text-sm text-gray-500">
@@ -133,16 +124,13 @@ export default function Account() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 items-start justify-end">
-                    {/* Payment method badge */}
-                    <span
-                      className={`px-5 py-2 rounded-full text-sm ${
-                        order.payment_method?.toLowerCase().includes('cash') ||
-                        order.payment_method === 'Cash on Delivery' ||
-                        order.status === 'confirmed'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-blue-100 text-blue-700'
-                      }`}
-                    >
+                    <span className={`px-5 py-2 rounded-full text-sm ${
+                      order.payment_method?.toLowerCase().includes('cash') ||
+                      order.payment_method === 'Cash on Delivery' ||
+                      order.status === 'confirmed'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
                       {order.payment_method?.toLowerCase().includes('cash') ||
                        order.payment_method === 'Cash on Delivery' ||
                        order.status === 'confirmed'
@@ -150,16 +138,14 @@ export default function Account() {
                         : t('account.card')}
                     </span>
 
-                    {/* Free Shipping badge */}
                     {isFreeShipping && (
                       <span className="px-5 py-2 rounded-full text-sm bg-emerald-100 text-emerald-700 font-medium">
-                         Free Shipping
+                        Free Shipping
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* ── Shipping Address ── */}
                 <div className="mb-8 bg-gray-50 p-6 rounded-2xl">
                   <p className="font-medium mb-2">{t('account.shippingAddress')}</p>
                   <p>{order.street}, {order.apartment}</p>
@@ -171,7 +157,6 @@ export default function Account() {
                   )}
                 </div>
 
-                {/* ── Order Items ── */}
                 <p className="font-medium mb-4">{t('account.orderedItems')}</p>
 
                 {order.order_items && order.order_items.length > 0 ? (
@@ -199,10 +184,7 @@ export default function Account() {
                   <p className="text-gray-500 py-8 text-center">No items found for this order</p>
                 )}
 
-                {/* ── Price Breakdown ── */}
                 <div className="mt-6 space-y-3">
-
-                  {/* Order subtotal */}
                   {order.total && order.total > 0 && (
                     <div className="flex justify-between text-lg">
                       <span className="text-gray-600">Order Total</span>
@@ -210,7 +192,6 @@ export default function Account() {
                     </div>
                   )}
 
-                  {/* Delivery fee — free or paid */}
                   <div className="flex justify-between text-lg">
                     <span className="text-gray-600">Delivery Fee</span>
                     {isFreeShipping ? (
@@ -220,7 +201,6 @@ export default function Account() {
                     )}
                   </div>
 
-                  {/* Buy X Get Y offer rows — only if this order had any applied */}
                   {appliedOffers.map((o, i) => (
                     <div key={i} className="flex justify-between text-lg">
                       <span className="text-gray-600">🏷️ {o.name}</span>
@@ -230,19 +210,15 @@ export default function Account() {
                     </div>
                   ))}
 
-                  {/* Promo code row — only if a promo was applied */}
                   {order.promo_code && (
                     <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">
-                        Discount ({order.promo_code})
-                      </span>
+                      <span className="text-gray-600">Discount ({order.promo_code})</span>
                       <span className="font-medium text-red-600">
                         -{formatPrice(promoDiscountAmount)}
                       </span>
                     </div>
                   )}
 
-                  {/* Fallback — only when there's a discount but no promo and no itemized offers */}
                   {!order.promo_code && appliedOffers.length === 0 && Number(order.discount_amount) > 0 && (
                     <div className="flex justify-between text-lg">
                       <span className="text-gray-600">Discount</span>
@@ -253,7 +229,6 @@ export default function Account() {
                   )}
                 </div>
 
-                {/* ── Grand Total ── */}
                 <div className="mt-6 flex justify-between text-2xl font-medium border-t pt-8">
                   <span>{t('account.total')}</span>
                   <span>{formatPrice(displayTotal)}</span>
@@ -264,5 +239,17 @@ export default function Account() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Account() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin w-16 h-16 border-4 border-black border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <AccountContent />
+    </Suspense>
   );
 }

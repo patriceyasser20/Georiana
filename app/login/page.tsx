@@ -30,7 +30,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
-  const signInWithProvider = async (provider: 'google' | 'instagram' | 'tiktok') => {
+  const signInWithProvider = async (provider: 'google') => {
     setLoading(true);
     setError('');
     const { error } = await supabaseClient.auth.signInWithOAuth({
@@ -153,15 +153,14 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <button onClick={() => signInWithProvider('google')} disabled={loading} className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center transition">
-              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-6" />
-            </button>
-            <button onClick={() => signInWithProvider('instagram')} disabled={loading} className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center transition">
-              <img src="/images/instagram.png" alt="Instagram" className="w-8" />
-            </button>
-            <button onClick={() => signInWithProvider('tiktok')} disabled={loading} className="border border-gray-300 hover:bg-gray-50 py-3 rounded-2xl flex items-center justify-center transition">
-              <img src="/images/tiktok.png" alt="TikTok" className="w-8" />
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => signInWithProvider('google')}
+              disabled={loading}
+              className="w-full border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl flex items-center justify-center gap-3 transition"
+            >
+              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-5" />
+              <span className="text-sm font-medium text-gray-700">Continue with Google</span>
             </button>
           </div>
 

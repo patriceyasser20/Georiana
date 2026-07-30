@@ -9,15 +9,26 @@
 //   401 if not logged in
 
 import { NextRequest, NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const FIRST_ORDER_CODE = "FIRST10";   // the code users type in
-const FIRST_ORDER_PCT  = 10;          // percent off
+const FIRST_ORDER_CODE = "FIRST10";
+const FIRST_ORDER_PCT  = 10;
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient({ cookies });
+  const cookieStore = await cookies();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: () => {},
+      },
+    }
+  );
 
   // 1. Auth guard
   const {

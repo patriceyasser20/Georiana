@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import Link from 'next/link';
 import { supabaseClient } from '../../../lib/supabaseClient';
 
-export default function CheckoutSuccess() {
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const orderIdFromUrl = searchParams.get('order_id');
   const router = useRouter();
@@ -65,7 +65,6 @@ export default function CheckoutSuccess() {
 
   const handleViewOrders = () => {
     if (lastOrderId) {
-      // For guests, show only the last order
       router.push(`/account?order_id=${lastOrderId}`);
     } else {
       router.push('/account');
@@ -131,5 +130,17 @@ export default function CheckoutSuccess() {
       </div>
       <Footer />
     </>
+  );
+}
+
+export default function CheckoutSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin w-16 h-16 border-4 border-black border-t-transparent rounded-full"></div>
+      </div>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
   );
 }

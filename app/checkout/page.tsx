@@ -427,8 +427,8 @@ export default function Checkout() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-5 gap-10">
+      <div className="min-h-screen bg-gray-50 py-20 overflow-x-hidden">
+        <div className="max-w-6xl mx-auto px-4 md:px-4 md:grid-cols-5 gap-6 md:gap-10">
 
           {/* ==================== LEFT: FORM ==================== */}
           <div className="md:col-span-3">
@@ -436,7 +436,7 @@ export default function Checkout() {
 
             <div className="bg-white rounded-3xl p-8">
               <h2 className="text-2xl font-medium mb-6">{t('checkout.contactInfo')}</h2>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input type="text" placeholder={t('checkout.firstName')} value={firstName} onChange={e => setFirstName(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
                 <input type="text" placeholder={t('checkout.lastName')} value={lastName} onChange={e => setLastName(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
               </div>
@@ -445,9 +445,9 @@ export default function Checkout() {
 
               <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.shippingAddress')}</h2>
               <input type="text" placeholder={t('checkout.street')} value={street} onChange={e => setStreet(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <input type="text" placeholder={t('checkout.apartment')} value={apartment} onChange={e => setApartment(e.target.value)} className="border rounded-2xl px-5 py-4" />
-                <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <input type="text" placeholder={t('checkout.apartment')} value={apartment} onChange={e => setApartment(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
+                <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
               </div>
 
               {/* Country Selector */}
@@ -522,7 +522,7 @@ export default function Checkout() {
           </div>
 
           {/* ==================== RIGHT: ORDER SUMMARY ==================== */}
-          <div className="md:col-span-2 py-20">
+          <div className="md:col-span-2 py-12">
             <div className="bg-white rounded-3xl p-8 sticky top-8">
               <h2 className="text-2xl font-medium mb-8">{t('checkout.orderSummary')}</h2>
 
@@ -557,18 +557,18 @@ export default function Checkout() {
               ))}
 
               {/* Promo Code */}
-              <div className="mt-8 border-t pt-8">
-                <div className="flex gap-3">
+               <div className="mt-8 border-t pt-8">
+                <div className="flex gap-2">
                   <input
                     type="text"
                     placeholder="Promo Code"
                     value={promoCodeInput}
                     onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
-                    className="border rounded-2xl px-5 py-4 flex-1 text-lg font-mono tracking-widest uppercase"
+                    className="border rounded-2xl px-4 py-4 flex-1 min-w-0 text-base font-mono tracking-widest uppercase"
                   />
                   <button
                     onClick={applyPromoCode}
-                    className="bg-black text-white px-8 rounded-2xl hover:bg-gray-800 transition"
+                    className="bg-black text-white px-6 py-4 rounded-2xl hover:bg-gray-800 transition shrink-0 text-sm font-medium"
                   >
                     Apply
                   </button>

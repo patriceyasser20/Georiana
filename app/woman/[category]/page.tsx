@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Header from '../../components/Header';
-import Footer from '../../components/Footer';
 import ProductCard from '../../components/ProductCard';
 import { supabaseClient } from '../../../lib/supabaseClient';
 import { useCurrency } from '../../context/CurrencyContext';

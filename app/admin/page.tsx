@@ -10,13 +10,51 @@ import { useCurrency } from '../context/CurrencyContext';
 import { adminApi } from '../../lib/adminApi';
 import { invalidateCache } from '../../lib/productCache';
 
+// ==================== SKU AUTO-GENERATION ====================
+const COLOR_CODES: Record<string, string> = {
+  black: 'BLK', white: 'WHT', red: 'RED', blue: 'BLU', navy: 'NVY',
+  green: 'GRN', yellow: 'YLW', pink: 'PNK', purple: 'PPL',
+  gray: 'GRY', grey: 'GRY', brown: 'BRN', beige: 'BEG',
+  orange: 'ORG', gold: 'GLD', silver: 'SLV', cream: 'CRM',
+  maroon: 'MRN', olive: 'OLV', teal: 'TEA', turquoise: 'TRQ',
+};
+
+function colorCode(colorName: string): string {
+  const key = colorName.trim().toLowerCase();
+  if (COLOR_CODES[key]) return COLOR_CODES[key];
+  const letters = key.replace(/[^a-z]/g, '');
+  return (letters.slice(0, 3) || 'XXX').toUpperCase().padEnd(3, 'X');
+}
+
+function buildSku(prefix: string, typeCode: string, seq: number, color: string, size: string): string {
+  const seqStr = String(seq).padStart(3, '0');
+  return `${prefix}-${typeCode.toUpperCase()}-${seqStr}-${colorCode(color)}-${size.trim().toUpperCase()}`;
+}
+
+async function getNextSeqForType(typeCode: string): Promise<number> {
+  const { data } = await supabaseClient
+    .from('product_variants')
+    .select('sku')
+    .eq('type_code', typeCode.toUpperCase());
+
+  let max = 0;
+  (data || []).forEach((row: any) => {
+    const match = row.sku?.match(new RegExp(`-${typeCode.toUpperCase()}-(\\d{3})-`));
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (n > max) max = n;
+    }
+  });
+  return max + 1;
+}
+
 export default function AdminPanel() {
   const router = useRouter();
   const { formatPrice, formatPriceAs } = useCurrency();
 
   const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured' | 'offers'>('featured');
   const [skuSearchTerm, setSkuSearchTerm] = useState('');
-  const [skuSearchResult, setSkuSearchResult] = useState<any>(null);
+  const [skuSearchResult, setSkuSearchResult] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
 
   const [products, setProducts] = useState<any[]>([]);
@@ -31,6 +69,10 @@ export default function AdminPanel() {
 
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [collections, setCollections] = useState<string[]>([]);
+
+  type ImageItem = { key: string; type: 'existing' | 'new'; url: string; file?: File; color: string };
+  const [imageItems, setImageItems] = useState<ImageItem[]>([]);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   // ── Restock modal state ──
   const [restockModal, setRestockModal] = useState<{
@@ -54,7 +96,6 @@ export default function AdminPanel() {
   });
 
   const [variants, setVariants] = useState<any[]>([]);
-  
 
   const [promoForm, setPromoForm] = useState({
     code: '',
@@ -90,6 +131,23 @@ export default function AdminPanel() {
     ends_at: '',
   });
   const [savingOffer, setSavingOffer] = useState(false);
+
+  // Auto-search as the SKU input changes, debounced 400ms so it doesn't
+  // fire a query on every keystroke — only after typing pauses briefly.
+  useEffect(() => {
+    if (tab !== 'sku-search') return;
+    if (!skuSearchTerm.trim()) {
+      setSkuSearchResult([]);
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      searchBySku();
+    }, 400);
+
+    return () => clearTimeout(timeout);
+  }, [skuSearchTerm, tab]);
+
 
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -268,6 +326,10 @@ export default function AdminPanel() {
   const addVariant = () => {
     setVariants([...variants, { color: '', size: '', stock: 0, sku: '', typeCode: '', isOnSale: false, discountPercentage: 0 }]);
   };
+  const removeNewImage = (index: number) => {
+    setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
+  };
+
 
   const updateVariant = (index: number, field: string, value: any) => {
     const newVariants = [...variants];
@@ -279,10 +341,65 @@ export default function AdminPanel() {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
+  const addNewImages = (files: File[]) => {
+    const newItems: ImageItem[] = files.map(file => ({
+      key: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      type: 'new',
+      url: URL.createObjectURL(file),
+      file,
+      color: '', // '' = shows for every color (untagged / general shot)
+    }));
+    setImageItems(prev => [...prev, ...newItems]);
+  };
+
+const setImageColor = (key: string, color: string) => {
+  setImageItems(prev => prev.map(item => item.key === key ? { ...item, color } : item));
+};
+
+const removeImageItem = (key: string) => {
+  setImageItems(prev => {
+    const target = prev.find(i => i.key === key);
+    if (target?.type === 'new') URL.revokeObjectURL(target.url);
+    return prev.filter(i => i.key !== key);
+  });
+};
+
+const handleDragStart = (index: number) => setDraggedIndex(index);
+
+const handleDragOver = (e: React.DragEvent, index: number) => {
+  e.preventDefault();
+  if (draggedIndex === null || draggedIndex === index) return;
+  setImageItems(prev => {
+    const updated = [...prev];
+    const [moved] = updated.splice(draggedIndex, 1);
+    updated.splice(index, 0, moved);
+    return updated;
+  });
+  setDraggedIndex(index);
+};
+
+const handleDragEnd = () => setDraggedIndex(null);
+
   const openModal = async (product?: any) => {
     if (product) {
       setEditingProduct(product);
-      setForm({
+
+      const byColor: Record<string, string[]> = product.images_by_color || {};
+      const urlToColor = new Map<string, string>();
+      Object.entries(byColor).forEach(([color, urls]) => {
+        (urls as string[]).forEach(u => { if (!urlToColor.has(u)) urlToColor.set(u, color); });
+      });
+
+      setImageItems(
+        (product.images || []).map((url: string, i: number) => ({
+          key: `existing-${i}-${url}`,
+          type: 'existing' as const,
+          url,
+          color: urlToColor.get(url) || '',
+        }))
+      );
+
+      setForm({ /* unchanged */ 
         name: product.name,
         price: product.price.toString(),
         description: product.description || '',
@@ -313,6 +430,7 @@ export default function AdminPanel() {
       );
     } else {
       setEditingProduct(null);
+      setImageItems([]);
       setForm({
         name: '',
         price: '',
@@ -332,7 +450,7 @@ export default function AdminPanel() {
     if (
       !form.name ||
       !form.price ||
-      (form.images.length === 0 && !editingProduct) ||
+      imageItems.length === 0 ||
       variants.length === 0 ||
       variants.some((v) => !v.color?.trim() || !v.size?.trim() || !v.sku?.trim() || !v.typeCode?.trim())
     ) {
@@ -343,24 +461,34 @@ export default function AdminPanel() {
     setUploading(true);
 
     try {
-      const imageUrls: string[] = editingProduct?.images || [];
+      const imageUrls: string[] = [];
+      const imagesByColor: Record<string, string[]> = {};
 
-      if (form.images.length > 0) {
-        for (const file of form.images) {
-          const fileExt = file.name.split('.').pop();
+      for (const item of imageItems) {
+        let url: string;
+        if (item.type === 'existing') {
+          url = item.url;
+        } else if (item.file) {
+          const fileExt = item.file.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
           const { error: uploadError } = await supabaseClient.storage
             .from('product-images')
-            .upload(fileName, file);
-
+            .upload(fileName, item.file);
           if (uploadError) throw uploadError;
 
           const { data: urlData } = supabaseClient.storage
             .from('product-images')
             .getPublicUrl(fileName);
+          url = urlData.publicUrl;
+        } else {
+          continue;
+        }
 
-          imageUrls.push(urlData.publicUrl);
+        imageUrls.push(url);
+        if (item.color) {
+          if (!imagesByColor[item.color]) imagesByColor[item.color] = [];
+          imagesByColor[item.color].push(url);
         }
       }
 
@@ -372,20 +500,45 @@ export default function AdminPanel() {
         collection: form.collection || null,
         is_on_sale: form.isOnSale,
         discount_percentage: form.isOnSale ? Number(form.discountPercentage) || 0 : 0,
-        images: imageUrls,
+        images: imageUrls,           // ← thumbnail is imageUrls[0]
+        images_by_color: imagesByColor,  // ← this was missing
       };
 
       if (editingProduct) {
         await adminApi.updateProduct(editingProduct.id, productData);
 
+        // Existing variants (have an id) → update in place, full fields
+        // not just the sale ones, so edits to stock/color/size/sku here
+        // actually persist too.
+        const existingVariants = variants.filter(v => v.id);
         await Promise.all(
-          variants.filter(v => v.id).map(v =>
+          existingVariants.map(v =>
             adminApi.updateVariantDiscount(v.id, {
+              color: v.color.trim(),
+              size: v.size.trim(),
+              stock: Number(v.stock),
+              sku: v.sku.trim(),
+              type_code: v.typeCode.trim().toUpperCase(),
               is_on_sale: v.isOnSale || false,
               discount_percentage: v.isOnSale ? Number(v.discountPercentage) || 0 : 0,
             })
           )
         );
+
+        // Newly added variants (no id yet) → insert them
+        const newVariants = variants.filter(v => !v.id);
+        if (newVariants.length > 0) {
+          await adminApi.insertVariants(newVariants.map((v) => ({
+            product_id: editingProduct.id,
+            color: v.color.trim(),
+            size: v.size.trim(),
+            stock: Number(v.stock),
+            sku: v.sku.trim(),
+            type_code: v.typeCode.trim().toUpperCase(),
+            is_on_sale: v.isOnSale || false,
+            discount_percentage: v.isOnSale ? Number(v.discountPercentage) || 0 : 0,
+          })));
+        }
 
         alert('✅ Product updated successfully!');
       } else {
@@ -454,7 +607,7 @@ export default function AdminPanel() {
     if (!skuSearchTerm.trim()) return;
 
     setSearching(true);
-    setSkuSearchResult(null);
+    setSkuSearchResult([]);
 
     const { data, error } = await supabaseClient
       .from('product_variants')
@@ -473,14 +626,14 @@ export default function AdminPanel() {
           discount_percentage
         )
       `)
-      .eq('sku', skuSearchTerm.trim().toUpperCase())
-      .single();
+      .ilike('sku', `%${skuSearchTerm.trim().toUpperCase()}%`)
+      .order('sku');
 
-    if (error || !data) {
-      alert('No variant found with this SKU');
-      setSkuSearchResult(null);
+    if (error) {
+      alert('Search failed: ' + error.message);
+      setSkuSearchResult([]);
     } else {
-      setSkuSearchResult(data);
+      setSkuSearchResult(data || []);
     }
 
     setSearching(false);
@@ -1037,18 +1190,16 @@ export default function AdminPanel() {
               <h2 className="text-3xl font-light mb-8">SKU Search</h2>
 
               <p className="text-gray-600 mb-6">
-                Enter the exact SKU to find the product + variant:
+                Enter a full SKU or any part of it to find matching products + variants:
                 <br />
-                <span className="font-mono text-sm text-black">Example: GM-DR-25S-JCK-001-BLU-M</span>
               </p>
 
               <div className="w-full max-w-lg flex flex-col sm:flex-row gap-3">
                 <input
                   type="text"
-                  placeholder="GM-DR-25S-JCK-001-BLU-M"
+                  placeholder="Search"
                   value={skuSearchTerm}
                   onChange={(e) => setSkuSearchTerm(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === 'Enter' && searchBySku()}
                   className="border rounded-2xl px-5 py-4 w-full text-base md:text-lg font-mono tracking-widest uppercase"
                 />
                 <button
@@ -1056,118 +1207,126 @@ export default function AdminPanel() {
                   disabled={searching || !skuSearchTerm.trim()}
                   className="bg-black text-white px-8 py-4 rounded-2xl hover:bg-gray-800 disabled:opacity-50 whitespace-nowrap"
                 >
-                  {searching ? 'Searching...' : 'Search'}
+                  {searching ? 'Searching...' : 'Search Now'}
                 </button>
               </div>
 
-              {skuSearchResult && (
-                <div className="mt-10 bg-white rounded-3xl p-6 border max-w-lg">
-                  {skuSearchResult.products?.images?.[0] && (
-                    <img
-                      src={skuSearchResult.products.images[0]}
-                      alt={skuSearchResult.products.name}
-                      className="w-full object-cover rounded-2xl"
-                    />
-                  )}
+              {skuSearchResult.length > 0 && (
+                <div className="mt-10">
+                  <p className="text-sm text-gray-500 mb-6">{skuSearchResult.length} match{skuSearchResult.length !== 1 ? 'es' : ''} found</p>
 
-                  <div className="mt-6">
-                    <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl mb-4">
-                      <span className="text-xs uppercase tracking-widest text-gray-500">SKU</span>
-                      <span className="font-mono text-sm tracking-[2px] font-medium">{skuSearchResult.sku}</span>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {skuSearchResult.map((result: any) => (
+                      <div key={result.id} className="bg-white rounded-3xl p-6 border">
+                      {result.products?.images?.[0] && (
+                        <img
+                          src={result.products.images[0]}
+                          alt={result.products.name}
+                          className="w-full object-cover rounded-2xl"
+                        />
+                      )}
 
-                    <h3 className="text-2xl font-medium">{skuSearchResult.products?.name}</h3>
-                    <p className="text-3xl font-medium text-black mt-1">
-                      {formatPrice(skuSearchResult.products?.price)}
-                    </p>
-
-                    {skuSearchResult.products?.is_on_sale && (
-                      <p className="text-red-600 text-sm font-medium mt-1">
-                        Product Sale • -{skuSearchResult.products.discount_percentage}%
-                      </p>
-                    )}
-                    {skuSearchResult.is_on_sale && (
-                      <p className="text-orange-600 text-sm font-medium mt-1">
-                        Color Sale • -{skuSearchResult.discount_percentage}% on {skuSearchResult.color}
-                      </p>
-                    )}
-
-                    <div className="mt-6 bg-gray-50 rounded-2xl p-5 border border-gray-200">
-                      <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Matched Variant</p>
-                      <div className="grid grid-cols-3 gap-6 text-sm">
-                        <div>
-                          <p className="text-gray-500 mb-1">Color</p>
-                          <p className="font-semibold text-base">{skuSearchResult.color}</p>
+                      <div className="mt-6">
+                        <div className="inline-flex items-center gap-2 bg-gray-100 px-4 py-2 rounded-xl mb-4">
+                          <span className="text-xs uppercase tracking-widest text-gray-500">SKU</span>
+                          <span className="font-mono text-sm tracking-[2px] font-medium">{result.sku}</span>
                         </div>
-                        <div>
-                          <p className="text-gray-500 mb-1">Size</p>
-                          <p className="font-semibold text-base">{skuSearchResult.size}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 mb-1">Stock</p>
-                          <p className={`font-semibold text-base ${
-                            skuSearchResult.stock === 0
-                              ? 'text-red-600'
-                              : skuSearchResult.stock <= 5
-                                ? 'text-orange-500'
-                                : 'text-green-600'
-                          }`}>
-                            {skuSearchResult.stock === 0 ? 'Out of stock' : skuSearchResult.stock}
+
+                        <h3 className="text-2xl font-medium">{result.products?.name}</h3>
+                        <p className="text-3xl font-medium text-black mt-1">
+                          {formatPrice(result.products?.price)}
+                        </p>
+
+                        {result.products?.is_on_sale && (
+                          <p className="text-red-600 text-sm font-medium mt-1">
+                            Product Sale • -{result.products.discount_percentage}%
                           </p>
+                        )}
+                        {result.is_on_sale && (
+                          <p className="text-orange-600 text-sm font-medium mt-1">
+                            Color Sale • -{result.discount_percentage}% on {result.color}
+                          </p>
+                        )}
+
+                        <div className="mt-6 bg-gray-50 rounded-2xl p-5 border border-gray-200">
+                          <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Matched Variant</p>
+                          <div className="grid grid-cols-3 gap-6 text-sm">
+                            <div>
+                              <p className="text-gray-500 mb-1">Color</p>
+                              <p className="font-semibold text-base">{result.color}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 mb-1">Size</p>
+                              <p className="font-semibold text-base">{result.size}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500 mb-1">Stock</p>
+                              <p className={`font-semibold text-base ${
+                                result.stock === 0
+                                  ? 'text-red-600'
+                                  : result.stock <= 5
+                                    ? 'text-orange-500'
+                                    : 'text-green-600'
+                              }`}>
+                                {result.stock === 0 ? 'Out of stock' : result.stock}
+                              </p>
+                            </div>
+                          </div>
+                          {result.type_code && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <p className="text-gray-500 text-sm mb-1">Type Code</p>
+                              <p className="font-mono font-semibold tracking-widest">{result.type_code}</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {result.products?.category && (
+                          <p className="text-sm text-gray-500 mt-4">
+                            Category: <span className="font-medium text-black">{result.products.category}</span>
+                            {result.products?.collection && (
+                              <> · Collection: <span className="font-medium text-black">{result.products.collection}</span></>
+                            )}
+                          </p>
+                        )}
+
+                        {result.products?.description && (
+                          <p className="mt-5 text-gray-600 text-sm border-t pt-5">
+                            {result.products.description}
+                          </p>
+                        )}
+
+                        <div className="mt-8 flex gap-3">
+                          <button
+                            onClick={() => openModal({ ...result.products, id: result.product_id })}
+                            className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                          >
+                            <Edit2 size={18} /> Edit Product
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete "${result.products.name}" permanently?`)) {
+                                deleteProduct(result.product_id);
+                                setSkuSearchResult((prev: any[]) => prev.filter((r) => r.product_id !== result.product_id));
+                              }
+                            }}
+                            className="flex-1 text-red-600 hover:text-red-700 py-3.5 border border-red-200 hover:border-red-400 rounded-2xl transition"
+                          >
+                            Delete Product
+                          </button>
                         </div>
                       </div>
-                      {skuSearchResult.type_code && (
-                        <div className="mt-4 pt-4 border-t border-gray-200">
-                          <p className="text-gray-500 text-sm mb-1">Type Code</p>
-                          <p className="font-mono font-semibold tracking-widest">{skuSearchResult.type_code}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {skuSearchResult.products?.category && (
-                      <p className="text-sm text-gray-500 mt-4">
-                        Category: <span className="font-medium text-black">{skuSearchResult.products.category}</span>
-                        {skuSearchResult.products?.collection && (
-                          <> · Collection: <span className="font-medium text-black">{skuSearchResult.products.collection}</span></>
-                        )}
-                      </p>
-                    )}
-
-                    {skuSearchResult.products?.description && (
-                      <p className="mt-5 text-gray-600 text-sm border-t pt-5">
-                        {skuSearchResult.products.description}
-                      </p>
-                    )}
-
-                    <div className="mt-8 flex gap-3">
-                      <button
-                        onClick={() => openModal({ ...skuSearchResult.products, id: skuSearchResult.product_id })}
-                        className="flex-1 bg-blue-600 text-white py-3.5 rounded-2xl hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                      >
-                        <Edit2 size={18} /> Edit Product
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete "${skuSearchResult.products.name}" permanently?`)) {
-                            deleteProduct(skuSearchResult.product_id);
-                            setSkuSearchResult(null);
-                          }
-                        }}
-                        className="flex-1 text-red-600 hover:text-red-700 py-3.5 border border-red-200 hover:border-red-400 rounded-2xl transition"
-                      >
-                        Delete Product
-                      </button>
-                    </div>
+                   </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {!skuSearchResult && skuSearchTerm && !searching && (
-                <p className="mt-8 text-red-600 text-lg text-center">No variant found with this SKU.</p>
+              {skuSearchResult.length === 0 && skuSearchTerm && !searching && (
+                <p className="mt-8 text-red-600 text-lg text-center">No variants found matching this SKU or prefix.</p>
               )}
 
               {skuSearchTerm === '' && (
-                <p className="text-center py-20 text-gray-500">Enter a full SKU to search</p>
+                <p className="text-center py-20 text-gray-500">Enter a full SKU or prefix to search</p>
               )}
             </div>
           )}
@@ -1681,7 +1840,7 @@ export default function AdminPanel() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl w-full max-w-8xl p-12 relative max-h-[92vh] overflow-y-auto">
-            <button onClick={() => { setShowAddModal(false); setEditingProduct(null); }} className="absolute top-8 right-8">
+            <button onClick={() => { setShowAddModal(false); setEditingProduct(null); setImageItems([]); }} className="absolute top-8 right-8">
               <X size={28} />
             </button>
 
@@ -1720,10 +1879,11 @@ export default function AdminPanel() {
                   <option value="Cardigans">Cardigans</option>
                   <option value="Coats">Coats</option>
                   <option value="Heels">Heels</option>
-                  <option value="Handbags">Handbags</option>
+                  <option value="bags">Bags</option>
                   <option value="Lingerie">Lingerie</option>
                   <option value="Swimwear">Swimwear</option>
                   <option value="Activewear">Activewear</option>
+                  <option value="Candle">Candles</option>
                 </select>
               </div>
 
@@ -1782,9 +1942,74 @@ export default function AdminPanel() {
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => setForm({ ...form, images: Array.from(e.target.files || []) })}
+                  onChange={(e) => {
+                    addNewImages(Array.from(e.target.files || []));
+                    e.target.value = ''; // allow re-selecting the same file later
+                  }}
                   className="border rounded-2xl px-6 py-5 w-full text-lg"
                 />
+
+                {imageItems.length > 0 && (
+                <>
+                  <p className="text-xs text-gray-500 mt-3 mb-2">
+                    Drag to reorder — the <span className="font-medium text-black">first image</span> is the thumbnail.
+                    Tag each photo with a color so customers see the right shots when they pick that color.
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {imageItems.map((item, i) => (
+                      <div
+                        key={item.key}
+                        draggable
+                        onDragStart={() => handleDragStart(i)}
+                        onDragOver={(e) => handleDragOver(e, i)}
+                        onDrop={(e) => e.preventDefault()}
+                        onDragEnd={handleDragEnd}
+                        className={`relative cursor-move select-none transition ${draggedIndex === i ? 'opacity-40 scale-95' : ''}`}
+                      >
+                        <img
+                          src={item.url}
+                          alt=""
+                          className={`w-full aspect-square object-cover rounded-xl border-2 pointer-events-none ${
+                            i === 0 ? 'border-black' : item.type === 'new' ? 'border-emerald-400' : 'border-gray-200'
+                          }`}
+                        />
+                        {i === 0 && (
+                          <span className="absolute top-1 left-1 bg-black text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium">
+                            Thumbnail
+                          </span>
+                        )}
+                        {item.type === 'new' && (
+                          <span className="absolute bottom-1 left-1 bg-emerald-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                            New
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImageItem(item.key)}
+                          className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-700 shadow z-10"
+                          title="Remove image"
+                        >
+                          <X size={14} />
+                        </button>
+
+                        {/* ── Color tag selector ── */}
+                        <select
+                          value={item.color}
+                          onChange={(e) => setImageColor(item.key, e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          draggable={false}
+                          className="mt-2 w-full border rounded-lg px-2 py-1.5 text-xs bg-white"
+                        >
+                          <option value="">All Colors</option>
+                          {[...new Set(variants.map(v => v.color?.trim()).filter(Boolean))].map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
               </div>
 
               <div className="flex items-center gap-4 bg-orange-50 border border-orange-200 p-5 rounded-2xl">
@@ -1835,7 +2060,8 @@ export default function AdminPanel() {
                     <div><strong>CTS</strong> = Coat</div>
                     <div><strong>SHO</strong> = Shoes</div>
                     <div><strong>HEE</strong> = Heels</div>
-                    <div><strong>BAG</strong> = Handbag</div>
+                    <div><strong>BAG</strong> = Bags</div>
+                    <div><strong>CDL</strong> = Candles</div>
                   </div>
                 </div>
 

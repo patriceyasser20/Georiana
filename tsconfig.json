@@ -13,13 +13,13 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    // "ignoreDeprecations": "6.0",
     "plugins": [
       {
         "name": "next"
       }
     ],
     "baseUrl": ".",
-    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["./*"],
       "@components/*": ["app/components/*"]
@@ -33,5 +33,6 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "supabase/functions"]
 }
+
