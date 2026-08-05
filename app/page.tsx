@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import './globals.css';
 import { motion, AnimatePresence } from 'framer-motion';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -57,7 +58,7 @@ export default function Home() {
 
       const { data } = await supabaseClient
         .from('products')
-        .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
+        .select('id, name, price, images, is_on_sale, discount_percentage, category, collection, collection_ar')
         .order('created_at', { ascending: false })
         .limit(8);
       setProducts(data || []);
@@ -150,7 +151,7 @@ export default function Home() {
       kind: 'sale' as const,
       badgeText: `-${p.discount_percentage}% OFF`,
       title: p.name,
-      subtitle: 'On Sale',
+      subtitle: t('home.onSale'),
       href: `/product/${p.id}`,
       image: p.images?.[0] || null,
     }));
@@ -192,32 +193,40 @@ export default function Home() {
       <Header />
 
       {/* ==================== HERO ==================== */}
-      <section className="relative min-h-[100svh] md:h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden pt-20 md:pt-0">
-        <div className="hidden md:block absolute left-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30" />
-        <div className="hidden md:block absolute right-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-[length:12px_12px] opacity-30" />
+      <section className="relative min-h-svh md:h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden pt-20 md:pt-0">
+        <div className="hidden md:block absolute left-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-size-[12px_12px] opacity-30" />
+        <div className="hidden md:block absolute right-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-size-[12px_12px] opacity-30" />
 
         <div className="max-w-7xl mx-auto px-5 md:px-6 w-full relative z-10">
           <div className="flex flex-col-reverse md:grid md:grid-cols-2 md:gap-12 items-center gap-8">
-            <div className="space-y-5 md:space-y-8 text-center md:text-left pb-8 md:pb-0">
-              <h1 className="text-5xl sm:text-6xl md:text-[5.5rem] leading-none font-light tracking-widest text-[#3a2f2f]">
-                SPRING<br />2026
+            <div className="space-y-5 md:space-y-10 text-center md:text-start pb-8 md:pb-0">
+              <h1
+                className="text-5xl sm:text-6xl md:text-[5.5rem] leading-none tracking-widest text-[#3a2f2f]"
+                style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
+              >
+                {t('home.heroTitleLine1')}
+                <br />
+                <span dir="ltr" className="inline-block tracking-normal mt-3 md:mt-4">
+                  {t('home.heroTitleLine2')}
+                </span>
               </h1>
               <p className="text-base sm:text-lg md:text-2xl text-gray-600 max-w-md mx-auto md:mx-0">
-                Discover the new collection — designed for the modern woman.
+                {t('home.heroSubtitle')}
               </p>
+
               <a
                 href="/shop"
                 className="inline-block bg-[#d4b8a8] text-white px-10 py-4 rounded-full text-sm tracking-widest hover:bg-[#c9a38f] transition"
               >
-                Shop Now
+                {t('hero.shopNow')}
               </a>
             </div>
 
-            <div className="relative w-full">
+            <div className="relative w-full max-w-5xl">
               <img
                 src="https://www.thefashionlaw.com/wp-content/uploads/2017/04/Steven-Meisel-ZARA-Spring-2017-1024x579.jpg"
                 alt="Spring 2026 Woman"
-                className="rounded-2xl md:rounded-3xl shadow-2xl w-full object-cover max-h-[55vw] md:max-h-none"
+                className="rounded-2xl md:rounded-3xl shadow-2xl w-full object-cover max-h-[70vw] md:max-h-none"
               />
             </div>
           </div>
@@ -232,8 +241,13 @@ export default function Home() {
 
           <div className="max-w-6xl mx-auto px-5 md:px-6 relative z-10">
             <div className="text-center mb-10 md:mb-14">
-              <span className="text-[#c9a38f] text-xs md:text-sm tracking-[0.35em] uppercase">Limited Time</span>
-              <h2 className="text-2xl md:text-4xl font-light tracking-widest mt-3 text-[#3a2f2f]">Current Offers</h2>
+              <span className="text-[#c9a38f] text-xs md:text-sm tracking-[0.35em] uppercase">{t('home.limitedTime')}</span>
+              <h2 
+                className="font-heading-thin text-2xl md:text-4xl tracking-widest mt-3 text-[#3a2f2f]"
+                style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
+                >
+                {t('home.currentOffers')}
+              </h2>
             </div>
 
             {(() => {
@@ -248,8 +262,8 @@ export default function Home() {
               const SlideCard = ({ slide, active }: { slide: Slide; active: boolean }) => (
                 <div className={`flex shrink-0 rounded-2xl md:rounded-3xl bg-white overflow-hidden transition-all duration-500 ${
                   active
-                    ? 'w-[82vw] sm:w-[480px] md:w-[560px] shadow-lg scale-100 opacity-100'
-                    : 'hidden sm:flex w-[180px] md:w-[240px] shadow-sm scale-95 opacity-40 pointer-events-none'
+                    ? 'w-[82vw] sm:w-120 md:w-140 shadow-lg scale-100 opacity-100'
+                    : 'hidden sm:flex w-45 md:w-60 shadow-sm scale-95 opacity-40 pointer-events-none'
                 }`}>
                   {active && slide.image && (
                     <div className="w-44 md:w-52 shrink-0">
@@ -332,9 +346,14 @@ export default function Home() {
               { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg', title: '5alas', sub: 'Fresh looks inspired by MARIANA' },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false }} transition={{ duration: 0.5, delay: 0.1 * i }} className="flex flex-row items-center gap-5">
-                <img src={item.img} alt={item.title} className="w-40 h-48 object-cover rounded-2xl shadow-lg flex-shrink-0" />
+                <img src={item.img} alt={item.title} className="w-40 h-48 object-cover rounded-2xl shadow-lg shrink-0" />
                 <div>
-                  <h3 className="text-xl font-light leading-snug">{item.title}</h3>
+                  <h3 
+                    className="text-xl font-light leading-snug"
+                    style={{ fontFamily: "'Fraunces', serif", fontWeight: 400 }}
+                  >
+                    {item.title}
+                  </h3>
                   <p className="text-gray-500 mt-2 text-sm leading-snug">{item.sub}</p>
                 </div>
               </motion.div>
@@ -344,15 +363,15 @@ export default function Home() {
           <div className="hidden md:grid grid-cols-2 gap-16 items-center">
             <div className="space-y-20">
               <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg" alt="Model 1" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
-                <div className="max-w-[220px]">
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg" alt="Model 1" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <div className="max-w-55">
                   <h3 className="text-3xl font-light">Shoflna ba2a kalam yat2al</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Effortless style meets everyday comfort</p>
                 </div>
               </motion.div>
               <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png" alt="Model 2" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
-                <div className="max-w-[220px]">
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png" alt="Model 2" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <div className="max-w-55">
                   <h3 className="text-3xl font-light">a2ol 7aga</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Light, breathable, and effortlessly elegant</p>
                 </div>
@@ -361,18 +380,18 @@ export default function Home() {
 
             <div className="space-y-20 lg:mt-90">
               <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
-                <div className="max-w-[220px] text-left">
+                <div className="max-w-55 text-left">
                   <h3 className="text-3xl font-light">3shan ana mesh 3raf</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Luxurious fabrics for the modern woman</p>
                 </div>
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg" alt="Model 3" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg" alt="Model 3" className="w-96 rounded-3xl shadow-xl shrink-0" />
               </motion.div>
               <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
-                <div className="max-w-[220px] text-right">
+                <div className="max-w-55 text-right">
                   <h3 className="text-3xl font-light">5alas</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">Fresh looks inspired by MARIANA</p>
                 </div>
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg" alt="Model 4" className="w-96 rounded-3xl shadow-xl flex-shrink-0" />
+                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg" alt="Model 4" className="w-96 rounded-3xl shadow-xl shrink-0" />
               </motion.div>
             </div>
           </div>
@@ -385,8 +404,8 @@ export default function Home() {
         <div className="hidden md:block absolute right-12 text-6xl text-[#f5e8d3] opacity-20 pointer-events-none">🌸</div>
 
         <div className="max-w-7xl mx-auto px-5 md:px-6">
-          <h2 className="text-center text-2xl md:text-4xl font-light tracking-widest mb-8 md:mb-16 text-[#3a2f2f]">
-            New This Week
+          <h2 className="font-heading-thin text-center text-2xl md:text-4xl tracking-widest mb-8 md:mb-16 text-[#3a2f2f]">
+            {t('home.newThisWeek')}
           </h2>
 
           {loading ? (
@@ -421,20 +440,20 @@ export default function Home() {
       {/* ==================== ABOUT ==================== */}
       <section className="py-14 md:py-24 bg-[#f8f4f0] relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-5 md:px-6 text-center relative z-10">
-          <h2 className="text-2xl md:text-4xl font-light tracking-widest mb-5 md:mb-6">About GEORIANA</h2>
+          <h2 className="font-heading-thin text-2xl md:text-4xl tracking-widest mb-5 md:mb-6">{t('home.aboutTitle')}</h2>
           <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            GEORIANA is a global fashion brand that brings the latest trends to life with exceptional quality and timeless feminine elegance.
+            {t('home.aboutText')}
           </p>
           <div className="grid grid-cols-2 gap-6 md:gap-12 mt-10 md:mt-16">
             <div>
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">🌸</div>
-              <h3 className="text-base md:text-xl font-medium">Timeless Style</h3>
-              <p className="text-gray-600 mt-2 text-sm md:text-base">Modern silhouettes with classic feminine appeal</p>
+              <h3 className="text-base md:text-xl font-medium">{t('home.timelessStyle')}</h3>
+              <p className="text-gray-600 mt-2 text-sm md:text-base">{t('home.timelessStyleDesc')}</p>
             </div>
             <div>
               <div className="text-4xl md:text-6xl mb-3 md:mb-4">🌿</div>
-              <h3 className="text-base md:text-xl font-medium">Sustainable Future</h3>
-              <p className="text-gray-600 mt-2 text-sm md:text-base">Committed to responsible and ethical fashion</p>
+              <h3 className="text-base md:text-xl font-medium">{t('home.sustainableFuture')}</h3>
+              <p className="text-gray-600 mt-2 text-sm md:text-base">{t('home.sustainableFutureDesc')}</p>
             </div>
           </div>
         </div>

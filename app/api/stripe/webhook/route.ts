@@ -47,7 +47,7 @@ export async function POST(req: Request) {
 
         // Send confirmation email here too, so it fires even if the user
         // closes the tab before the success page loads.
-        await supabase.functions.invoke('resend-email', {
+        await supabase.functions.invoke('bright-responder', {
           body: { order_id: orderId },
         }).catch(err => console.error('Email sending failed:', err));
       } else {

@@ -9,7 +9,10 @@ import { supabaseClient } from '../../../lib/supabaseClient';
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
-  const orderIdFromUrl = searchParams.get('order_id');
+  // const orderIdFromUrl = searchParams.get('order_id');
+  const rawMerchantOrderId = searchParams.get('merchant_order_id');
+  const orderIdFromUrl = searchParams.get('order_id') || rawMerchantOrderId?.replace(/-\d+$/, '');
+  const paymobSuccess = searchParams.get('success');
   const router = useRouter();
 
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -18,7 +21,8 @@ function CheckoutSuccessContent() {
 
   useEffect(() => {
     const confirmOrder = async () => {
-      let finalOrderId = orderIdFromUrl;
+      // let finalOrderId = orderIdFromUrl;
+      let finalOrderId: string | null = orderIdFromUrl ?? null;
 
       if (!finalOrderId) {
         finalOrderId = localStorage.getItem('last_created_order_id');
@@ -32,6 +36,23 @@ function CheckoutSuccessContent() {
 
       setLastOrderId(finalOrderId);
 
+      // try {
+      //   const { error: updateError } = await supabaseClient
+      //     .from('orders')
+      //     .update({ status: 'succeeded' })
+      //     .eq('id', finalOrderId);
+
+
+      // If Paymob explicitly says this attempt failed, don't mark the
+      // order succeeded just because the page loaded — show the error
+      // state instead. The webhook above is still the source of truth for
+      // actual status; this only prevents a false "success" screen.
+      if (paymobSuccess === 'false') {
+        setStatus('error');
+        setMessage('Payment was not completed. Please try again.');
+        return;
+      }
+
       try {
         const { error: updateError } = await supabaseClient
           .from('orders')
@@ -41,7 +62,7 @@ function CheckoutSuccessContent() {
         if (updateError) throw updateError;
 
         // Send email in background (non-blocking)
-        supabaseClient.functions.invoke('resend-email', {
+        supabaseClient.functions.invoke('bright-responder', {
           body: { order_id: finalOrderId }
         }).catch(err => {
           console.error('Email sending failed:', err);
@@ -128,7 +149,6 @@ function CheckoutSuccessContent() {
           )}
         </div>
       </div>
-      <Footer />
     </>
   );
 }

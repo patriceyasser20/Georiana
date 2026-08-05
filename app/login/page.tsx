@@ -34,7 +34,7 @@ export default function Login() {
     setLoading(true);
     setError('');
     const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider,
+      provider:'google',
       options: { redirectTo: `${window.location.origin}/callback` },
     });
     if (error) setError(error.message);
@@ -55,9 +55,9 @@ export default function Login() {
     if (authError) {
       if (authError.message.includes('Email not confirmed')) {
         setNeedsConfirmation(true);
-        setError('Please confirm your email first.');
+        setError(t('login.confirmEmailFirst'));
       } else {
-        setError('Invalid email or password');
+        setError(t('login.invalidEmailOrPassword'));
       }
       setLoading(false);
       return;
@@ -83,7 +83,7 @@ export default function Login() {
         return;
       }
 
-      setSuccess('Login successful!');
+      setSuccess(t('login.loginSuccessful'));
       router.push('/');
     }
 
@@ -95,7 +95,7 @@ export default function Login() {
     setLoading(true);
     const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
     if (error) setError(error.message);
-    else setSuccess('Confirmation email has been resent. Please check your inbox.');
+    else setSuccess(t('login.confirmationResent'));
     setLoading(false);
   };
 
@@ -131,7 +131,7 @@ export default function Login() {
 
             {needsConfirmation && (
               <button onClick={resendConfirmation} disabled={loading} className="w-full text-sm text-blue-600 underline">
-                Resend confirmation email
+                 {t('login.resendConfirmation')}
               </button>
             )}
 
@@ -149,7 +149,7 @@ export default function Login() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-500">Or continue with</span>
+              <span className="bg-white px-4 text-gray-500">{t('login.orContinueWith')}</span>
             </div>
           </div>
 
@@ -160,7 +160,7 @@ export default function Login() {
               className="w-full border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl flex items-center justify-center gap-3 transition"
             >
               <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-5" />
-              <span className="text-sm font-medium text-gray-700">Continue with Google</span>
+              <span className="text-sm font-medium text-gray-700">{t('login.continueWithGoogle')}</span>
             </button>
           </div>
 

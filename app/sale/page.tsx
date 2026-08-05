@@ -5,10 +5,12 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { supabaseClient } from '../../lib/supabaseClient';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function SalePage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const fetchSaleProducts = async () => {
@@ -30,7 +32,7 @@ export default function SalePage() {
       <div className="min-h-screen bg-gray-50 py-25">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center gap-4 mb-12">
-            <h1 className="text-5xl font-light tracking-widest text-red-600">SALE</h1>
+            <h1 className="text-5xl font-light tracking-widest text-red-600">{t('sale.SALE')}</h1>
           </div>
 
           {loading ? (

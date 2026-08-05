@@ -3,15 +3,16 @@
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
-import { createStripeCheckout } from '../actions/stripe';
+// import { createstripeCheckout } from '../actions/stripe';
 import { useRouter } from 'next/navigation';
 import { CreditCard, Truck } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { useTranslation } from '../context/LanguageContext';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { calculateAllOffers, type Offer } from '../../lib/offers';
+import { createPaymobPayment } from '../actions/paymob';
 
-type PaymentMethod = 'stripe' | 'fawry' | 'cod';
+type PaymentMethod = 'paymob' | 'fawry' | 'cod';
 
 export default function Checkout() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function Checkout() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('paymob');
 
   // Shipping form fields
   const [firstName, setFirstName] = useState('');
@@ -392,21 +393,37 @@ export default function Checkout() {
         finalTotal - (verifiedFirstOrderDiscount - firstOrderDiscountAmount)
       );
 
-      if (paymentMethod === 'stripe') {
-        const stripeItems = items.map(item => ({
+      if (paymentMethod === 'paymob') {
+        const paymobItems = items.map(item => ({
           name: item.name,
           price: Number(item.price),
           quantity: Number(item.quantity)
         }));
 
-        const result = await createStripeCheckout(reconciledTotal, stripeItems, orderId);
+        // const result = await createPaymobCheckout(reconciledTotal, paymobItems, orderId);
+
+        // if (result?.url) {
+        //   localStorage.setItem('last_created_order_id', orderId);
+        //   localStorage.removeItem('reviewOrder');
+        //   window.location.href = result.url;
+        // } else {
+        //   throw new Error("No paymob URL returned");
+        // }
+        const result = await createPaymobPayment(
+          reconciledTotal,
+          paymobItems,
+          orderId,
+          { firstName, lastName, email, phone, street, apartment, city: governorate },
+          appliedPromo?.code,
+          appliedPromo?.discount_percentage
+        );
 
         if (result?.url) {
           localStorage.setItem('last_created_order_id', orderId);
           localStorage.removeItem('reviewOrder');
           window.location.href = result.url;
         } else {
-          throw new Error("No Stripe URL returned");
+          throw new Error("No payment URL returned");
         }
       } else if (paymentMethod === 'cod') {
         localStorage.removeItem('reviewOrder');
@@ -502,11 +519,11 @@ export default function Checkout() {
               {/* Payment Methods */}
               <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.paymentMethod')}</h2>
               <div className="space-y-4">
-                <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'stripe' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
-                  <input type="radio" name="payment" checked={paymentMethod === 'stripe'} onChange={() => setPaymentMethod('stripe')} />
+                <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'paymob' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
+                  <input type="radio" name="payment" checked={paymentMethod === 'paymob'} onChange={() => setPaymentMethod('paymob')} />
                   <CreditCard size={26} />
                   <div>
-                    <p className="font-medium">{t('checkout.stripe')}</p>
+                    <p className="font-medium">{t('checkout.paymob')}</p>
                   </div>
                 </label>
 

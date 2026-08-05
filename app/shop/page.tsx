@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { ArrowUp } from 'lucide-react';
 import { getCached, setCached } from '../../lib/productCache';
 import { type Offer } from '../../lib/offers';
+import { useTranslation } from '../context/LanguageContext';
 
 export default function Shop() {
   const { formatPrice } = useCurrency();
@@ -19,6 +19,7 @@ export default function Shop() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showTopButton, setShowTopButton] = useState(false);
+  const { t } = useTranslation();
 
   // Fetch all products
   useEffect(() => {
@@ -34,10 +35,7 @@ export default function Shop() {
 
       const { data, error } = await supabaseClient
         .from('products')
-        .select(`
-          id, name, price, images, is_on_sale, discount_percentage, category, description, collection,
-          product_variants (is_on_sale, discount_percentage)
-        `)
+        .select('id, name, name_ar, price, images, is_on_sale, discount_percentage, category, collection, collection_ar')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -105,14 +103,14 @@ export default function Shop() {
       <Header />
       <div className="min-h-screen bg-gray-50 py-22 ">
         <div className="max-w-7xl mx-auto px-6 ">
-          <h1 className="text-5xl font-light tracking-widest mb-10">Shop</h1>
+          <h1 className="text-5xl font-light tracking-widest mb-10">{t('shop.title')}</h1>
 
           {/* Search Bar */}
           <div className="mb-10 max-w-xl">
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search products, categories..."
+                placeholder={t('shop.search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full border border-gray-300 rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-black placeholder-gray-400"
@@ -120,7 +118,7 @@ export default function Shop() {
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black"
+                  className="absolute end-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black"
                 >
                   ✕
                 </button>
@@ -129,10 +127,10 @@ export default function Shop() {
           </div>
 
           {loading ? (
-            <p className="text-center py-20">Loading products...</p>
+            <p className="text-center py-20">{t('shop.loading')}</p>
           ) : filteredProducts.length === 0 ? (
             <p className="text-center py-20 text-xl text-gray-500">
-              No products found for "{searchTerm}"
+              {t('shop.noResultsFor')} "{searchTerm}"
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4  gap-8">

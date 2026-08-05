@@ -148,8 +148,16 @@ export default function ProductDetail() {
     }
 
     const stock = getStock(selectedColor, selectedSize);
-    if (stock <= 0) { alert(t('product.outOfStock')); return; }
-    if (quantity > stock) { alert(t('product.onlyXAvailable').replace('{stock}', stock)); return; }
+
+    if (stock <= 0) {
+      alert(t('product.outOfStock'));
+      return;
+    }
+
+    if (quantity > stock) {
+      alert(t('product.onlyXAvailable').replace('{stock}', stock));
+      return;
+    }
 
     const newItem = {
       id: product.id,
@@ -161,19 +169,46 @@ export default function ProductDetail() {
       image_url: images[currentImageIndex] || '',
       size: selectedSize,
       color: selectedColor,
-      quantity: quantity,
-      category: product.category || null,     // ← ADD
-      collection: product.collection || null,  // ← ADD
+      quantity,
+      category: product.category || null,
+      collection: product.collection || null,
     };
 
     const saved = localStorage.getItem('reviewOrder');
     const currentItems = saved ? JSON.parse(saved) : [];
-    currentItems.push(newItem);
+
+    // Check if this exact product variant already exists
+    const existingIndex = currentItems.findIndex(
+      (item: any) =>
+        item.id === newItem.id &&
+        item.size === newItem.size &&
+        item.color === newItem.color
+    );
+
+    if (existingIndex !== -1) {
+      // Don't exceed available stock
+      const newQuantity =
+        currentItems[existingIndex].quantity + quantity;
+
+      if (newQuantity > stock) {
+        alert(t('product.onlyXAvailable').replace('{stock}', stock));
+        return;
+      }
+
+      currentItems[existingIndex].quantity = newQuantity;
+    } else {
+      currentItems.push(newItem);
+    }
+
     localStorage.setItem('reviewOrder', JSON.stringify(currentItems));
     localStorage.setItem('reviewOrderTimestamp', Date.now().toString());
+
     window.dispatchEvent(new Event('reviewOrderUpdated'));
 
-    const variant = variants.find(v => v.color === selectedColor && v.size === selectedSize);
+    const variant = variants.find(
+      (v) => v.color === selectedColor && v.size === selectedSize
+    );
+
     if (variant) {
       await supabaseClient.rpc('decrement_stock', {
         variant_id: variant.id,
@@ -253,7 +288,7 @@ export default function ProductDetail() {
                     <img
                       src={images[displayIndex]}
                       alt={product.name}
-                      className={`w-full aspect-[3/4.3] object-cover transition-all duration-300 group-hover:scale-95 cursor-zoom-in ${
+                      className={`w-full aspect-[3/4.3] object-cover transition-all duration-100 group-hover:scale-95 cursor-zoom-in ${
                         imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
                       }`}
                     />

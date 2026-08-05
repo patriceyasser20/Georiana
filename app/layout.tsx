@@ -18,6 +18,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..300&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body suppressHydrationWarning className="bg-white min-h-screen">
         <script dangerouslySetInnerHTML={{ __html: `
           try {

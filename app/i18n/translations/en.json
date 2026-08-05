@@ -10,6 +10,10 @@
     "language": "Language",
     "collections": "Collections"
   },
+  "collection": {
+    "label": "Collection",
+    "noProducts": "No products found in this collection."
+  },
   "category": {
     "t-shirts": "T-Shirts",
     "hoodies": "Hoodies",
@@ -28,7 +32,11 @@
     "handbags": "Handbags",
     "lingerie": "Lingerie",
     "swimwear": "Swimwear",
-    "activewear": "Activewear"
+    "activewear": "Activewear",
+    "vest": "Vest"
+  },
+  "sale":{
+    "SALE":"Sale"
   },
   "hero": {
     "spring2026": "SPRING 2026",
@@ -42,11 +50,20 @@
     "timelessStyle": "Timeless Style",
     "timelessStyleDesc": "Modern silhouettes with classic appeal",
     "sustainableFuture": "Sustainable Future",
-    "sustainableFutureDesc": "Committed to responsible and ethical fashion"
+    "sustainableFutureDesc": "Committed to responsible and ethical fashion",
+    "heroTitleLine1": "SPRING",
+    "heroTitleLine2": "2026",
+    "heroSubtitle": "Discover the new collection — designed for the modern woman.",
+    "limitedTime": "Limited Time",
+    "currentOffers": "Current Offers",
+    "onSale": "On Sale"
   },
   "shop": {
+    "title": "Shop",
     "allProducts": "All Products",
-    "search": "Search products..."
+    "search": "Search products, categories...",
+    "loading": "Loading products...",
+    "noResultsFor": "No products found for"
   },
   "product": {
     "selectSize": "Select Size",
@@ -76,7 +93,7 @@
     "city": "City",
     "country": "Country *",
     "selectCountry": "Select Country",
-    "stripe": "Credit / Debit Card (Stripe)",
+    "paymob": "Credit / Debit Card",
     "cod": "Cash on Delivery"
   },
   "reviewOrder": {
@@ -101,7 +118,41 @@
   },
   "returnExchange": {
     "title": "Return & Exchange",
-    "text": "We offer free returns within 30 days of purchase. Items must be unworn with tags attached."
+    "text": "We want you to shop with confidence. Please review our return and exchange policy below.",
+    "returnsTitle": "Returns",
+    "returnsText": "Returns are available.",
+    "exchangesTitle": "Exchanges",
+    "exchangesIntro": "Exchanges are available within the specified exchange period, provided the item is:",
+    "exchangeCondition1": "Unworn and unwashed",
+    "exchangeCondition2": "In its original condition with all tags attached",
+    "exchangeCondition3": "Returned in its original packaging",
+    "sizeTrialTitle": "Size Trial Service",
+    "sizeTrialText": "To help you find the perfect fit, we offer the option of sending more than one size for you to try. Additional shipping fees apply to this service. The unwanted size will be returned to the courier at the time of delivery.",
+    "inspectionTitle": "Inspection Before Payment",
+    "inspectionText": "You may inspect your order before accepting it. If you decide not to receive the order after inspection, only the shipping fee will be charged.",
+    "shippingFeesTitle": "Shipping Fees",
+    "shippingFeesText": "Shipping fees are non-refundable and apply to all deliveries, exchanges, and size trial services."
+  },
+  "press": {
+    "title": "Press",
+    "intro": "For press inquiries, brand partnerships, or media assets, we'd love to hear from you.",
+    "contactTitle": "Media Contact",
+    "contactText": "For interviews, collaborations, or press kit requests, please reach out to our team directly.",
+    "email": "press@georiana.com",
+    "assetsTitle": "Brand Assets",
+    "assetsText": "High-resolution logos, product imagery, and brand guidelines are available on request for approved press and media use."
+  },
+  "sustainability": {
+    "title": "Sustainability",
+    "intro": "At GEORIANA, sustainability isn't an afterthought — it's part of how we design.",
+    "fabricsTitle": "Thoughtful Materials",
+    "fabricsText": "We choose premium natural fabrics because we believe caring for the planet begins with what we put on our bodies. Selected collections incorporate recycled materials, giving existing resources a new purpose through considered design.",
+    "craftTitle": "Made to Last",
+    "craftText": "We create fewer, better pieces — designed with timeless silhouettes rather than fleeting trends, so they're worn for years, not seasons.",
+    "handmadeTitle": "Hand-Finished Details",
+    "handmadeText": "Many of our pieces are finished with delicate hand embroidery, a slower, more deliberate process that values craftsmanship over mass production.",
+    "commitmentTitle": "Our Ongoing Commitment",
+    "commitmentText": "Sustainability is a continuous journey. We're always looking for better materials, better processes, and better ways to reduce our footprint — while never compromising on quality or comfort."
   },
   "account": {
     "title": "My Account",
@@ -123,7 +174,14 @@
     "button": "LOG IN",
     "noAccount": "Don’t have an account?",
     "signUp": "Sign up",
-    "invalidCredentials": "Invalid login credentials"
+    "invalidCredentials": "Invalid login credentials",
+    "orContinueWith": "Or continue with",
+    "continueWithGoogle": "Continue with Google",
+    "confirmEmailFirst": "Please confirm your email first.",
+    "invalidEmailOrPassword": "Invalid email or password",
+    "resendConfirmation": "Resend confirmation email",
+    "confirmationResent": "Confirmation email has been resent. Please check your inbox.",
+    "loginSuccessful": "Login successful!"
   },
   "signup": {
     "title": "Sign up",
@@ -132,8 +190,35 @@
     "button": "CREATE ACCOUNT",
     "haveAccount": "Already have an account?",
     "login": "Log in",
-    "success": "✅ Account created! You can now log in.",
-    "OR":"Or Sign Up with"
+    "success": "✅ Account created! Please Verify your Account through Email",
+    "OR": "Or Sign Up with",
+    "createAccount": "Create your account",
+    "phone": "Phone number",
+    "phoneHint": "Phone must be 11 digits",
+    "phoneRequired": "Phone number must be exactly 11 digits",
+    "passwordHint": "Password (min 6 characters)",
+    "creatingAccount": "Creating account...",
+    "continueWithGoogle": "Continue with Google",
+    "emailAlreadyExists": "Email already exists",
+    "and": "and",
+    "alreadyExistsSingular": "already exists",
+    "alreadyExistsPlural": "already exist",
+    "phoneField": "Phone number",
+    "emailField": "Email",
+    "passwordMin": "At least 6 characters",
+    "passwordCapital": "Starts with a capital letter",
+    "passwordLetter": "Contains at least one letter",
+    "passwordNumber": "Contains at least one number"
+  },
+  "ourStory": {
+    "title": "Our Story",
+    "p1": "GEORIANA was created with a simple belief: everybody deserves to feel beautiful, comfortable, and confident.",
+    "p2": "We don't believe you have to fit your clothes — your clothes should fit you.",
+    "p3": "Our collections are thoughtfully designed for different body shapes, with timeless silhouettes that celebrate individuality rather than trends.",
+    "p4": "We choose premium natural fabrics because we believe caring for your body begins with what you wear. Quality, comfort, and craftsmanship guide every decision we make.",
+    "p5": "Many of our pieces are finished with delicate hand embroidery, while selected collections incorporate recycled materials, giving existing resources a new purpose through thoughtful design.",
+    "p6": "At GEORIANA, we create fewer, better pieces made to be loved, worn, and kept.",
+    "tagline": "Timeless by design. Crafted with purpose."
   },
   "footer": {
     "shop": "Shop",
@@ -159,7 +244,16 @@
     "emailPlaceholder": "Your email address",
     "subscribe": "SUBSCRIBE",
     "copyright": "© 2026 GEORIANA • All Rights Reserved",
-    "madeInEgypt": "Made in Egypt with ❤️"
+    "madeInEgypt": "Made in Egypt with ❤️",
+    "contactHeader": "CONTACT",
+    "location": "Cairo, Egypt",
+    "hoursDays": "Sat – Thu",
+    "hoursTime": "9:00 AM – 10:00 PM",
+    "brandTagline": "Modern women's fashion — designed for the woman who wears life intuitively.",
+    "contactEmail": "suppor@georiana.com",
+    "contactLocation":"Cairo, Egypt",
+    "contactHoursDays":"Saturday - Thursday",
+    "contactHoursTime":"9 am to 10 pm"
   },
   "common": {
     "loading": "Loading...",

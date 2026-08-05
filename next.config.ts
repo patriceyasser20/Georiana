@@ -1,5 +1,10 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
+
   images: {
     remotePatterns: [
       {
@@ -37,6 +42,7 @@ const nextConfig = {
     '*.ngrok-free.dev',
     '*.ngrok-free.app',
     '*.ngrok.io',
+    'https://cosponsor-clumsy-rust.ngrok-free.dev'
   ],
 
   compress: true,

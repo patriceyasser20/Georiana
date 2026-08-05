@@ -17,14 +17,14 @@ export default function Footer() {
             alt="GEORIANA"
             className="h-10 w-auto brightness-0 invert mb-4"
           />
-          <p className="text-sm text-gray-400 leading-relaxed max-w-[260px] mb-5">
-            Modern women's fashion — designed for the woman who wears life intuitively.
+          <p className="text-sm text-gray-400 leading-relaxed max-w-65 mb-5">
+            {t('footer.brandTagline')}
           </p>
           <div className="flex items-center gap-4">
             <a href="https://www.facebook.com/profile.php?id=61552738303653&mibextid=wwXIfr&rdid=uXmFuclixl3u7NSF&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DwuGFejMy%2F%3Fmibextid%3DwwXIfr#" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
               <img src="/images/facebook.webp" alt="Facebook" className="h-9 w-9 rounded-lg" />
             </a>
-            <a href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+            <a href="https://www.instagram.com/georiana_brand?igsh=eDFrbHM5dDliZHE=" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
               <img src="/images/instgram.webp" alt="Instagram" className="h-9 w-9 rounded-lg" />
             </a>
             <a href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
@@ -64,11 +64,13 @@ export default function Footer() {
               </ul>
             </div>
             <div>
-              <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">Contact</h3>
+              <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">
+                {t('footer.contactHeader')}
+              </h3>
               <ul className="space-y-2.5 text-sm text-gray-400">
-                <li>📧 support@georiana.com</li>
-                <li>📍 Cairo, Egypt</li>
-                <li>🕐 Sat–Thu 10AM–9PM</li>
+                <li>📧 <span dir="ltr" className="inline-block">{t('footer.contactEmail')}</span></li>
+                <li>📍 {t('footer.contactLocation')}</li>
+                <li>🕐 {t('footer.contactHoursDays')} {t('footer.contactHoursTime')}</li>
               </ul>
             </div>
           </div>
@@ -80,8 +82,8 @@ export default function Footer() {
           {/* Brand block */}
           <div className="flex flex-col items-start gap-5">
             <img src="/images/logo.svg" alt="GEORIANA" className="h-14 w-auto brightness-0 invert" />
-            <p className="text-sm text-gray-400 leading-relaxed max-w-[220px]">
-              Modern women's fashion — designed for the woman who wears life intuitively.
+            <p className="text-sm text-gray-400 leading-relaxed max-w-55">
+              {t('footer.brandTagline')}
             </p>
             <div className="flex items-center gap-3">
               <a href="https://www.facebook.com/profile.php?id=61552738303653&mibextid=wwXIfr&rdid=uXmFuclixl3u7NSF&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DwuGFejMy%2F%3Fmibextid%3DwwXIfr#" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
@@ -103,11 +105,8 @@ export default function Footer() {
             </h3>
             <ul className="space-y-3 text-sm">
               <li><Link href="/about" className="hover:text-white transition-colors">{t('footer.aboutUs')}</Link></li>
-              <li><a href="#" className="hover:text-white transition-colors">{t('footer.trackOrder')}</a></li>
-              <li><Link href="/customer-service" className="hover:text-white transition-colors">{t('footer.customerService')}</Link></li>
               <li><Link href="/return-exchange" className="hover:text-white transition-colors">{t('footer.returns')}</Link></li>
               <li><Link href="/size-guide" className="hover:text-white transition-colors">{t('footer.sizeGuide')}</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition-colors">{t('footer.contactUs')}</Link></li>
             </ul>
           </div>
 
@@ -117,28 +116,29 @@ export default function Footer() {
               {t('footer.aboutZara')}
             </h3>
             <ul className="space-y-3 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">{t('footer.ourStory')}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{t('footer.careers')}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
+              <li><Link href="/our-story" className="hover:text-white transition-colors">{t('footer.ourStory')}</Link></li>
+              <li><a href="/press" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
+              <li><a href="/sustainability" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-5">Contact</h3>
+            <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-5">
+              {t('footer.contactHeader')}
+            </h3>
             <ul className="space-y-3 text-sm text-gray-400">
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">📧</span>
-                <span>support@georiana.com</span>
+                <span dir="ltr" className="inline-block">{t('footer.contactEmail')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">📍</span>
-                <span>Cairo, Egypt</span>
+                <span>{t('footer.contactLocation')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">🕐</span>
-                <span>Sat – Thu<br />10:00 AM – 9:00 PM</span>
+                <span>{t('footer.contactHoursDays')}<br />{t('footer.contactHoursTime')}</span>
               </li>
             </ul>
           </div>

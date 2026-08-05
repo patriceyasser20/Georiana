@@ -12,12 +12,12 @@ import { getCached, setCached } from '../../lib/productCache';
 const languages = [
   { code: 'en', name: 'English' },
   { code: 'ar', name: 'Arabic' },
-  { code: 'zh', name: 'Chinese' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'ru', name: 'Russian' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'nl', name: 'Dutch' },
+  // { code: 'zh', name: 'Chinese' },
+  // { code: 'ja', name: 'Japanese' },
+  // { code: 'ru', name: 'Russian' },
+  // { code: 'es', name: 'Spanish' },
+  // { code: 'fr', name: 'French' },
+  // { code: 'nl', name: 'Dutch' },
 ];
 
 const slugify = (text: string) =>
@@ -74,47 +74,52 @@ export default function Header() {
       window.removeEventListener('reviewOrderUpdated', updateCount);
     };
   }, []);
-
   useEffect(() => {
     let channel: any = null;
+    let cancelled = false;
+    let handleWishlistUpdated: (() => void) | null = null;
+
+    const channelName = `wishlist-count-${Math.random().toString(36).slice(2)}`;
 
     const fetchCount = async (userId: string) => {
       const { count } = await supabaseClient
         .from('wishlist')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
-      setWishlistCount(count || 0);
+      if (!cancelled) setWishlistCount(count || 0);
     };
 
     const setupRealtime = async () => {
       const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) { setWishlistCount(0); return; }
+      if (!user) { if (!cancelled) setWishlistCount(0); return; }
 
       await fetchCount(user.id);
+      if (cancelled) return;
 
-      const handleWishlistUpdated = () => fetchCount(user.id);
+      handleWishlistUpdated = () => fetchCount(user.id);
       window.addEventListener('wishlistUpdated', handleWishlistUpdated);
 
       channel = supabaseClient
-        .channel('wishlist-count')
+        .channel(channelName)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'wishlist', filter: `user_id=eq.${user.id}` },
           () => fetchCount(user.id)
         )
         .subscribe();
-
-      return () => {
-        window.removeEventListener('wishlistUpdated', handleWishlistUpdated);
-      };
     };
 
-    let cleanup: any;
-    setupRealtime().then(fn => { cleanup = fn; });
+    setupRealtime();
 
     return () => {
-      if (cleanup) cleanup();
-      if (channel) supabaseClient.removeChannel(channel);
+      cancelled = true;
+      if (handleWishlistUpdated) {
+        window.removeEventListener('wishlistUpdated', handleWishlistUpdated);
+      }
+      if (channel) {
+        supabaseClient.removeChannel(channel);
+        channel = null;
+      }
     };
   }, []);
 
@@ -243,7 +248,7 @@ export default function Header() {
             </select>
 
             {/* Currency — desktop only */}
-            <select
+            {/* <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               className="hidden md:block bg-transparent border border-gray-300 rounded-full px-3 py-1 text-sm focus:outline-none cursor-pointer"
@@ -252,7 +257,7 @@ export default function Header() {
               {currencies.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
-            </select>
+            </select> */}
 
             {/* Cart */}
             {reviewCount > 0 && (

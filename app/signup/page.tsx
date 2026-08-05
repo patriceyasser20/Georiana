@@ -3,14 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useTranslation } from '../context/LanguageContext';
-import { Apple, Twitter } from 'lucide-react';
 
 export default function Signup() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,14 +17,41 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Helper to validate phone in real-time
   const isPhoneValid = phone.replace(/\D/g, '').length === 11;
+  const validatePassword = (password: string) => {
+    if (password.length < 6) {
+      return t('signup.passwordMin');
+    }
+
+    if (!/^[A-Z]/.test(password)) {
+      return t('signup.passwordCapital');
+    }
+
+    if (!/[A-Za-z]/.test(password)) {
+      return t('signup.passwordLetter');
+    }
+
+    if (!/\d/.test(password)) {
+      return t('signup.passwordNumber');
+    }
+
+    return '';
+  };
+
+  const passwordChecks = {
+    length: password.length >= 6,
+    capital: /^[A-Z]/.test(password),
+    letter: /[A-Za-z]/.test(password),
+    number: /\d/.test(password),
+  };
   const signInWithProvider = async (provider: 'google') => {
     setLoading(true);
     setError('');
     const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider,
+      provider:'google',
       options: { redirectTo: `${window.location.origin}/callback` },
     });
     if (error) setError(error.message);
@@ -36,11 +62,18 @@ export default function Signup() {
     setLoading(true);
     setError('');
     setSuccess('');
+    const passwordError = validatePassword(password);
+
+    if (passwordError) {
+      setError(passwordError);
+      setLoading(false);
+      return;
+    }
 
     // Validate phone number (11 digits)
     const cleanedPhone = phone.replace(/\D/g, '');
     if (cleanedPhone.length !== 11) {
-      setError('Phone number must be exactly 11 digits');
+      setError(t('signup.phoneRequired'));
       setLoading(false);
       return;
     }
@@ -60,11 +93,11 @@ export default function Signup() {
 
     // Prepare error message
     const errors = [];
-    if (existingPhone) errors.push('Phone number');
-    if (existingEmail) errors.push('Email');
+    if (existingPhone) errors.push(t('signup.phoneField'));
+    if (existingEmail) errors.push(t('signup.emailField'));
 
     if (errors.length > 0) {
-      setError(`${errors.join(' and ')} already ${errors.length > 1 ? 'exist' : 'exists'}`);
+       setError(`${errors.join(` ${t('signup.and')} `)} ${errors.length > 1 ? t('signup.alreadyExistsPlural') : t('signup.alreadyExistsSingular')}`);
       setLoading(false);
       return;
     }
@@ -74,7 +107,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        data: { phone: cleanedPhone }, // Saved in user_metadata
+        data: { phone: cleanedPhone }, // saved in metadata
         emailRedirectTo: `${window.location.origin}/callback`,
       },
     });
@@ -82,7 +115,7 @@ export default function Signup() {
     if (authError) {
       if (authError.message.toLowerCase().includes('already registered') ||
           authError.message.toLowerCase().includes('already exists')) {
-        setError('Email already exists');
+        setError(t('signup.emailAlreadyExists'));
       } else {
         setError(authError.message);
       }
@@ -96,7 +129,7 @@ export default function Signup() {
           phone: cleanedPhone
         });
 
-      setSuccess("✅ Account created successfully! Please check your email to confirm your account.");
+      setSuccess(t('signup.success'));
       setTimeout(() => {
         router.push('/login');
       }, 3500);
@@ -116,13 +149,13 @@ export default function Signup() {
               alt="GEORIANA" 
               className="h-30 mx-auto" 
             />
-            <p className="text-xl text-gray-500 mt-4">Create your account</p>
+             <p className="text-xl text-gray-500 mt-4">{t('signup.createAccount')}</p>
           </div>
 
           <div className="space-y-6">
             <input
               type="email"
-              placeholder="Email address"
+              placeholder={t('signup.email')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
@@ -130,35 +163,85 @@ export default function Signup() {
             <div>
               <input
                 type="tel"
-                placeholder="Phone number"
+                placeholder={t('signup.phone')}
                 value={phone}
                 onChange={(e) => {
                   const value = e.target.value.replace(/\D/g, '').slice(0, 11);
                   setPhone(value);
                 }}
-                className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
+                dir="ltr"
+                className={`border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black
+                  ${language === 'ar'
+                    ? 'text-right placeholder:text-right'
+                    : 'text-left placeholder:text-left'
+                  }`}
               />
               {phone && !isPhoneValid && (
-                <p className="text-red-500 text-xs mt-1">Phone must be 11 digits</p>
+                <p className="text-red-500 text-xs mt-1">{t('signup.phoneHint')}</p>
               )}
             </div>
-            <input
-              type="password"
-              placeholder="Password (min 6 characters)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
-            />
+            <div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder={t('signup.passwordHint')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black ${
+                    language === 'ar' ? 'pr-6 pl-14' : 'pl-6 pr-14'
+                  }`}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute top-1/2 -translate-y-1/2 text-gray-500 hover:text-black ${
+                    language === 'ar' ? 'left-5' : 'right-5'
+                  }`}
+                >
+                  {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+                </button>
+              </div>
+
+              {password && (
+                <div className="mt-3 text-sm space-y-1">
+                  <p className={passwordChecks.length ? "text-green-600" : "text-red-500"}>
+                    {passwordChecks.length ? "✓" : "✗"} {t('signup.passwordMin')}
+                  </p>
+
+                  <p className={passwordChecks.capital ? "text-green-600" : "text-red-500"}>
+                    {passwordChecks.capital ? "✓" : "✗"} {t('signup.passwordCapital')}
+                  </p>
+
+                  <p className={passwordChecks.letter ? "text-green-600" : "text-red-500"}>
+                    {passwordChecks.letter ? "✓" : "✗"} {t('signup.passwordLetter')}
+                  </p>
+
+                  <p className={passwordChecks.number ? "text-green-600" : "text-red-500"}>
+                    {passwordChecks.number ? "✓" : "✗"} {t('signup.passwordNumber')}
+                  </p>
+                </div>
+              )}
+            </div>
 
             {error && <p className="text-red-600 text-center font-medium">{error}</p>}
             {success && <p className="text-green-600 text-center font-medium">{success}</p>}
 
             <button
               onClick={handleSignup}
-              disabled={loading || !email || !password || !phone || !isPhoneValid}
+              disabled={
+                loading ||
+                !email ||
+                !phone ||
+                !isPhoneValid ||
+                !passwordChecks.length ||
+                !passwordChecks.capital ||
+                !passwordChecks.letter ||
+                !passwordChecks.number
+              }
               className="w-full bg-black text-white py-4 rounded-full text-sm tracking-widest hover:bg-gray-800 disabled:opacity-70 transition"
             >
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? t('signup.creatingAccount') : t('signup.button')}
             </button>
           </div>
 
@@ -168,7 +251,7 @@ export default function Signup() {
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="bg-white px-4 text-gray-500">Or sign up with</span>
+              <span className="bg-white px-4 text-gray-500">{t('signup.OR')}</span>
             </div>
           </div>
 
@@ -179,17 +262,17 @@ export default function Signup() {
               className="w-full border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl flex items-center justify-center gap-3 transition"
             >
               <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-5" />
-              <span className="text-sm font-medium text-gray-700">Continue with Google</span>
+              <span className="text-sm font-medium text-gray-700">{t('signup.continueWithGoogle')}</span>
             </button>
           </div>
 
           <div className="text-center mt-10 text-sm">
-            Already have an account?{' '}
+             {t('signup.haveAccount')}{' '}
             <span 
               onClick={() => router.push('/login')} 
               className="text-black underline cursor-pointer"
             >
-              Log in
+              {t('signup.login')}
             </span>
           </div>
         </div>

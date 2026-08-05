@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
-import Footer from '../components/Footer';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus, Tag } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
@@ -46,6 +45,43 @@ async function getNextSeqForType(typeCode: string): Promise<number> {
     }
   });
   return max + 1;
+}
+async function compressImage(file: File, maxWidth = 1600, quality = 0.82): Promise<File> {
+  let workingFile = file;
+  
+
+  // HEIC/HEIF isn't decodable by createImageBitmap in most browsers (Chrome, Firefox) —
+  // convert to JPEG first so the rest of the pipeline works everywhere.
+  const isHeic =
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    /\.hei[cf]$/i.test(file.name);
+
+  if (isHeic) {
+    const heic2any = (await import('heic2any')).default;
+    const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality });
+    const convertedBlob = Array.isArray(converted) ? converted[0] : converted;
+    workingFile = new File(
+      [convertedBlob],
+      file.name.replace(/\.hei[cf]$/i, '.jpg'),
+      { type: 'image/jpeg' }
+    );
+  }
+
+  const bitmap = await createImageBitmap(workingFile);
+  const scale = Math.min(1, maxWidth / bitmap.width);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width * scale;
+  canvas.height = bitmap.height * scale;
+
+  const ctx = canvas.getContext('2d')!;
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+  const blob: Blob = await new Promise((resolve) =>
+    canvas.toBlob((b) => resolve(b!), 'image/jpeg', quality)
+  );
+
+  return new File([blob], workingFile.name.replace(/\.\w+$/, '.jpg'), { type: 'image/jpeg' });
 }
 
 export default function AdminPanel() {
@@ -131,6 +167,38 @@ export default function AdminPanel() {
     ends_at: '',
   });
   const [savingOffer, setSavingOffer] = useState(false);
+
+  const markOrderAsShipped = async (order: any) => {
+    if (!confirm("Mark this order as shipped?")) return;
+
+    try {
+      // Update database
+      const { error } = await supabaseClient
+        .from("orders")
+        .update({
+          status: "shipped",
+        })
+        .eq("id", order.id);
+
+      if (error) throw error;
+
+      // Send email
+      await fetch("/api/send-shipped-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          order,
+        }),
+      });
+
+
+      loadData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
 
   // Auto-search as the SKU input changes, debounced 400ms so it doesn't
   // fire a query on every keystroke — only after typing pauses briefly.
@@ -323,8 +391,12 @@ export default function AdminPanel() {
     catch (err: any) { alert('Error: ' + err.message); }
   };
 
-  const addVariant = () => {
-    setVariants([...variants, { color: '', size: '', stock: 0, sku: '', typeCode: '', isOnSale: false, discountPercentage: 0 }]);
+  const addVariant = async (typeCode?: string) => {
+    let seq = 1;
+    if (typeCode) {
+      seq = await getNextSeqForType(typeCode);
+    }
+    setVariants([...variants, { color: '', size: '', stock: 0, sku: '', typeCode: typeCode || '', isOnSale: false, discountPercentage: 0 }]);
   };
   const removeNewImage = (index: number) => {
     setForm(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
@@ -341,16 +413,33 @@ export default function AdminPanel() {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
-  const addNewImages = (files: File[]) => {
-    const newItems: ImageItem[] = files.map(file => ({
-      key: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      type: 'new',
-      url: URL.createObjectURL(file),
-      file,
-      color: '', // '' = shows for every color (untagged / general shot)
-    }));
-    setImageItems(prev => [...prev, ...newItems]);
-  };
+  const addNewImages = async (files: File[]) => {
+  const results = await Promise.allSettled(files.map(f => compressImage(f)));
+
+  const compressed: File[] = [];
+  const failed: string[] = [];
+
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      compressed.push(r.value);
+    } else {
+      failed.push(`${files[i].name}: ${r.reason?.message || r.reason}`);
+    }
+  });
+
+  if (failed.length > 0) {
+    alert(`Some images couldn't be processed:\n${failed.join('\n')}`);
+  }
+
+  const newItems: ImageItem[] = compressed.map(file => ({
+    key: `new-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    type: 'new',
+    url: URL.createObjectURL(file),
+    file,
+    color: '',
+  }));
+  setImageItems(prev => [...prev, ...newItems]);
+};
 
 const setImageColor = (key: string, color: string) => {
   setImageItems(prev => prev.map(item => item.key === key ? { ...item, color } : item));
@@ -501,7 +590,7 @@ const handleDragEnd = () => setDraggedIndex(null);
         is_on_sale: form.isOnSale,
         discount_percentage: form.isOnSale ? Number(form.discountPercentage) || 0 : 0,
         images: imageUrls,           // ← thumbnail is imageUrls[0]
-        images_by_color: imagesByColor,  // ← this was missing
+        images_by_color: imagesByColor,
       };
 
       if (editingProduct) {
@@ -1101,6 +1190,20 @@ const handleDragEnd = () => setDraggedIndex(null);
                       <div className="mt-6 flex justify-between text-2xl font-medium border-t pt-6">
                         <span>Total</span>
                         <span>{orderFormatPrice(orderTotal)}</span>
+                      </div>
+                      <div className="mt-6 flex justify-end">
+                        {order.status !== "shipped" ? (
+                          <button
+                            onClick={() => markOrderAsShipped(order)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-medium transition"
+                          >
+                            🚚 Mark as Shipped
+                          </button>
+                        ) : (
+                          <div className="bg-emerald-100 text-emerald-700 px-5 py-3 rounded-xl font-medium">
+                            🚚 On the Way
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -1884,6 +1987,7 @@ const handleDragEnd = () => setDraggedIndex(null);
                   <option value="Swimwear">Swimwear</option>
                   <option value="Activewear">Activewear</option>
                   <option value="Candle">Candles</option>
+                  <option value="Vest">Vest</option>
                 </select>
               </div>
 
@@ -1942,9 +2046,9 @@ const handleDragEnd = () => setDraggedIndex(null);
                   type="file"
                   accept="image/*"
                   multiple
-                  onChange={(e) => {
-                    addNewImages(Array.from(e.target.files || []));
-                    e.target.value = ''; // allow re-selecting the same file later
+                  onChange={async (e) => {
+                    await addNewImages(Array.from(e.target.files || []));
+                    e.target.value = '';
                   }}
                   className="border rounded-2xl px-6 py-5 w-full text-lg"
                 />
@@ -1969,6 +2073,8 @@ const handleDragEnd = () => setDraggedIndex(null);
                         <img
                           src={item.url}
                           alt=""
+                          loading="lazy"
+                          decoding="async"
                           className={`w-full aspect-square object-cover rounded-xl border-2 pointer-events-none ${
                             i === 0 ? 'border-black' : item.type === 'new' ? 'border-emerald-400' : 'border-gray-200'
                           }`}
@@ -1998,7 +2104,7 @@ const handleDragEnd = () => setDraggedIndex(null);
                           onChange={(e) => setImageColor(item.key, e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           draggable={false}
-                          className="mt-2 w-full border rounded-lg px-2 py-1.5 text-xs bg-white"
+                          className="mt-2 w-full border rounded-lg px-9 py-1.5 text-xs bg-white"
                         >
                           <option value="">All Colors</option>
                           {[...new Set(variants.map(v => v.color?.trim()).filter(Boolean))].map((c) => (
@@ -2037,7 +2143,7 @@ const handleDragEnd = () => setDraggedIndex(null);
                 <div className="flex justify-between items-center mb-4">
                   <label className="block text-lg font-medium">Variants (Color + Type Code + SKU + Size + Stock)</label>
                   <button
-                    onClick={addVariant}
+                    onClick={() => addVariant()}
                     className="text-sm bg-black text-white px-6 py-2.5 rounded-2xl flex items-center gap-2 hover:bg-gray-800"
                   >
                     <Plus size={18} /> Add Variant
@@ -2062,6 +2168,7 @@ const handleDragEnd = () => setDraggedIndex(null);
                     <div><strong>HEE</strong> = Heels</div>
                     <div><strong>BAG</strong> = Bags</div>
                     <div><strong>CDL</strong> = Candles</div>
+                    <div><strong>VST</strong> = Vest</div>
                   </div>
                 </div>
 
