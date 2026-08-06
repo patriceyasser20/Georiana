@@ -17,12 +17,13 @@ export default function About() {
           <div className="grid items-center gap-8 md:gap-16 lg:grid-cols-2">
 
             {/* Image */}
-            <div className="relative h-[280px] sm:h-[380px] md:h-[500px] overflow-hidden rounded-lg shadow-lg">
+            <div className="flex justify-center">
               <Image
-                src="https://www.thefashionlaw.com/wp-content/uploads/2017/04/Steven-Meisel-ZARA-Spring-2017-1024x579.jpg"
+                src="/images/Gemini_Generated_Image_nnqt2gnnqt2gnnqt.png"
                 alt="Georiana Collection"
-                fill
-                className="object-cover"
+                width={700}
+                height={1000}
+                className="w-full max-w-[500px] h-auto"
                 priority
               />
             </div>

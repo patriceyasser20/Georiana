@@ -5,6 +5,14 @@ import Footer from './components/Footer';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { LanguageProvider } from './context/LanguageContext';
 import CustomerChatbot from './components/CustomerChatbot';
+import { Jost } from 'next/font/google';
+
+const jost = Jost({
+  subsets: ["cyrillic"],
+  weight: ['100','200','300', '400', '500', '600'],
+  variable: '--font-jost',
+});
+
 
 export const metadata: Metadata = {
   title: 'GEORIANA',
@@ -26,7 +34,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body suppressHydrationWarning className="bg-white min-h-screen">
+      <body suppressHydrationWarning className={`${jost.variable} font-sans bg-white min-h-screen`}>
         <script dangerouslySetInnerHTML={{ __html: `
           try {
             const TWO_HOURS = 2 * 60 * 60 * 1000;

@@ -177,7 +177,13 @@ export default function Header() {
               PART 2 — Navigation (centered)
           ════════════════════════════════ */}
           <div className="hidden md:flex flex-1 justify-center">
-            <nav className="flex items-center gap-8 text-md font-medium uppercase tracking-widest">
+            <nav
+              className={`flex items-center gap-8 font-medium ${
+                language === "ar"
+                  ? "text-lg tracking-normal"
+                  : "text-md uppercase tracking-widest"
+              }`}
+            >
 
               <Link href="/shop" className="hover:text-gray-500 transition">
                 {t('header.shop')}
@@ -369,7 +375,13 @@ export default function Header() {
             </div>
 
             {/* Nav links */}
-            <nav className="flex flex-col px-6 py-4 gap-0 text-sm font-medium uppercase tracking-widest flex-1">
+           <nav
+              className={`flex flex-col px-6 py-4 gap-0 font-medium flex-1 ${
+                language === "ar"
+                  ? "text-lg tracking-normal"
+                  : "text-sm uppercase tracking-widest"
+              }`}
+            >
 
               <Link href="/shop" className="py-4 border-b border-gray-100 hover:text-gray-500 transition" onClick={() => setMobileMenuOpen(false)}>
                 {t('header.shop')}

@@ -125,21 +125,48 @@
     "text": "Find your perfect fit with our detailed size charts."
   },
   "returnExchange": {
-    "title": "Return & Exchange",
-    "text": "We want you to shop with confidence. Please review our return and exchange policy below.",
-    "returnsTitle": "Returns",
-    "returnsText": "Returns are available.",
-    "exchangesTitle": "Exchanges",
-    "exchangesIntro": "Exchanges are available within the specified exchange period, provided the item is:",
-    "exchangeCondition1": "Unworn and unwashed",
-    "exchangeCondition2": "In its original condition with all tags attached",
-    "exchangeCondition3": "Returned in its original packaging",
-    "sizeTrialTitle": "Size Trial Service",
-    "sizeTrialText": "To help you find the perfect fit, we offer the option of sending more than one size for you to try. Additional shipping fees apply to this service. The unwanted size will be returned to the courier at the time of delivery.",
-    "inspectionTitle": "Inspection Before Payment",
-    "inspectionText": "You may inspect your order before accepting it. If you decide not to receive the order after inspection, only the shipping fee will be charged.",
-    "shippingFeesTitle": "Shipping Fees",
-    "shippingFeesText": "Shipping fees are non-refundable and apply to all deliveries, exchanges, and size trial services."
+    "title": "Return & Exchange Policy",
+    "text": "At Georiana, your satisfaction matters to us. This policy has been prepared in line with Egyptian Consumer Protection Law No. 181 of 2018 and its executive regulations, as well as the Consumer Protection Agency's rules for distance selling (e-commerce).",
+
+    "section1Title": "1. Right of Return (Change of Mind)",
+    "section1Text1": "Customers may return a product within 14 days of receiving it, without giving a reason, in line with the legal right of withdrawal for distance-selling contracts.",
+    "section1Text2": "The 14-day period starts from the actual date of delivery, not the date of purchase.",
+
+    "section2Title": "2. Conditions for Accepting a Return or Exchange",
+    "section2Intro": "For us to accept a return or exchange request, the product must be:",
+    "section2Condition1": "In its original condition, unused and unwashed.",
+    "section2Condition2": "In its original packaging with all accessories included.",
+    "section2Condition3": "Free of damage caused by customer misuse.",
+    "section2Condition4": "Accompanied by the purchase invoice or proof of order.",
+
+    "section3Title": "3. Defects or Shipping Errors",
+    "section3Intro": "If a customer receives a product that is:",
+    "section3Case1": "Defective or damaged,",
+    "section3Case2": "Or different from what was ordered (a shipping error),",
+    "section3Text": "the store will bear the full return or exchange shipping cost. This is a core customer right and remains valid even if the packaging has been opened.",
+    "section3Note": "Please report any defect or error within 48 hours of delivery, along with photos of the product.",
+
+    "section4Title": "4. Who Covers the Shipping Cost?",
+    "section4TableHeaderParty": "Situation",
+    "section4TableHeaderCase": "Who Covers Shipping",
+    "section4Row1Party": "Product defect or a mistake by the store",
+    "section4Row1Case": "The Store",
+    "section4Row2Party": "Change of mind / wrong size",
+    "section4Row2Case": "The Customer",
+
+    "section5Title": "5. How to Request a Return or Exchange",
+    "section5Step1": "Contact us by phone/WhatsApp: +201096963387 or email: support@georiana.com with your order number within the specified period.",
+    "section5Step2": "We will confirm your request and send return shipping instructions (or arrange a pickup from your address, depending on store policy).",
+    "section5Step3": "Once the product is inspected and confirmed to meet the conditions, the return or exchange will be processed within a maximum of 2 business days.",
+
+    "section6Title": "6. Refund Process",
+    "section6Text1": "Refunds are issued using the same payment method the customer used (bank transfer, e-wallet, credit card), within a maximum of 14 business days from the date the returned product is received and confirmed to meet the conditions.",
+    "section6Text2": "For Cash on Delivery (COD) orders, refunds are issued via bank transfer or an e-wallet specified by the customer.",
+    "section6Text3": "No additional fees are deducted from the refund amount unless shipping cost is payable by the customer as described in Section 4.",
+
+    "section7Title": "7. Exchanges",
+    "section7Text1": "Products may be exchanged for a different size or color (subject to availability) within the same 14-day period and under the same conditions outlined above.",
+    "section7Text2": "If the requested alternative is unavailable, we will contact the customer to choose another option or process a refund."
   },
   "press": {
     "title": "Press",

@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useTranslation } from '../context/LanguageContext';
 
 export default function Footer() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+
+  const isArabic = language === "ar";
 
   return (
     <footer className="bg-[#111] text-[#ddd] pt-12 md:pt-24 pb-8">
@@ -40,7 +42,7 @@ export default function Footer() {
             <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">
               {t('footer.help')}
             </h3>
-            <ul className="space-y-2.5 text-sm">
+            <ul className={`space-y-3 ${isArabic ? "text-base" : "text-lg"}`}>
               <li><Link href="/about" className="hover:text-white transition-colors">{t('footer.aboutUs')}</Link></li>
               <li><Link href="/return-exchange" className="hover:text-white transition-colors">{t('footer.returns')}</Link></li>
               <li><Link href="/size-guide" className="hover:text-white transition-colors">{t('footer.sizeGuide')}</Link></li>
@@ -53,7 +55,7 @@ export default function Footer() {
               <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-4">
                 {t('footer.aboutZara')}
               </h3>
-              <ul className="space-y-2.5 text-sm">
+              <ul className={`space-y-3 ${isArabic ? "text-base" : "text-sm"}`}>
                 <li><a href="/our-story" className="hover:text-white transition-colors">{t('footer.ourStory')}</a></li>
                 <li><a href="/press" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
                 <li><a href="/sustainability" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
@@ -99,7 +101,7 @@ export default function Footer() {
             <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-5">
               {t('footer.help')}
             </h3>
-            <ul className="space-y-3 text-sm">
+            <ul className={`space-y-3 ${isArabic ? "text-base" : "text-sm"}`}>
               <li><Link href="/about" className="hover:text-white transition-colors">{t('footer.aboutUs')}</Link></li>
               <li><Link href="/return-exchange" className="hover:text-white transition-colors">{t('footer.returns')}</Link></li>
               <li><Link href="/size-guide" className="hover:text-white transition-colors">{t('footer.sizeGuide')}</Link></li>
@@ -111,7 +113,7 @@ export default function Footer() {
             <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-5">
               {t('footer.aboutZara')}
             </h3>
-            <ul className="space-y-3 text-sm">
+            <ul className={`space-y-3 ${isArabic ? "text-base" : "text-sm"}`}>
               <li><Link href="/our-story" className="hover:text-white transition-colors">{t('footer.ourStory')}</Link></li>
               <li><a href="/press" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
               <li><a href="/sustainability" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
@@ -123,7 +125,7 @@ export default function Footer() {
             <h3 className="text-white text-xs font-semibold uppercase tracking-[0.15em] mb-5">
               {t('footer.contactHeader')}
             </h3>
-            <ul className="space-y-3 text-sm text-gray-400">
+            <ul className={`space-y-3 ${isArabic ? "text-base" : "text-sm"}`}>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">📧</span>
                 <span dir="ltr" className="inline-block">{t('footer.contactEmail')}</span>

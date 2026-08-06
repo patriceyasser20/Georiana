@@ -10,6 +10,7 @@ import { supabaseClient } from '../lib/supabaseClient';
 import { useTranslation } from './context/LanguageContext';
 import { getCached, setCached } from '../lib/productCache';
 import { type Offer, isOfferLive, offerBadgeText } from '../lib/offers';
+import Image from "next/image";
 
 export default function Home() {
   const { t } = useTranslation();
@@ -201,8 +202,8 @@ export default function Home() {
           <div className="flex flex-col-reverse md:grid md:grid-cols-2 md:gap-12 items-center gap-8">
             <div className="space-y-5 md:space-y-10 text-center md:text-start pb-8 md:pb-0">
               <h1
-                className="text-5xl sm:text-6xl md:text-[5.5rem] leading-none tracking-widest text-[#3a2f2f]"
-                style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}
+                className="text-5xl sm:text-6xl md:text-[5.5rem] font-light leading-none tracking-widest text-[#3a2f2f]"
+                style={{ fontFamily: "'Inter', sans-serif" }}
               >
                 {t('home.heroTitleLine1')}
                 
@@ -220,10 +221,15 @@ export default function Home() {
             </div>
 
             <div className="relative w-full max-w-5xl">
-              <img
-                src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_8523.JPG.jpeg"
+              <Image
+                src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_8523.JPG.jpg"
                 alt="Spring 2026 Woman"
-                className="rounded-2xl md:rounded-3xl shadow-2xl w-full object-cover max-h-[70vw] md:max-h-none"
+                width={1200}
+                height={800}
+                priority
+                quality={90}
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="rounded-2xl md:rounded-3xl shadow-2xl w-full h-auto object-cover max-h-[70vw] md:max-h-none"
               />
             </div>
           </div>
