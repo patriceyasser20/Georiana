@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslation } from '../context/LanguageContext';
+import { FaWhatsapp } from "react-icons/fa";
 
 export default function Footer() {
   const { t, language } = useTranslation();
@@ -130,9 +131,17 @@ export default function Footer() {
                 <span className="mt-0.5">📧</span>
                 <span dir="ltr" className="inline-block">{t('footer.contactEmail')}</span>
               </li>
-              <li className="flex items-start gap-2">
-                <span className="mt-0.5">📍</span>
-                <span>{t('footer.contactLocation')}</span>
+              <li className="flex items-center gap-2">
+                <FaWhatsapp className="text-[#25D366] text-xl flex-shrink-0" />
+                <a
+                  href="https://wa.me/201234567890"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                  dir="ltr"
+                >
+                  +20 109 696 3387
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">🕐</span>
