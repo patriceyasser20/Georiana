@@ -523,13 +523,13 @@ export default function Checkout() {
               {/* Payment Methods */}
               <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.paymentMethod')}</h2>
               <div className="space-y-4">
-                <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'paymob' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
+                {/* <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'paymob' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
                   <input type="radio" name="payment" checked={paymentMethod === 'paymob'} onChange={() => setPaymentMethod('paymob')} />
                   <CreditCard size={26} />
                   <div>
                     <p className="font-medium">{t('checkout.paymob')}</p>
                   </div>
-                </label>
+                </label> */}
 
                 <label className={`flex items-center gap-4 p-5 border rounded-2xl cursor-pointer transition ${paymentMethod === 'cod' ? 'border-black bg-gray-50' : 'border-gray-200 hover:border-gray-400'}`}>
                   <input type="radio" name="payment" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} />
