@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabaseClient } from '../../../../lib/supabaseClient';
 import { Check, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { adminApi } from '../../../../lib/adminApi';
 
 // Default cities per country — extend as needed
 const DEFAULT_CITIES: Record<string, string[]> = {
@@ -70,7 +71,6 @@ export default function ShippingCityManager() {
   const init = async () => {
     setLoading(true);
 
-    // Get country name
     const { data: countryData } = await supabaseClient
       .from('supported_countries')
       .select('name')
@@ -79,17 +79,11 @@ export default function ShippingCityManager() {
 
     setCountryName(countryData?.name || countryCode);
 
-    // Load existing cities from DB
-    const { data: existingCities } = await supabaseClient
-      .from('free_shipping_cities')
-      .select('*')
-      .eq('country_code', countryCode)
-      .order('city_name');
+    const { data: existingCities } = await adminApi.getShippingCities(countryCode);
 
     if (existingCities && existingCities.length > 0) {
       setCities(existingCities);
     } else {
-      // Seed with defaults if nothing exists yet for this country
       const defaults = DEFAULT_CITIES[countryCode] || [];
       if (defaults.length > 0) {
         const toInsert = defaults.map((city) => ({
@@ -97,10 +91,7 @@ export default function ShippingCityManager() {
           city_name: city,
           is_free_shipping: false,
         }));
-        const { data: inserted } = await supabaseClient
-          .from('free_shipping_cities')
-          .insert(toInsert)
-          .select();
+        const { data: inserted } = await adminApi.seedShippingCities(toInsert);
         setCities(inserted || []);
       } else {
         setCities([]);
@@ -112,25 +103,25 @@ export default function ShippingCityManager() {
 
   const toggleCity = async (id: string, current: boolean) => {
     setSaving(true);
-    await supabaseClient
-      .from('free_shipping_cities')
-      .update({ is_free_shipping: !current })
-      .eq('id', id);
-
-    setCities((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, is_free_shipping: !current } : c))
-    );
+    try {
+      await adminApi.updateShippingCity(id, { is_free_shipping: !current });
+      setCities((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, is_free_shipping: !current } : c))
+      );
+    } catch (err: any) {
+      alert('Failed to update: ' + err.message);
+    }
     setSaving(false);
   };
 
   const toggleAll = async (enable: boolean) => {
     setSaving(true);
-    await supabaseClient
-      .from('free_shipping_cities')
-      .update({ is_free_shipping: enable })
-      .eq('country_code', countryCode);
-
-    setCities((prev) => prev.map((c) => ({ ...c, is_free_shipping: enable })));
+    try {
+      await adminApi.toggleAllShippingCities(countryCode, enable);
+      setCities((prev) => prev.map((c) => ({ ...c, is_free_shipping: enable })));
+    } catch (err: any) {
+      alert('Failed to update: ' + err.message);
+    }
     setSaving(false);
   };
 
@@ -146,32 +137,31 @@ export default function ShippingCityManager() {
       return;
     }
 
-    const { data, error } = await supabaseClient
-      .from('free_shipping_cities')
-      .insert({
+    try {
+      const { data } = await adminApi.insertShippingCity({
         country_code: countryCode,
         city_name: name,
         is_free_shipping: false,
         delivery_fee: newCityFee || 0,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      alert('Failed to add city: ' + error.message);
-    } else {
+      });
       setCities((prev) =>
         [...prev, data].sort((a, b) => a.city_name.localeCompare(b.city_name))
       );
       setNewCityInput('');
       setNewCityFee(0);
+    } catch (err: any) {
+      alert('Failed to add city: ' + err.message);
     }
   };
 
   const deleteCity = async (id: string) => {
     if (!confirm('Remove this city from the list?')) return;
-    await supabaseClient.from('free_shipping_cities').delete().eq('id', id);
-    setCities((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await adminApi.deleteShippingCity(id);
+      setCities((prev) => prev.filter((c) => c.id !== id));
+    } catch (err: any) {
+      alert('Failed to delete: ' + err.message);
+    }
   };
 
   const freeCount = cities.filter((c) => c.is_free_shipping).length;
@@ -287,14 +277,14 @@ export default function ShippingCityManager() {
                           placeholder="0"
                           onChange={async (e) => {
                             const fee = Number(e.target.value);
-                            // Optimistic update
                             setCities(prev =>
                               prev.map(c => c.id === city.id ? { ...c, delivery_fee: fee } : c)
                             );
-                            await supabaseClient
-                              .from('free_shipping_cities')
-                              .update({ delivery_fee: fee })
-                              .eq('id', city.id);
+                            try {
+                              await adminApi.updateShippingCity(city.id, { delivery_fee: fee });
+                            } catch (err: any) {
+                              console.error('Failed to update fee:', err);
+                            }
                           }}
                           className="w-16 border rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:border-black"
                         />

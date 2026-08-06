@@ -44,4 +44,11 @@ export const adminApi = {
                                                                const res = await call('get-featured', { section });
                                                                return (res.data || []).map((r: any) => r.product_id);
                                                              },
+  getShippingCities:     (countryCode: string)              => call('get-shipping-cities', { countryCode }),
+  seedShippingCities:    (cities: any[])                     => call('seed-shipping-cities', { cities }),
+  insertShippingCity:    (payload: any)                      => call('insert-shipping-city', payload),
+  updateShippingCity:    (id: string, data: any)             => call('update-shipping-city', { id, ...data }),
+  deleteShippingCity:    (id: string)                        => call('delete-shipping-city', { id }),
+  toggleAllShippingCities: (countryCode: string, enable: boolean) =>
+                                                                  call('toggle-all-shipping-cities', { countryCode, enable }),
 };

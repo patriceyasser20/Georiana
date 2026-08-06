@@ -105,6 +105,58 @@ export async function POST(req: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ ok: true });
       }
+      case 'insert-shipping-city': {
+        const { data, error } = await supabase
+          .from('free_shipping_cities')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        return NextResponse.json({ data });
+      }
+      case 'update-shipping-city': {
+        const { id, ...rest } = payload;
+        const { error } = await supabase
+          .from('free_shipping_cities')
+          .update(rest)
+          .eq('id', id);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+      case 'delete-shipping-city': {
+        const { error } = await supabase
+          .from('free_shipping_cities')
+          .delete()
+          .eq('id', payload.id);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+      case 'toggle-all-shipping-cities': {
+        const { countryCode, enable } = payload;
+        const { error } = await supabase
+          .from('free_shipping_cities')
+          .update({ is_free_shipping: enable })
+          .eq('country_code', countryCode);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
+      case 'get-shipping-cities': {
+        const { data, error } = await supabase
+          .from('free_shipping_cities')
+          .select('*')
+          .eq('country_code', payload.countryCode)
+          .order('city_name');
+        if (error) throw error;
+        return NextResponse.json({ data });
+      }
+      case 'seed-shipping-cities': {
+        const { data, error } = await supabase
+          .from('free_shipping_cities')
+          .insert(payload.cities)
+          .select();
+        if (error) throw error;
+        return NextResponse.json({ data });
+      }
 
       // ── Featured products (Home Page tab) ───────────────────────────────
       // These previously went straight through the browser's anon-key
