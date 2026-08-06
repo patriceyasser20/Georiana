@@ -39,24 +39,32 @@
     "SALE":"Sale"
   },
   "hero": {
-    "spring2026": "SPRING 2026",
+    "spring2026": "Wear Intuitively",
     "discover": "Discover the new collection",
     "shopNow": "SHOP NOW"
   },
   "home": {
     "newThisWeek": "New This Week",
     "aboutTitle": "About GEORIANA",
-    "aboutText": "GEORIANA is a global fashion brand that brings the latest trends to life with exceptional quality and timeless elegance.",
+    "aboutText": "GEORIANA is a local fashion brand that brings the latest trends to life with exceptional quality and timeless elegance.",
     "timelessStyle": "Timeless Style",
     "timelessStyleDesc": "Modern silhouettes with classic appeal",
     "sustainableFuture": "Sustainable Future",
     "sustainableFutureDesc": "Committed to responsible and ethical fashion",
-    "heroTitleLine1": "SPRING",
+    "heroTitleLine1": "Wear Intuitively",
     "heroTitleLine2": "2026",
-    "heroSubtitle": "Discover the new collection — designed for the modern woman.",
+    "heroSubtitle": "Natural fabrics. Timeless pieces. Buy less, wear longer.",
     "limitedTime": "Limited Time",
     "currentOffers": "Current Offers",
-    "onSale": "On Sale"
+    "onSale": "On Sale",
+    "zigzagTitle1":" Essentials",
+    "zigzagTitle2":"Natural fabrics",
+    "zigzagTitle3":"The Details",
+    "zigzagTitle4":"Signature Pieces",
+    "zigzagSub1":"Timeless elegance, made effortless.",
+    "zigzagSub2":"Natural fabrics. Elevated silhouettes.",
+    "zigzagSub3":"Crafted with intention.",
+    "zigzagSub4":"Designed to be remembered."
   },
   "shop": {
     "title": "Shop",
@@ -165,7 +173,16 @@
     "orderedItems": "Ordered Items:",
     "total": "Total",
     "cod": "Cash on Delivery",
-    "card": "Credit / Debit Card"
+    "card": "Credit / Debit Card",
+    "orderTotal": "Order Total",
+    "deliveryFee": "Delivery Fee",
+    "governorate": "Governorate:",
+    "free": "Free",
+    "discount": "Discount",
+    "confirmationSentTo": "Confirmation sent to",
+    "size": "Size",
+    "color": "Color",
+    "qty": "Qty"
   },
   "login": {
     "title": "Log in",

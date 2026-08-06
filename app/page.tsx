@@ -202,13 +202,10 @@ export default function Home() {
             <div className="space-y-5 md:space-y-10 text-center md:text-start pb-8 md:pb-0">
               <h1
                 className="text-5xl sm:text-6xl md:text-[5.5rem] leading-none tracking-widest text-[#3a2f2f]"
-                style={{ fontFamily: "'Fraunces', serif", fontWeight: 300 }}
+                style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}
               >
                 {t('home.heroTitleLine1')}
-                <br />
-                <span dir="ltr" className="inline-block tracking-normal mt-3 md:mt-4">
-                  {t('home.heroTitleLine2')}
-                </span>
+                
               </h1>
               <p className="text-base sm:text-lg md:text-2xl text-gray-600 max-w-md mx-auto md:mx-0">
                 {t('home.heroSubtitle')}
@@ -224,7 +221,7 @@ export default function Home() {
 
             <div className="relative w-full max-w-5xl">
               <img
-                src="https://www.thefashionlaw.com/wp-content/uploads/2017/04/Steven-Meisel-ZARA-Spring-2017-1024x579.jpg"
+                src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_8523.JPG.jpeg"
                 alt="Spring 2026 Woman"
                 className="rounded-2xl md:rounded-3xl shadow-2xl w-full object-cover max-h-[70vw] md:max-h-none"
               />
@@ -340,10 +337,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-5 md:px-6">
           <div className="flex flex-col gap-10 md:hidden">
             {[
-              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg', title: 'Shoflna ba2a kalam yat2al', sub: 'Effortless style meets everyday comfort' },
-              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png', title: 'a2ol 7aga', sub: 'Light, breathable, and effortlessly elegant' },
-              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg', title: '3shan ana mesh 3raf', sub: 'Luxurious fabrics for the modern woman' },
-              { img: 'https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg', title: '5alas', sub: 'Fresh looks inspired by MARIANA' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6746.PNG', title: 'Essentials', sub: 'Timeless elegance, made effortless.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6266.PNG', title: 'The details ', sub: 'Crafted with intention.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6093.PNG', title: 'Natural fabrics', sub: 'Natural fabrics. Elevated silhouettes.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6343.PNG', title: 'signature pieces ', sub: 'Designed to be remembered.' },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false }} transition={{ duration: 0.5, delay: 0.1 * i }} className="flex flex-row items-center gap-5">
                 <img src={item.img} alt={item.title} className="w-40 h-48 object-cover rounded-2xl shadow-lg shrink-0" />
@@ -363,17 +360,17 @@ export default function Home() {
           <div className="hidden md:grid grid-cols-2 gap-16 items-center">
             <div className="space-y-20">
               <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ModelMesh3rafLabsaEh.jpeg" alt="Model 1" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6746.PNG" alt="Model 1" className="w-96 rounded-3xl shadow-xl shrink-0" />
                 <div className="max-w-55">
-                  <h3 className="text-3xl font-light">Shoflna ba2a kalam yat2al</h3>
-                  <p className="text-gray-600 mt-3 text-lg leading-tight">Effortless style meets everyday comfort</p>
+                  <h3 className="text-3xl font-light">{t('home.zigzagTitle1')}</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub1')}</p>
                 </div>
               </motion.div>
               <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/ElMafrodVest.png" alt="Model 2" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6266.PNG" alt="Model 2" className="w-96 rounded-3xl shadow-xl shrink-0" />
                 <div className="max-w-55">
-                  <h3 className="text-3xl font-light">a2ol 7aga</h3>
-                  <p className="text-gray-600 mt-3 text-lg leading-tight">Light, breathable, and effortlessly elegant</p>
+                  <h3 className="text-3xl font-light">{t('home.zigzagTitle3')}</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub3')}</p>
                 </div>
               </motion.div>
             </div>
@@ -381,17 +378,17 @@ export default function Home() {
             <div className="space-y-20 lg:mt-90">
               <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
                 <div className="max-w-55 text-left">
-                  <h3 className="text-3xl font-light">3shan ana mesh 3raf</h3>
-                  <p className="text-gray-600 mt-3 text-lg leading-tight">Luxurious fabrics for the modern woman</p>
+                  <h3 className="text-3xl font-light">{t('home.zigzagTitle2')}</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub2')}</p>
                 </div>
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/modelWhiteDress.jpeg" alt="Model 3" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6093.PNG" alt="Model 3" className="w-96 rounded-3xl shadow-xl shrink-0" />
               </motion.div>
               <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
                 <div className="max-w-55 text-right">
-                  <h3 className="text-3xl font-light">5alas</h3>
-                  <p className="text-gray-600 mt-3 text-lg leading-tight">Fresh looks inspired by MARIANA</p>
+                  <h3 className="text-3xl font-light">{t('home.zigzagTitle4')}</h3>
+                  <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub4')}</p>
                 </div>
-                <img src="https://ilzijypghlyourydqhvt.supabase.co/storage/v1/object/public/product-images/NafsEl7agaBasLonMo5tlaf.jpeg" alt="Model 4" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6343.PNG" alt="Model 4" className="w-96 rounded-3xl shadow-xl shrink-0" />
               </motion.div>
             </div>
           </div>
@@ -441,7 +438,10 @@ export default function Home() {
       <section className="py-14 md:py-24 bg-[#f8f4f0] relative overflow-hidden">
         <div className="max-w-4xl mx-auto px-5 md:px-6 text-center relative z-10">
           <h2 className="font-heading-thin text-2xl md:text-4xl tracking-widest mb-5 md:mb-6">{t('home.aboutTitle')}</h2>
-          <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p 
+            className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed"
+            style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}
+          >
             {t('home.aboutText')}
           </p>
           <div className="grid grid-cols-2 gap-6 md:gap-12 mt-10 md:mt-16">

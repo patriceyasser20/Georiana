@@ -1066,7 +1066,10 @@ const handleDragEnd = () => setDraggedIndex(null);
                       <div className="flex flex-wrap justify-between gap-4 mb-6">
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Order #{order.id.slice(0, 8)}...</p>
-                          <p className="font-medium">Email: {order.user_email}</p>
+                          <p className="font-medium">Account Email: {order.user_email}</p>
+                          {order.contact_email && order.contact_email !== order.user_email && (
+                            <p className="font-medium text-blue-600">Confirmation sent to: {order.contact_email}</p>
+                          )}
                           <p className="font-medium">Phone: {order.phone || 'Not provided'}</p>
                           <p className="text-sm text-gray-500 mt-1">
                             {new Date(order.created_at).toLocaleString(undefined, {

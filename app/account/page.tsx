@@ -121,6 +121,11 @@ function AccountContent() {
                         hour12: true
                       })}
                     </p>
+                    {order.contact_email && order.contact_email !== order.user_email && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        {t('account.confirmationSentTo')} <span className="font-medium text-black">{order.contact_email}</span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-2 items-start justify-end">
@@ -140,7 +145,7 @@ function AccountContent() {
 
                     {isFreeShipping && (
                       <span className="px-5 py-2 rounded-full text-sm bg-emerald-100 text-emerald-700 font-medium">
-                        Free Shipping
+                        {t('account.free')}
                       </span>
                     )}
                   </div>
@@ -152,7 +157,7 @@ function AccountContent() {
                   <p>{order.city}</p>
                   {order.governorate && (
                     <p className="mt-1 font-medium">
-                      Governorate: <span className="text-black">{order.governorate}</span>
+                      {t('account.governorate')} <span className="text-black">{order.governorate}</span>
                     </p>
                   )}
                 </div>
@@ -172,7 +177,7 @@ function AccountContent() {
                       <div className="flex-1">
                         <p className="font-medium">{item.product_name}</p>
                         <p className="text-sm text-gray-500">
-                          Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
+                          {t('account.size')}: {item.size} • {t('account.color')}: {item.color} • {t('account.qty')}: {item.quantity}
                         </p>
                       </div>
                       <div className="text-right">
@@ -187,15 +192,15 @@ function AccountContent() {
                 <div className="mt-6 space-y-3">
                   {order.total && order.total > 0 && (
                     <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Order Total</span>
+                      <span className="text-gray-600">{t('account.orderTotal')}</span>
                       <span className="font-medium">{formatPrice(Number(order.total))}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-lg">
-                    <span className="text-gray-600">Delivery Fee</span>
+                    <span className="text-gray-600"> {t('account.deliveryFee')}</span>
                     {isFreeShipping ? (
-                      <span className="font-medium text-emerald-600">🚚 Free</span>
+                      <span className="font-medium text-emerald-600">🚚 {t('account.free')}</span>
                     ) : (
                       <span className="font-medium">{formatPrice(Number(order.delivery_fee))}</span>
                     )}
@@ -212,7 +217,7 @@ function AccountContent() {
 
                   {order.promo_code && (
                     <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Discount ({order.promo_code})</span>
+                      <span className="text-gray-600">{t('account.discount')} ({order.promo_code})</span>
                       <span className="font-medium text-red-600">
                         -{formatPrice(promoDiscountAmount)}
                       </span>
@@ -221,7 +226,7 @@ function AccountContent() {
 
                   {!order.promo_code && appliedOffers.length === 0 && Number(order.discount_amount) > 0 && (
                     <div className="flex justify-between text-lg">
-                      <span className="text-gray-600">Discount</span>
+                      <span className="text-gray-600">{t('account.discount')}</span>
                       <span className="font-medium text-red-600">
                         -{formatPrice(Number(order.discount_amount))}
                       </span>

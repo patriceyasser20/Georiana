@@ -42,11 +42,8 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2.5 text-sm">
               <li><Link href="/about" className="hover:text-white transition-colors">{t('footer.aboutUs')}</Link></li>
-              <li><a href="#" className="hover:text-white transition-colors">{t('footer.trackOrder')}</a></li>
-              <li><Link href="/customer-service" className="hover:text-white transition-colors">{t('footer.customerService')}</Link></li>
               <li><Link href="/return-exchange" className="hover:text-white transition-colors">{t('footer.returns')}</Link></li>
               <li><Link href="/size-guide" className="hover:text-white transition-colors">{t('footer.sizeGuide')}</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition-colors">{t('footer.contactUs')}</Link></li>
             </ul>
           </div>
 
@@ -57,10 +54,9 @@ export default function Footer() {
                 {t('footer.aboutZara')}
               </h3>
               <ul className="space-y-2.5 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.ourStory')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.careers')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
+                <li><a href="/our-story" className="hover:text-white transition-colors">{t('footer.ourStory')}</a></li>
+                <li><a href="/press" className="hover:text-white transition-colors">{t('footer.press')}</a></li>
+                <li><a href="/sustainability" className="hover:text-white transition-colors">{t('footer.sustainability')}</a></li>
               </ul>
             </div>
             <div>

@@ -296,6 +296,7 @@ export default function Checkout() {
         .insert({
           user_id: user?.id || null,
           user_email: orderEmail,
+          contact_email: email || orderEmail,
           phone: phone || null,
           total: subtotal,
           payment_method: paymentLabel,
@@ -341,11 +342,14 @@ export default function Checkout() {
       }
     } else {
       // Update existing order
+      // Update existing order
+      const updateOrderEmail = user?.email || email || 'guest@georgiana.com';
       const { error: updateError } = await supabaseClient
         .from('orders')
         .update({
           user_id: user?.id || null,
-          user_email: user?.email || email || 'guest@georgiana.com',
+          user_email: updateOrderEmail,
+          contact_email: email || updateOrderEmail,
           phone: phone || null,
           street: street || null,
           apartment: apartment || null,
