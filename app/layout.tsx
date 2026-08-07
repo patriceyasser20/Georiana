@@ -6,6 +6,7 @@ import { CurrencyProvider } from './context/CurrencyContext';
 import { LanguageProvider } from './context/LanguageContext';
 import CustomerChatbot from './components/CustomerChatbot';
 import { Jost } from 'next/font/google';
+import FirstOrderPopup from './components/FirstOrderPopup';
 
 const jost = Jost({
   subsets: ["cyrillic"],
@@ -60,6 +61,7 @@ export default function RootLayout({
           <CurrencyProvider>
             <Header />
             {children}
+            <FirstOrderPopup />
             <Footer />
             {/* <CustomerChatbot /> */}
           </CurrencyProvider>

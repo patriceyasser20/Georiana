@@ -73,11 +73,24 @@
     "selectSize": "اختر المقاس",
     "selectColor": "اختر اللون",
     "quantity": "الكمية",
-    "addToReviewOrder": "إضافة إلى مراجعة الطلب",
-    "addedToReviewOrder": "تمت الإضافة إلى مراجعة الطلب!",
+    "addToReviewOrder": "إضافة إلى السلة",
+    "addedToReviewOrder": "تمت الإضافة إلى السلة!",
     "outOfStock": "هذا المقاس واللون غير متوفر",
     "only": "فقط",
-    "itemsAvailable": "قطع متوفرة"
+    "itemsAvailable": "قطع متوفرة",
+    "deliveryAcrossEgypt1": "توصيل لجميع",
+    "deliveryAcrossEgypt2": "محافظات مصر",
+    "easyReturns1": "استرجاع ",
+    "easyReturns2": " واستبدال سهل",
+    "secureCheckout1": "دفع",
+    "secureCheckout2": "آمن"
+  },
+  "firstOrderPopup": {
+    "welcome": "أهلاً بك",
+    "title": "احصل على خصم ٥% على أول طلب",
+    "text": "أنشئ حسابًا مجانيًا وسيتم تطبيق خصم ٥% تلقائيًا عند الدفع.",
+    "cta": "سجّل واستفد من الخصم",
+    "noThanks": "لا شكرًا"
   },
   "checkout": {
     "title": "الدفع",

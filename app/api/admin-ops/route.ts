@@ -87,7 +87,14 @@ export async function POST(req: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ ok: true });
       }
-
+      case 'clear-collection': {
+        const { error } = await supabase
+          .from('products')
+          .update({ collection: null })
+          .eq('collection', payload.collection);
+        if (error) throw error;
+        return NextResponse.json({ ok: true });
+      }
       // ── Offers (Buy X Get Y deals) ──────────────────────────────────────
       case 'insert-offer': {
         const { error } = await supabase.from('offers').insert(payload);

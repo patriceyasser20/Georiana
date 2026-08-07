@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { supabaseClient } from '../../../lib/supabaseClient';
-import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
+
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -31,6 +32,7 @@ export default function ProductDetail() {
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [userHasReviewed, setUserHasReviewed] = useState(false);
+  const LIGHTBOX_ZOOM_SCALE = 2.00; //220%
   
 
   useEffect(() => {
@@ -117,7 +119,9 @@ export default function ProductDetail() {
   const [displayIndex, setDisplayIndex] = useState(0);
   const [isZooming, setIsZooming] = useState(false);
   const [zoomPos, setZoomPos] = useState({ x: 50, y: 50 }); // percentage
-  const [mobileZoomOpen, setMobileZoomOpen] = useState(false); // tap fallback for touch devices
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxZoomed, setLightboxZoomed] = useState(false);
+  const [lightboxZoomOrigin, setLightboxZoomOrigin] = useState({ x: 50, y: 50 });
 
   
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -283,7 +287,7 @@ export default function ProductDetail() {
                     onMouseEnter={() => setIsZooming(true)}
                     onMouseLeave={() => setIsZooming(false)}
                     onMouseMove={handleMouseMove}
-                    onClick={() => setMobileZoomOpen(true)}
+                    onClick={() => setLightboxOpen(true)}
                   >
                     <img
                       src={images[displayIndex]}
@@ -396,10 +400,23 @@ export default function ProductDetail() {
 
               {/* Description */}
               {product.description && (
-                <div className="mt-6 text-gray-600 leading-relaxed text-sm md:text-[15px] border-t pt-6">
+                <div className="mt-6 text-gray-600 leading-relaxed text-base md:text-lg whitespace-pre-line border-t pt-6">
                   {product.description}
                 </div>
               )}
+
+              {/* ── Parent SKU ── */}
+              {variants.length > 0 && variants[0]?.sku && (
+              <div className="mt-6 flex items-center gap-2">
+                <span className="text-l font-medium uppercase text-gray-900 whitespace-nowrap">
+                  SKU:
+                </span>
+
+                <span className="font-mono text-x tracking-wider text-gray-700 whitespace-nowrap">
+                  {variants[0].sku.split("-").slice(0, -2).join("-")}
+                </span>
+              </div>
+            )}
 
               {/* Color Selection */}
               <div className="mt-8">
@@ -513,6 +530,22 @@ export default function ProductDetail() {
                 {t('product.addToReviewOrder')}
               </button>
 
+              {/* ── Trust Badges ── */}
+              <div className="mt-8 grid grid-cols-3 gap-3 text-center">
+                <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl bg-gray-50">
+                  <Truck size={20} className="text-gray-500" />
+                  <span className="text-xs text-gray-600 leading-tight">{t('product.deliveryAcrossEgypt1')}<br />{t('product.deliveryAcrossEgypt2')}</span>
+                </div>
+                <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl bg-gray-50">
+                  <RotateCcw size={20} className="text-gray-500" />
+                  <span className="text-xs text-gray-600 leading-tight">{t('product.easyReturns1')}<br />{t('product.easyReturns2')}</span>
+                </div>
+                <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl bg-gray-50">
+                  <ShieldCheck size={20} className="text-gray-500" />
+                  <span className="text-xs text-gray-600 leading-tight">{t('product.secureCheckout1')}<br />{t('product.secureCheckout2')}</span>
+                </div>
+              </div>
+
               {/* ── Ratings & Reviews ── */}
               <div className="mt-12 md:mt-16 border-t pt-10 md:pt-12">
                 <h2 className="text-xl md:text-2xl font-light mb-6 md:mb-8">Ratings & Reviews</h2>
@@ -596,25 +629,59 @@ export default function ProductDetail() {
         </div>
       </div>
       {/* ── Mobile tap-to-zoom fallback ── */}
-      {mobileZoomOpen && (
+      {/* ── Click-to-zoom lightbox ── */}
+      {lightboxOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/90 z-[100] flex items-center justify-center px-4"
-          onClick={() => setMobileZoomOpen(false)}
+          className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center px-4"
+          onClick={() => { setLightboxOpen(false); setLightboxZoomed(false); }}
         >
           <button
-            onClick={() => setMobileZoomOpen(false)}
-            className="absolute top-6 right-6 text-white/80 hover:text-white"
+            onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); setLightboxZoomed(false); }}
+            className="absolute top-6 right-6 text-white/80 hover:text-white z-10"
             aria-label="Close"
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
-          <img
-            src={images[displayIndex]}
-            alt={product.name}
-            className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl"
-          />
+
+          <div
+            className="relative max-h-[90vh] max-w-[90vw] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={images[displayIndex]}
+              alt={product.name}
+              onClick={(e) => {
+                if (lightboxZoomed) {
+                  setLightboxZoomed(false);
+                  return;
+                }
+                const rect = e.currentTarget.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                setLightboxZoomOrigin({ x, y });
+                setLightboxZoomed(true);
+              }}
+              className={`max-h-[90vh] max-w-[90vw] object-contain rounded-xl transition-transform duration-300 ${
+                lightboxZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'
+              }`}
+              style={
+                lightboxZoomed
+                  ? {
+                      transform: `scale(${LIGHTBOX_ZOOM_SCALE})`,
+                      transformOrigin: `${lightboxZoomOrigin.x}% ${lightboxZoomOrigin.y}%`,
+                    }
+                  : undefined
+              }
+            />
+          </div>
+
+          {!lightboxZoomed && (
+            <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-xs pointer-events-none">
+              Click image to zoom in
+            </p>
+          )}
         </div>
       )}
     </>

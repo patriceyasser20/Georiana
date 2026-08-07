@@ -349,15 +349,15 @@ export default function AdminPanel() {
   const deleteCollection = async (colName: string) => {
     if (!confirm(`Delete collection "${colName}"?\n\nAll products will stay, but they will no longer belong to this collection.`)) return;
 
-    const { error } = await supabaseClient
-      .from('products')
-      .update({ collection: null })
-      .eq('collection', colName);
-
-    if (error) alert('Failed: ' + error.message);
-    else {
+    try {
+      await adminApi.clearCollection(colName);
       alert(`✅ Collection "${colName}" deleted. Products are kept.`);
+      invalidateCache('all-products');
+      invalidateCache('home-products');
+      invalidateCache('header-collections');
       loadData();
+    } catch (err: any) {
+      alert('Failed: ' + err.message);
     }
   };
 

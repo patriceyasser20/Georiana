@@ -55,9 +55,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const formatPrice = (egpPrice: number) => {
     const egpRate = rates.EGP || 48.5;
     const targetRate = rates[currency] || 1;
-    const converted = (egpPrice * (targetRate / egpRate)).toFixed(2);
+    const converted = Math.round(egpPrice * (targetRate / egpRate));
     const symbol = currencySymbols[currency] || `${currency} `;
-    return `${symbol}${converted}`;
+    return `${symbol}${converted.toLocaleString()}`;
   };
 
   // The live EGP → current-currency factor, exposed so callers (like
@@ -73,9 +73,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // they were actually placed in.
   const formatPriceAs = (egpPrice: number, orderCurrency: Currency, rate: number) => {
     const safeRate = rate && rate > 0 ? rate : 1;
-    const converted = (egpPrice * safeRate).toFixed(2);
+    const converted = Math.round(egpPrice * safeRate);
     const symbol = currencySymbols[orderCurrency] || `${orderCurrency} `;
-    return `${symbol}${converted}`;
+    return `${symbol}${converted.toLocaleString()}`;
   };
 
   // Auto-detect country + fetch exchange rates

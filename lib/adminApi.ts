@@ -20,6 +20,7 @@ async function call(action: string, payload: any) {
   return json;
 }
 
+
 export const adminApi = {
   insertProduct:         (payload: any)                   => call('insert-product',          payload),
   updateProduct:         (id: string, data: any)          => call('update-product',           { id, ...data }),
@@ -51,4 +52,5 @@ export const adminApi = {
   deleteShippingCity:    (id: string)                        => call('delete-shipping-city', { id }),
   toggleAllShippingCities: (countryCode: string, enable: boolean) =>
                                                                   call('toggle-all-shipping-cities', { countryCode, enable }),
+  clearCollection:       (collection: string)              => call('clear-collection',        { collection }),
 };

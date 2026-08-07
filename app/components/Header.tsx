@@ -74,6 +74,18 @@ export default function Header() {
       window.removeEventListener('reviewOrderUpdated', updateCount);
     };
   }, []);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = () => setIsAdmin(localStorage.getItem('isAdmin') === 'true');
+    checkAdmin();
+    // Keep in sync if login/logout happens in another tab, or right after
+    // the admin-token flow sets it in this same tab.
+    window.addEventListener('storage', checkAdmin);
+    return () => window.removeEventListener('storage', checkAdmin);
+  }, [user]); // re-check whenever auth state changes (login/logout)
+
   useEffect(() => {
     let channel: any = null;
     let cancelled = false;
@@ -167,7 +179,7 @@ export default function Header() {
             <Link href="/" className="flex items-end gap-3">
               <img src="/images/logo.svg" alt="GEORIANA" className="h-16 md:h-18 w-auto" />
               <span className="hidden md:block text-gray-400 text-base leading-none mb-1">·</span>
-              <span className="hidden md:block text-[9px] tracking-[0.35em] uppercase text-gray-500 font-light mb-1">
+              <span className="hidden md:block text-[12px] tracking-[0.35em] uppercase text-gray-900 font-light mb-1">
                 Wear Intuitively
               </span>
             </Link>
@@ -295,8 +307,8 @@ export default function Header() {
               <div className="hidden md:flex items-center gap-4" suppressHydrationWarning>
                 {user ? (
                   <>
-                    <Link href="/account" className="text-sm hover:text-gray-500 transition">
-                      {t('header.account')}
+                    <Link href={isAdmin ? '/admin' : '/account'} className="text-sm hover:text-gray-500 transition">
+                      {isAdmin ? 'Admin' : t('header.account')}
                     </Link>
                     <button
                       onClick={handleSignOut}
@@ -449,9 +461,9 @@ export default function Header() {
               {!loading && (
                 user ? (
                   <div className="flex flex-col gap-4">
-                    <Link href="/account" className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition" onClick={() => setMobileMenuOpen(false)} suppressHydrationWarning>
+                    <Link href={isAdmin ? '/admin' : '/account'} className="flex items-center gap-3 text-sm font-medium hover:text-gray-600 transition" onClick={() => setMobileMenuOpen(false)} suppressHydrationWarning>
                       <User size={18} />
-                      {t('header.account')}
+                      {isAdmin ? 'Admin' : t('header.account')}
                     </Link>
                     <button onClick={handleSignOut} className="flex items-center gap-3 text-sm font-medium text-gray-400 hover:text-black transition" suppressHydrationWarning>
                       <LogOut size={18} />

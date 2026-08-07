@@ -33,7 +33,7 @@
     "lingerie": "Lingerie",
     "swimwear": "Swimwear",
     "activewear": "Activewear",
-    "vest": "Vest"
+    "vest": "Vests"
   },
   "sale":{
     "SALE":"Sale"
@@ -73,15 +73,28 @@
     "loading": "Loading products...",
     "noResultsFor": "No products found for"
   },
-  "product": {
+ "product": {
     "selectSize": "Select Size",
     "selectColor": "Select Color",
     "quantity": "Quantity",
-    "addToReviewOrder": "ADD TO REVIEW ORDER",
-    "addedToReviewOrder": "Added to Review Order!",
+    "addToReviewOrder": "ADD TO CART",
+    "addedToReviewOrder": "Added to Cart!",
     "outOfStock": "This size and color combination is out of stock",
     "only": "Only",
-    "itemsAvailable": "items available"
+    "itemsAvailable": "items available",
+    "deliveryAcrossEgypt1": "Delivery",
+    "deliveryAcrossEgypt2": "across Egypt",
+    "easyReturns1": "Easy returns ",
+    "easyReturns2": " & exchanges",
+    "secureCheckout1": "Secure",
+    "secureCheckout2": "checkout"
+  },
+  "firstOrderPopup": {
+    "welcome": "Welcome",
+    "title": "Get 5% Off Your First Order",
+    "text": "Create a free account and 5% off is applied automatically at checkout.",
+    "cta": "Sign Up Now",
+    "noThanks": "No thanks"
   },
   "checkout": {
     "title": "Checkout",
