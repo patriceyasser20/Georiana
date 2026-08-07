@@ -264,9 +264,40 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
       );
     });
   const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+  const totalStock = variants.reduce((sum, v) => sum + (v.stock || 0), 0);
+
+    const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    image: product.images || [],
+    description: product.description || `Shop ${product.name} at GEORIANA.`,
+    sku: variants[0]?.sku?.split('-').slice(0, -2).join('-') || product.id,
+    brand: { '@type': 'Brand', name: 'GEORIANA' },
+    offers: {
+        '@type': 'Offer',
+        url: `https://georiana.com/product/${product.id}`,
+        priceCurrency: 'EGP',
+        price: (isOnSale && discount > 0 ? salePrice : originalPrice).toFixed(2),
+        availability: totalStock > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+    },
+    ...(totalReviews > 0 && {
+        aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: averageRating,
+        reviewCount: totalReviews,
+        },
+    }),
+    };
 
   return (
     <>
+      <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+    />
       <Header />
       <div className="min-h-screen bg-gray-50 py-20 md:py-30">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
@@ -333,7 +364,11 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
                 <div className="flex gap-2 mt-3 px-15 overflow-x-auto pb-1">
                   {images.map((img: string, i: number) => (
                     <button key={i} onClick={() => changeImage(i)} className={`shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === i ? 'border-black' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img
+                        src={img}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        />
                     </button>
                   ))}
                 </div>

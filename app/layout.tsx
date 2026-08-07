@@ -8,6 +8,34 @@ import CustomerChatbot from './components/CustomerChatbot';
 import { Jost } from 'next/font/google';
 import FirstOrderPopup from './components/FirstOrderPopup';
 
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'GEORIANA',
+  url: 'https://georiana.com',
+  logo: 'https://georiana.com/images/logo.svg',
+  sameAs: [
+    'https://www.facebook.com/profile.php?id=61552738303653',
+    'https://www.instagram.com/georiana_brand',
+    'https://www.tiktok.com/@georiana_',
+  ],
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'GEORIANA',
+  url: 'https://georiana.com',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: 'https://georiana.com/shop?search={search_term_string}',
+    },
+    'query-input': 'required name=search_term_string',
+  },
+};
+
 const jost = Jost({
   subsets: ["cyrillic"],
   weight: ['100','200','300', '400', '500', '600'],
@@ -47,6 +75,14 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..300&display=swap"
           rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
       <body suppressHydrationWarning className={`${jost.variable} font-sans bg-white min-h-screen`}>

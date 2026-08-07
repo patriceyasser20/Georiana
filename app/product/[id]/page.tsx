@@ -5,6 +5,7 @@ import ProductDetailClient from './ProductDetailClient';
 
 type Props = { params: Promise<{ id: string }> };
 
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const { data: product } = await supabaseClient
@@ -48,11 +49,39 @@ export default async function ProductPage({ params }: Props) {
 
   if (!product) notFound();
 
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://georiana.com' },
+      ...(product.category
+        ? [{
+            '@type': 'ListItem',
+            position: 2,
+            name: product.category,
+            item: `https://georiana.com/woman/${product.category.toLowerCase().replace(/\s+/g, '-')}`,
+          }]
+        : []),
+      {
+        '@type': 'ListItem',
+        position: product.category ? 3 : 2,
+        name: product.name,
+        item: `https://georiana.com/product/${product.id}`,
+      },
+    ],
+  };
+
   return (
-    <ProductDetailClient
-      initialProduct={product}
-      initialVariants={variants || []}
-      initialReviews={reviews || []}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <ProductDetailClient
+        initialProduct={product}
+        initialVariants={variants || []}
+        initialReviews={reviews || []}
+      />
+    </>
   );
 }

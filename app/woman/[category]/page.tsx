@@ -28,13 +28,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function WomanCategoryPage({ params }: Props) {
   const { category } = await params;
+  const displayName = humanize(category);
 
   const { data } = await supabaseClient
     .from('products')
-    .select('id, name, price, images, is_on_sale, discount_percentage, category, collection, collection_ar, product_variants ( is_on_sale, discount_percentage )')
+    .select('id, name, price, images, is_on_sale, discount_percentage, category, collection, collection_ar')
     .order('created_at', { ascending: false });
 
   const filtered = (data || []).filter((p: any) => slugify(p.category) === category);
 
-  return <CategoryPageClient products={filtered} categorySlug={category} />;
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://georiana.com' },
+      { '@type': 'ListItem', position: 2, name: 'Woman', item: 'https://georiana.com/shop' },
+      { '@type': 'ListItem', position: 3, name: displayName, item: `https://georiana.com/woman/${category}` },
+    ],
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <CategoryPageClient products={filtered} categorySlug={category} />
+    </>
+  );
 }

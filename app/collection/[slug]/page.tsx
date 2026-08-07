@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { supabaseClient } from '../../../lib/supabaseClient';
 import CollectionPageClient from './CollectionPageClient';
+import { match } from 'assert';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CollectionPage({ params }: Props) {
   const { slug } = await params;
-
+  
   const { data } = await supabaseClient
     .from('products')
     .select(`
@@ -45,6 +46,25 @@ export default async function CollectionPage({ params }: Props) {
 
   const filtered = (data || []).filter((p: any) => slugify(p.collection) === slug);
   const displayName = filtered[0]?.collection || slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://georiana.com' },
+      { '@type': 'ListItem', position: 2, name: displayName, item: `https://georiana.com/collection/${slug}` },
+    ],
+  };
 
-  return <CollectionPageClient products={filtered} displayName={displayName} />;
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <CollectionPageClient
+        products={filtered}
+        displayName={displayName}
+      />
+    </>
+  );
 }

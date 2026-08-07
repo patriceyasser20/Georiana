@@ -105,7 +105,7 @@ export default function Footer() {
               {t('footer.brandTagline')}
             </p>
             <div className="flex items-center gap-3">
-              <a href="https://www.facebook.com/profile.php?id=61552738303653&mibextid=wwXIfr&rdid=uXmFuclixl3u7NSF&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DwuGFejMy%2F%3Fmibextid%3DwwXIfr#" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+              <a href="https://www.facebook.com/profile.php?id=61552738303653" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
                 <img src="/images/facebook.webp" alt="Facebook" className="h-9 w-9 rounded-lg" />
               </a>
               <a href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
