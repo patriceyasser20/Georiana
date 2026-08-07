@@ -10,7 +10,7 @@ export default function Footer() {
   const isArabic = language === "ar";
 
   return (
-   <footer className="bg-[#111] text-[#ddd] py-6 md:py-5">
+   <footer className="bg-[#111] text-[#ddd] pt-5 md:pt-1">
       <div className="max-w-7xl mx-auto px-10 pt-12">
 
         {/* ── Brand block — full width on mobile, first column on desktop ── */}
@@ -70,7 +70,7 @@ export default function Footer() {
                 <li className="flex items-center gap-2">
                   <span className="flex-shrink-0">📧</span>
                   <a
-                    href={`mailto:${t('footer.contactEmail')}?subject=Customer%20Inquiry`}
+                    href={`mailto:${t('footer.contactEmail')}`}
                     className="hover:text-white transition-colors"
                     dir="ltr"
                   >
@@ -150,7 +150,7 @@ export default function Footer() {
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">📧</span>
                 <a
-                  href={`mailto:${t('footer.contactEmail')}?subject=Customer%20Inquiry`}
+                  href={`mailto:${t('footer.contactEmail')}`}
                   className="hover:text-white transition-colors"
                   dir="ltr"
                 >
@@ -179,7 +179,7 @@ export default function Footer() {
         </div>
 
         {/* ── Bottom bar ── */}
-        <div className="mt-12 md:mt-20 pt-8 border-t border-[#2a2a2a] flex flex-col items-center gap-4">
+        <div className="mt-4 pt-3 border-t border-[#2a2a2a] flex flex-col items-center">
           <p className="text-xs text-gray-500 text-center">
             {t('footer.copyright')} • {t('footer.madeInEgypt')}
           </p>
