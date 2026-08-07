@@ -377,7 +377,7 @@ export default function Header() {
                   <option key={lang.code} value={lang.code}>{lang.name}</option>
                 ))}
               </select>
-              <select
+              {/* <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none"
@@ -386,7 +386,7 @@ export default function Header() {
                 {currencies.map(c => (
                   <option key={c} value={c}>{c}</option>
                 ))}
-              </select>
+              </select> */}
             </div>
 
             {/* Nav links */}

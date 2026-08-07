@@ -31,7 +31,7 @@ export default function Footer() {
               <img src="/images/instgram.webp" alt="Instagram" className="h-9 w-9 rounded-lg" />
             </a>
             <a href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
-              <img src="/images/tiktok.png" alt="TikTok" className="h-9 w-9 rounded-lg" />
+              <img src="/images/tiktok.png" alt="TikTok" className="h-12 w-12 rounded-lg" />
             </a>
           </div>
         </div>
@@ -67,8 +67,28 @@ export default function Footer() {
                 {t('footer.contactHeader')}
               </h3>
               <ul className="space-y-2.5 text-sm text-gray-400">
-                <li>📧 <span dir="ltr" className="inline-block">{t('footer.contactEmail')}</span></li>
-                <li>📍 {t('footer.contactLocation')}</li>
+                <li className="flex items-center gap-2">
+                  <span className="flex-shrink-0">📧</span>
+                  <a
+                    href={`mailto:${t('footer.contactEmail')}?subject=Customer%20Inquiry`}
+                    className="hover:text-white transition-colors"
+                    dir="ltr"
+                  >
+                    {t('footer.contactEmail')}
+                  </a>
+                </li>
+                <li className="flex items-center gap-2">
+                  <FaWhatsapp className="text-[#25D366] text-base flex-shrink-0" />
+                  <a
+                    href="https://wa.me/201096963387"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                    dir="ltr"
+                  >
+                    +20 109 696 3387
+                  </a>
+                </li>
                 <li>🕐 {t('footer.contactHoursDays')} {t('footer.contactHoursTime')}</li>
               </ul>
             </div>
@@ -92,7 +112,7 @@ export default function Footer() {
                 <img src="/images/instgram.webp" alt="Instagram" className="h-9 w-9 rounded-lg" />
               </a>
               <a href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
-                <img src="/images/tiktok.png" alt="TikTok" className="h-9 w-9 rounded-lg" />
+                <img src="/images/tiktok.png" alt="TikTok" className="h-12 w-12 rounded-lg" />
               </a>
             </div>
           </div>
@@ -129,12 +149,18 @@ export default function Footer() {
             <ul className={`space-y-3 ${isArabic ? "text-base" : "text-sm"}`}>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">📧</span>
-                <span dir="ltr" className="inline-block">{t('footer.contactEmail')}</span>
+                <a
+                  href={`mailto:${t('footer.contactEmail')}?subject=Customer%20Inquiry`}
+                  className="hover:text-white transition-colors"
+                  dir="ltr"
+                >
+                  {t('footer.contactEmail')}
+                </a>
               </li>
               <li className="flex items-center gap-2">
                 <FaWhatsapp className="text-[#25D366] text-xl flex-shrink-0" />
                 <a
-                  href="https://wa.me/201234567890"
+                  href="https://wa.me/201096963387"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"

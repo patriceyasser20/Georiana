@@ -128,6 +128,16 @@ export default function Signup() {
           email,
           phone: cleanedPhone
         });
+        fetch('/api/set-user-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: data.user.id, phone: cleanedPhone }),
+        }).catch((err) => console.error('Failed to set auth phone:', err));
+
+        setSuccess(t('signup.success'));
+        setTimeout(() => {
+        router.push('/login');
+      }, 3500);
 
       setSuccess(t('signup.success'));
       setTimeout(() => {
