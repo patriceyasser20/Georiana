@@ -161,6 +161,9 @@ export default function Header() {
 
   const handleSignOut = async () => {
     await supabaseClient.auth.signOut();
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('adminToken');
+    setIsAdmin(false);
     setMobileMenuOpen(false);
     router.push('/');
   };

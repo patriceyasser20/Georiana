@@ -55,12 +55,17 @@ export default function Callback() {
         }
 
         // ── Check admin status ────────────────────────────────────────────────
+       // ── Check admin status ────────────────────────────────────────────────
         const isAdmin = await checkAndSetAdmin(data.session.access_token);
         if (isAdmin) {
           router.push('/admin');
           return;
         }
 
+        // Not an admin — clear any stale admin flag from a previous
+        // session on this same browser.
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('adminToken');
         router.push('/');
       } else {
         router.push('/login');

@@ -83,6 +83,11 @@ export default function Login() {
         return;
       }
 
+      // Not an admin — make sure no stale admin flag lingers from a
+      // previous session on this same browser (e.g. shared device).
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('adminToken');
+
       setSuccess(t('login.loginSuccessful'));
       router.push('/');
     }
