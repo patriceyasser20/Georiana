@@ -9,6 +9,7 @@ import { ArrowUp } from 'lucide-react';
 import { getCached, setCached } from '../../lib/productCache';
 import { type Offer } from '../../lib/offers';
 import { useTranslation } from '../context/LanguageContext';
+import { ProductCardSkeleton } from '../components/Skeleton';
 
 export default function Shop() {
   const { formatPrice } = useCurrency();
@@ -127,13 +128,15 @@ export default function Shop() {
           </div>
 
           {loading ? (
-            <p className="text-center py-20">{t('shop.loading')}</p>
-          ) : filteredProducts.length === 0 ? (
-            <p className="text-center py-20 text-xl text-gray-500">
-              {t('shop.noResultsFor')} "{searchTerm}"
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+          </div>
+        ) : filteredProducts.length === 0 ? (
+          <p className="text-center py-20 text-xl text-gray-500">
+            No products found for "{searchTerm}"
+          </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4  gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
               {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}

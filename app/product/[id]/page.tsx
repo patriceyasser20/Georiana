@@ -5,9 +5,11 @@ import { useParams, useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 import { supabaseClient } from '../../../lib/supabaseClient';
-import { Star, ChevronLeft, ChevronRight, Truck, RotateCcw, ShieldCheck } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight, Truck, RotateCcw, Heart, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { Skeleton } from '../../components/Skeleton';
+
 
 
 export default function ProductDetail() {
@@ -33,7 +35,8 @@ export default function ProductDetail() {
   const [submitting, setSubmitting] = useState(false);
   const [userHasReviewed, setUserHasReviewed] = useState(false);
   const LIGHTBOX_ZOOM_SCALE = 2.00; //220%
-  
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -70,7 +73,35 @@ export default function ProductDetail() {
     fetchAll();
   }, [id]);
 
-  
+  useEffect(() => {
+    let mounted = true;
+
+    const checkWishlist = async () => {
+      try {
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (!user || !mounted) return;
+
+        const { data, error } = await supabaseClient
+          .from('wishlist')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('product_id', id)
+          .maybeSingle();
+
+        if (error) {
+          console.error('Wishlist check error:', error);
+          return;
+        }
+
+        if (mounted) setIsWishlisted(!!data);
+      } catch (err) {
+        console.error('Wishlist check failed:', err);
+      }
+    };
+
+    checkWishlist();
+    return () => { mounted = false; };
+  }, [id]);
 
   // ==================== SALE LOGIC ====================
   // Product-level sale
@@ -143,6 +174,41 @@ export default function ProductDetail() {
 
   const prevImage = () => changeImage((currentImageIndex - 1 + images.length) % images.length);
   const nextImage = () => changeImage((currentImageIndex + 1) % images.length);
+
+  const toggleWishlist = async () => {
+    setWishlistLoading(true);
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      if (isWishlisted) {
+        const { error } = await supabaseClient
+          .from('wishlist')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', id);
+
+        if (error) throw error;
+        setIsWishlisted(false);
+        window.dispatchEvent(new Event('wishlistUpdated'));
+      } else {
+        const { error } = await supabaseClient
+          .from('wishlist')
+          .insert({ user_id: user.id, product_id: id });
+
+        if (error) throw error;
+        setIsWishlisted(true);
+        window.dispatchEvent(new Event('wishlistUpdated'));
+      }
+    } catch (err: any) {
+      console.error('Wishlist error:', err);
+    }
+    setWishlistLoading(false);
+  };
 
   // ==================== ADD TO REVIEW ORDER ====================
   const addToReviewOrder = async () => {
@@ -265,11 +331,71 @@ export default function ProductDetail() {
         />
       );
     });
-
-  if (loading) return <p className="text-center py-20">{t('common.loading')}</p>;
-  if (!product) return <p className="text-center py-20">{t('common.notFound')}</p>;
-
   const visibleReviews = showAllReviews ? reviews : reviews.slice(0, 3);
+  
+  if (loading) {
+  return (
+    <>
+      <Header />
+
+      <div className="min-h-screen bg-gray-50 py-20 md:py-30">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="flex flex-col md:grid md:grid-cols-2 md:gap-12">
+            <Skeleton className="w-full aspect-[3/4.3] rounded-2xl md:rounded-3xl" />
+
+            <div className="space-y-4 mt-6 md:mt-0">
+              <Skeleton className="h-8 w-2/3" />
+              <Skeleton className="h-10 w-1/3" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-24 w-full" />
+
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-20 rounded-full" />
+                <Skeleton className="h-10 w-20 rounded-full" />
+                <Skeleton className="h-10 w-20 rounded-full" />
+              </div>
+
+              <div className="flex gap-2">
+                <Skeleton className="h-10 w-16 rounded-full" />
+                <Skeleton className="h-10 w-16 rounded-full" />
+                <Skeleton className="h-10 w-16 rounded-full" />
+                <Skeleton className="h-10 w-16 rounded-full" />
+              </div>
+
+              <Skeleton className="h-10 w-40" />
+
+              <Skeleton className="h-14 w-full rounded-full" />
+
+              <div className="grid grid-cols-3 gap-3">
+                <Skeleton className="h-24 rounded-2xl" />
+                <Skeleton className="h-24 rounded-2xl" />
+                <Skeleton className="h-24 rounded-2xl" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </>
+  );
+}
+
+if (!product) {
+  return (
+    <>
+      <Header />
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-xl text-gray-500">
+          {t('common.notFound')}
+        </p>
+      </div>
+      <Footer />
+    </>
+  );
+}
+
+  
 
   return (
     <>
@@ -289,13 +415,26 @@ export default function ProductDetail() {
                     onMouseMove={handleMouseMove}
                     onClick={() => setLightboxOpen(true)}
                   >
-                    <img
+                     <img
                       src={images[displayIndex]}
                       alt={product.name}
                       className={`w-full aspect-[3/4.3] object-cover transition-all duration-100 group-hover:scale-95 cursor-zoom-in ${
                         imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
                       }`}
                     />
+
+                    {/* Wishlist button */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleWishlist(); }}
+                      disabled={wishlistLoading}
+                      className="absolute top-4 right-4 p-2.5 bg-white rounded-full shadow hover:bg-red-50 hover:scale-110 transition z-10"
+                      aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                    >
+                      <Heart
+                        size={22}
+                        className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'}
+                      />
+                    </button>
 
                     {/* Magnified layer — only rendered on hover, desktop pointer only */}
                     {isZooming && (

@@ -11,6 +11,7 @@ import { useTranslation } from './context/LanguageContext';
 import { getCached, setCached } from '../lib/productCache';
 import { type Offer, isOfferLive, offerBadgeText } from '../lib/offers';
 import Image from "next/image";
+import { ProductCardSkeleton } from './components/Skeleton';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -412,7 +413,9 @@ export default function Home() {
           </h2>
 
           {loading ? (
-            <p className="text-center py-20">Loading...</p>
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
+            {Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+          </div>
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 60 }}

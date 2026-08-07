@@ -6,6 +6,7 @@ import { useTranslation } from '../context/LanguageContext';
 import { useSearchParams } from 'next/navigation';
 import { useCurrency } from '../context/CurrencyContext';
 import { supabaseClient } from '../../lib/supabaseClient';
+import { Skeleton } from '../components/Skeleton';
 
 function AccountContent() {
   const { t } = useTranslation();
@@ -81,9 +82,20 @@ function AccountContent() {
 
           <h2 className="text-2xl font-medium mb-6">{t('account.myOrders')}</h2>
 
-          {loading && <p className="text-center py-20">{t('account.loading')}</p>}
+          {loading && (
+        <div className="space-y-8">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-3xl p-8 border space-y-4">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-6 w-32 ml-auto" />
+            </div>
+          ))}
+        </div>
+      )}
 
-          {error && <p className="text-red-600 text-center py-8">{error}</p>}
+      {error && <p className="text-red-600 text-center py-8">{error}</p>}
 
           {!loading && orders.length === 0 && !error && (
             <p className="text-center text-xl py-20 text-gray-500">{t('account.noOrders')}</p>
