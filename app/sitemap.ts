@@ -8,65 +8,38 @@ const slugify = (text: string | null | undefined): string => {
 
 export const revalidate = 3600;
 
+const SITE = 'https://georiana.com';
+
+function withLocales(path: string, lastModified: string | Date) {
+  const enUrl = path === '/' ? SITE : `${SITE}${path}`;
+  const arUrl = path === '/' ? `${SITE}/ar` : `${SITE}/ar${path}`;
+  const alternates = { languages: { en: enUrl, ar: arUrl } };
+  return [
+    { url: enUrl, lastModified, alternates },
+    { url: arUrl, lastModified, alternates },
+  ];
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: products } = await supabaseClient
     .from('products')
     .select('id, category, collection, created_at');
 
-  const productUrls = (products || []).map((p) => ({
-    url: `https://georiana.com/product/${p.id}`,
-    lastModified: p.created_at,
-  }));
+  const productUrls = (products || []).flatMap((p) =>
+    withLocales(`/product/${p.id}`, p.created_at)
+  );
 
-  // Group products by category/collection slug so each group's
-  // lastModified reflects the most recently added product in it —
-  // a real signal instead of "now".
-  const latestByCategorySlug = new Map<string, string>();
-  const latestByCollectionSlug = new Map<string, string>();
+  const categorySlugs = [...new Set((products || []).map((p) => slugify(p.category)).filter(Boolean))];
+  const collectionSlugs = [...new Set((products || []).map((p) => slugify(p.collection)).filter(Boolean))];
 
-  for (const p of products || []) {
-    const catSlug = slugify(p.category);
-    if (catSlug) {
-      const existing = latestByCategorySlug.get(catSlug);
-      if (!existing || new Date(p.created_at) > new Date(existing)) {
-        latestByCategorySlug.set(catSlug, p.created_at);
-      }
-    }
-    const colSlug = slugify(p.collection);
-    if (colSlug) {
-      const existing = latestByCollectionSlug.get(colSlug);
-      if (!existing || new Date(p.created_at) > new Date(existing)) {
-        latestByCollectionSlug.set(colSlug, p.created_at);
-      }
-    }
-  }
+  const categoryUrls = categorySlugs.flatMap((slug) => withLocales(`/woman/${slug}`, new Date()));
+  const collectionUrls = collectionSlugs.flatMap((slug) => withLocales(`/collection/${slug}`, new Date()));
 
-  const categoryUrls = [...latestByCategorySlug.entries()].map(([slug, lastModified]) => ({
-    url: `https://georiana.com/woman/${slug}`,
-    lastModified,
-  }));
-
-  const collectionUrls = [...latestByCollectionSlug.entries()].map(([slug, lastModified]) => ({
-    url: `https://georiana.com/collection/${slug}`,
-    lastModified,
-  }));
-
-  // Static pages: no lastModified — an absent value is more honest
-  // than a fabricated "just changed" timestamp. Bump these manually
-  // (or track real edit dates) if you want per-page freshness signals.
-  const staticUrls: MetadataRoute.Sitemap = [
-    { url: 'https://georiana.com' },
-    { url: 'https://georiana.com/shop' },
-    { url: 'https://georiana.com/sale' },
-    { url: 'https://georiana.com/about' },
-    { url: 'https://georiana.com/contact' },
-    { url: 'https://georiana.com/size-guide' },
-    { url: 'https://georiana.com/return-exchange' },
-    { url: 'https://georiana.com/customer-service' },
-    { url: 'https://georiana.com/our-story' },
-    { url: 'https://georiana.com/press' },
-    { url: 'https://georiana.com/sustainability' },
+  const staticPaths = [
+    '/', '/shop', '/sale', '/about', '/contact', '/size-guide',
+    '/return-exchange', '/customer-service', '/our-story', '/press', '/sustainability',
   ];
+  const staticUrls = staticPaths.flatMap((p) => withLocales(p, new Date()));
 
   return [...staticUrls, ...categoryUrls, ...collectionUrls, ...productUrls];
 }

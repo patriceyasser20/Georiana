@@ -3,77 +3,98 @@ import { NextRequest, NextResponse } from 'next/server';
 const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
 const BYPASS_SECRET = process.env.MAINTENANCE_BYPASS_SECRET;
 const BYPASS_COOKIE = 'maintenance_bypass';
+const LOCALE_COOKIE = 'NEXT_LOCALE';
 
-// Pages with no independent SEO value — logged-in/transactional flows.
-// noindex via header (not robots.txt disallow) so Google can still crawl
-// and *see* the noindex, rather than being blocked from seeing it at all.
-const NOINDEX_PATHS = [
-  '/checkout',
-  '/account',
-  '/login',
-  '/signup',
-  '/review-order',
-  '/callback',
-  '/order-success',
-  '/coming-soon',
-];
-
-export function middleware(req: NextRequest) {
-  const { pathname, searchParams } = req.nextUrl;
-
-  if (!MAINTENANCE_MODE) {
-    return applyNoindexIfNeeded(pathname, NextResponse.next());
-  }
-
-  // Never block: the coming-soon page itself, Next internals, static
-  // assets, or API routes (Stripe/Paymob webhooks / admin-ops must keep
-  // working even while the storefront is gated).
-  if (
+function isMaintenanceExempt(pathname: string) {
+  return (
     pathname.startsWith('/coming-soon') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname === '/favicon.ico' ||
     pathname.startsWith('/images')
-  ) {
-    return applyNoindexIfNeeded(pathname, NextResponse.next());
+  );
+}
+
+// Admin stays English-only — no /ar/admin variant, and it's already
+// excluded from the sitemap/robots.ts, so it doesn't need hreflang either.
+function isLocaleExempt(pathname: string) {
+  return (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/images') ||
+    pathname === '/favicon.ico' ||
+    pathname.startsWith('/coming-soon')
+  );
+}
+
+export function middleware(req: NextRequest) {
+  const { pathname, searchParams } = req.nextUrl;
+  let setBypassCookie = false;
+
+  // ── Maintenance mode gate (same behavior as before) ──
+  if (MAINTENANCE_MODE && !isMaintenanceExempt(pathname)) {
+    const bypassParam = searchParams.get('bypass');
+    const cookieVal = req.cookies.get(BYPASS_COOKIE)?.value;
+    const bypassed =
+      (BYPASS_SECRET && bypassParam === BYPASS_SECRET) ||
+      (BYPASS_SECRET && cookieVal === BYPASS_SECRET);
+
+    if (!bypassed) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/coming-soon';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+    if (bypassParam === BYPASS_SECRET) setBypassCookie = true;
   }
 
-  // Visit yoursite.com/?bypass=YOUR_SECRET once — sets a cookie so you
-  // can browse the whole site normally afterward without the param.
-  const bypassParam = searchParams.get('bypass');
-  if (BYPASS_SECRET && bypassParam === BYPASS_SECRET) {
+  // ── Locale routing ──
+  if (isLocaleExempt(pathname)) {
     const res = NextResponse.next();
-    res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET, {
+    if (setBypassCookie) {
+      res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET!, {
+        httpOnly: true,
+        maxAge: 60 * 60 * 24 * 30,
+        path: '/',
+      });
+    }
+    return res;
+  }
+
+  const isArabic = pathname === '/ar' || pathname.startsWith('/ar/');
+  const locale = isArabic ? 'ar' : 'en';
+
+  // '/ar' → '/', '/ar/shop' → '/shop'. This is what actually gets
+  // rendered — same route file, no app/ar/ duplication.
+  const canonicalPath = isArabic
+    ? pathname === '/ar' ? '/' : pathname.slice(3)
+    : pathname;
+
+  // Forwarded to Server Components so layout.tsx can read the resolved
+  // locale + canonical path without re-deriving them from the URL.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-locale', locale);
+  requestHeaders.set('x-pathname', canonicalPath);
+
+  let res: NextResponse;
+  if (isArabic) {
+    const rewriteUrl = req.nextUrl.clone();
+    rewriteUrl.pathname = canonicalPath;
+    res = NextResponse.rewrite(rewriteUrl, { request: { headers: requestHeaders } });
+  } else {
+    res = NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  res.cookies.set(LOCALE_COOKIE, locale, { maxAge: 60 * 60 * 24 * 365, path: '/' });
+  if (setBypassCookie) {
+    res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET!, {
       httpOnly: true,
       maxAge: 60 * 60 * 24 * 30,
       path: '/',
     });
-    return res;
   }
 
-  const cookieVal = req.cookies.get(BYPASS_COOKIE)?.value;
-  if (BYPASS_SECRET && cookieVal === BYPASS_SECRET) {
-    return applyNoindexIfNeeded(pathname, NextResponse.next());
-  }
-
-  // Rewrite (not redirect) so the *requested* URL keeps its own status
-  // instead of 30x-ing to /coming-soon — a redirect risks Google indexing
-  // the coming-soon page as the canonical target of every URL if
-  // maintenance runs long. A rewrite + 503 tells crawlers "temporarily
-  // unavailable, try again later" and they'll recheck automatically.
-  const url = req.nextUrl.clone();
-  url.pathname = '/coming-soon';
-  url.search = '';
-  const res = NextResponse.rewrite(url, { status: 503 });
-  res.headers.set('Retry-After', '3600');
-  res.headers.set('X-Robots-Tag', 'noindex');
-  return res;
-}
-
-function applyNoindexIfNeeded(pathname: string, res: NextResponse) {
-  if (NOINDEX_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    res.headers.set('X-Robots-Tag', 'noindex, nofollow');
-  }
   return res;
 }
 

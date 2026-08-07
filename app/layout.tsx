@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -8,81 +9,61 @@ import CustomerChatbot from './components/CustomerChatbot';
 import { Jost } from 'next/font/google';
 import FirstOrderPopup from './components/FirstOrderPopup';
 
-const organizationJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: 'GEORIANA',
-  url: 'https://georiana.com',
-  logo: 'https://georiana.com/images/logo.svg',
-  sameAs: [
-    'https://www.facebook.com/profile.php?id=61552738303653',
-    'https://www.instagram.com/georiana_brand',
-    'https://www.tiktok.com/@georiana_',
-  ],
-};
-
-const websiteJsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'GEORIANA',
-  url: 'https://georiana.com',
-  potentialAction: {
-    '@type': 'SearchAction',
-    target: {
-      '@type': 'EntryPoint',
-      urlTemplate: 'https://georiana.com/shop?search={search_term_string}',
-    },
-    'query-input': 'required name=search_term_string',
-  },
-};
-
 const jost = Jost({
   subsets: ["cyrillic"],
   weight: ['100','200','300', '400', '500', '600'],
   variable: '--font-jost',
 });
 
+const SITE = 'https://georiana.com';
 
-export const metadata: Metadata = {
-  title: {
-    default: 'GEORIANA — Modern Women\'s Fashion | Wear Intuitively',
-    template: '%s | GEORIANA',
-  },
-  description: 'Shop natural fabrics and timeless pieces at GEORIANA. Modern women\'s fashion designed for the woman who wears life intuitively. Free shipping across Egypt.',
-  keywords: ['GEORIANA', 'women fashion Egypt', 'online clothing store Egypt', 'modern womenswear'],
-  openGraph: {
-    title: 'GEORIANA — Modern Women\'s Fashion',
-    description: 'Natural fabrics. Timeless pieces. Buy less, wear longer.',
-    url: 'https://georiana.com',
-    siteName: 'GEORIANA',
-    images: ['/images/logo.svg'],
-    locale: 'en_US',
-    type: 'website',
-  },
-  metadataBase: new URL('https://georiana.com'),
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '/';
+  const canonical = pathname === '/' ? SITE : `${SITE}${pathname}`;
+  const arUrl = pathname === '/' ? `${SITE}/ar` : `${SITE}/ar${pathname}`;
 
-export default function RootLayout({
+  return {
+    title: {
+      default: 'GEORIANA — Modern Women\'s Fashion | Wear Intuitively',
+      template: '%s | GEORIANA',
+    },
+    description: 'Shop natural fabrics and timeless pieces at GEORIANA. Modern women\'s fashion designed for the woman who wears life intuitively. Free shipping across Egypt.',
+    keywords: ['GEORIANA', 'women fashion Egypt', 'online clothing store Egypt', 'modern womenswear'],
+    openGraph: {
+      title: 'GEORIANA — Modern Women\'s Fashion',
+      description: 'Natural fabrics. Timeless pieces. Buy less, wear longer.',
+      url: SITE,
+      siteName: 'GEORIANA',
+      images: ['/images/logo.svg'],
+      locale: 'en_US',
+      type: 'website',
+    },
+    metadataBase: new URL(SITE),
+    alternates: {
+      canonical,
+      languages: { en: canonical, ar: arUrl },
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const headersList = await headers();
+  const locale = (headersList.get('x-locale') as 'en' | 'ar') || 'en';
+  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,100..300&display=swap"
           rel="stylesheet"
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
       <body suppressHydrationWarning className={`${jost.variable} font-sans bg-white min-h-screen`}>
@@ -107,7 +88,7 @@ export default function RootLayout({
             }
           } catch(e) {}
         `}} />
-        <LanguageProvider>
+        <LanguageProvider initialLocale={locale}>
           <CurrencyProvider>
             <Header />
             {children}
