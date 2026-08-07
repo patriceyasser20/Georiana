@@ -16,8 +16,22 @@ const jost = Jost({
 
 
 export const metadata: Metadata = {
-  title: 'GEORIANA',
-  description: 'Modern Fashion Store',
+  title: {
+    default: 'GEORIANA — Modern Women\'s Fashion | Wear Intuitively',
+    template: '%s | GEORIANA',
+  },
+  description: 'Shop natural fabrics and timeless pieces at GEORIANA. Modern women\'s fashion designed for the woman who wears life intuitively. Free shipping across Egypt.',
+  keywords: ['GEORIANA', 'women fashion Egypt', 'online clothing store Egypt', 'modern womenswear'],
+  openGraph: {
+    title: 'GEORIANA — Modern Women\'s Fashion',
+    description: 'Natural fabrics. Timeless pieces. Buy less, wear longer.',
+    url: 'https://georiana.com',
+    siteName: 'GEORIANA',
+    images: ['/images/logo.svg'],
+    locale: 'en_US',
+    type: 'website',
+  },
+  metadataBase: new URL('https://georiana.com'),
 };
 
 export default function RootLayout({
