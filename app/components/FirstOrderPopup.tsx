@@ -30,6 +30,7 @@ export default function FirstOrderPopup() {
 
     const checkEligibility = async () => {
       const dismissedAt = localStorage.getItem(DISMISS_KEY);
+      if (dismissedAt === 'permanent') { setChecked(true); return; }
       if (dismissedAt) {
         const daysSince = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
         if (daysSince < DISMISS_DAYS) { setChecked(true); return; }
@@ -83,6 +84,12 @@ export default function FirstOrderPopup() {
   const dismiss = useCallback(() => {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
     setVisible(false);
+    setEligible(false);
+  }, []);
+  const dismissPermanently = useCallback(() => {
+    localStorage.setItem(DISMISS_KEY, 'permanent');
+    setVisible(false);
+    setEligible(false);
   }, []);
 
   useEffect(() => {
@@ -126,9 +133,9 @@ export default function FirstOrderPopup() {
         >
           {t('firstOrderPopup.cta')}
         </button>
-
-        <button onClick={dismiss} className="mt-4 text-xs text-gray-400 hover:text-gray-600 transition">
-          {t('firstOrderPopup.noThanks')}
+        
+        <button onClick={dismissPermanently} className="mt-4 text-xs text-gray-400 hover:text-gray-600 transition">
+           {t('firstOrderPopup.noThanks')}
         </button>
       </div>
     </div>
