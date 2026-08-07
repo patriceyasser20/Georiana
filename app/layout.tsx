@@ -88,7 +88,8 @@ export default async function RootLayout({
             }
           } catch(e) {}
         `}} />
-        <LanguageProvider initialLocale={locale}>
+        {/* <LanguageProvider initialLocale={locale}> */}
+          <LanguageProvider>
           <CurrencyProvider>
             <Header />
             {children}
