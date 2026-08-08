@@ -8,6 +8,7 @@ import { supabaseClient } from '../../../lib/supabaseClient';
 import { Star, ChevronLeft, ChevronRight, Truck, RotateCcw, Heart, ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import Link from 'next/link';
 
 type Props = {
   initialProduct: any;
@@ -437,30 +438,38 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               </div>
 
               <div className="mt-6">
-                <p className="font-medium mb-3">{t('product.selectSize')}</p>
+                <div className="flex items-center justify-between mb-3">
+                    <p className="font-medium">{t('product.selectSize')}</p>
+                    <Link 
+                    href="/size-guide"
+                    className="text-l text-gray-500 underline hover:text-black transition"
+                    >
+                    Need help with size?
+                    </Link>
+                </div>
                 <div className="flex gap-2 flex-wrap">
-                  {allSizes.map((size: string) => {
+                    {allSizes.map((size: string) => {
                     const stock = getStock(selectedColor, size);
                     const isThisOutOfStock = selectedColor && stock === 0;
                     return (
-                      <button
+                        <button
                         key={size}
                         onClick={() => { if (selectedColor) setSelectedSize(size); }}
                         disabled={!selectedColor}
                         className={[
-                          'relative px-5 py-2.5 border rounded-full text-sm transition',
-                          selectedSize === size
+                            'relative px-5 py-2.5 border rounded-full text-sm transition',
+                            selectedSize === size
                             ? isThisOutOfStock ? 'bg-red-50 border-red-400 text-red-500' : 'bg-black text-white border-black'
                             : 'hover:bg-gray-100',
-                          isThisOutOfStock ? 'opacity-50 line-through' : '',
+                            isThisOutOfStock ? 'opacity-50 line-through' : '',
                         ].join(' ')}
-                      >
+                        >
                         {size}
-                      </button>
+                        </button>
                     );
-                  })}
+                    })}
                 </div>
-              </div>
+                </div>
 
               {selectedColor && selectedSize && (isOutOfStock || isLastStock) && (
                 <div className={`mt-4 flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium ${isOutOfStock ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-300 text-amber-800'}`}>
@@ -487,16 +496,16 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
 
               <div className="mt-8 grid grid-cols-3 gap-3 text-center">
                 <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl bg-gray-50">
-                  <Truck size={20} className="text-gray-500" />
-                  <span className="text-xs text-gray-600 leading-tight">{t('product.deliveryAcrossEgypt1')}<br />{t('product.deliveryAcrossEgypt2')}</span>
+                  <Truck size={30} className="text-gray-500" />
+                  <span className="text-m text-gray-600 leading-tight">{t('product.deliveryAcrossEgypt1')}<br />{t('product.deliveryAcrossEgypt2')}</span>
                 </div>
                 <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl bg-gray-50">
-                  <RotateCcw size={20} className="text-gray-500" />
-                  <span className="text-xs text-gray-600 leading-tight">{t('product.easyReturns1')}<br />{t('product.easyReturns2')}</span>
+                  <RotateCcw size={30} className="text-gray-500" />
+                  <span className="text-m text-gray-600 leading-tight">{t('product.easyReturns1')}<br />{t('product.easyReturns2')}</span>
                 </div>
                 <div className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl bg-gray-50">
-                  <ShieldCheck size={20} className="text-gray-500" />
-                  <span className="text-xs text-gray-600 leading-tight">{t('product.secureCheckout1')}<br />{t('product.secureCheckout2')}</span>
+                  <ShieldCheck size={30} className="text-gray-500" />
+                  <span className="text-m text-gray-600 leading-tight">{t('product.secureCheckout1')}<br />{t('product.secureCheckout2')}</span>
                 </div>
               </div>
 

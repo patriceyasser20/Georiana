@@ -99,8 +99,17 @@ export default function Footer() {
               <a href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
                 <img src="/images/instgram.webp" alt="Instagram" className="h-9 w-9 rounded-lg" />
               </a>
-              <a href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
-                <img src="/images/tiktok.png" alt="TikTok" className="h-12 w-12 rounded-lg" />
+              <a
+                href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:scale-110 transition-transform -ml-1"
+              >
+                <img
+                  src="/images/tiktok.png"
+                  alt="TikTok"
+                  className="h-12 w-12 rounded-lg"
+                />
               </a>
             </div>
           </div>
