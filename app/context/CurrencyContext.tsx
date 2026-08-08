@@ -83,22 +83,117 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem('currency');
     if (saved === 'USD') localStorage.removeItem('currency');
 
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        const detected = countryToCurrency[data.country_code] || 'EGP';
-        setCurrencyState(detected);
-        localStorage.setItem('currency', detected);
-        console.log(`🌍 Detected country: ${data.country_code} → Currency: ${detected}`);
-      })
-      .catch(() => setCurrencyState('EGP'));
+    // ── Geo/currency detection — cached 24h, failures cached 1h ──
+    const GEO_CACHE_KEY = 'geoCurrencyCache';
+    const GEO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+    const GEO_FAIL_TTL = 60 * 60 * 1000; // 1h — short backoff so a
+    // rate-limited/dead endpoint doesn't get hit on every single reload,
+    // but recovers within an hour rather than being stuck all day.
 
-    fetch('https://api.exchangerate-api.com/v4/latest/USD')
-      .then(res => res.json())
-      .then(data => {
-        if (data.rates) setRates(data.rates);
-      })
-      .catch(() => {});
+    const cachedGeoRaw = localStorage.getItem(GEO_CACHE_KEY);
+    let usedCache = false;
+    if (cachedGeoRaw) {
+      try {
+        const cached = JSON.parse(cachedGeoRaw);
+        const ttl = cached.failed ? GEO_FAIL_TTL : GEO_CACHE_TTL;
+        if (Date.now() - cached.timestamp < ttl) {
+          setCurrencyState(cached.currency || 'EGP');
+          if (!cached.failed) localStorage.setItem('currency', cached.currency);
+          usedCache = true;
+        }
+      } catch {
+        // corrupt cache entry — ignore, fall through to refetch
+      }
+    }
+
+    if (!usedCache) {
+      // Guards React Strict Mode's dev-only double effect invocation —
+      // without this, two fetches fire back-to-back before either one
+      // finishes writing the cache, doubling real request volume.
+      const w = window as any;
+      if (!w.__geoFetchInFlight) {
+        w.__geoFetchInFlight = true;
+
+        fetch('https://ipapi.co/json/')
+          .then(res => {
+            if (!res.ok) throw new Error(`ipapi.co returned ${res.status}`);
+            return res.json();
+          })
+          .then(data => {
+            const detected = countryToCurrency[data.country_code] || 'EGP';
+            setCurrencyState(detected);
+            localStorage.setItem('currency', detected);
+            localStorage.setItem(GEO_CACHE_KEY, JSON.stringify({
+              currency: detected,
+              timestamp: Date.now(),
+            }));
+            console.log(`🌍 Detected country: ${data.country_code} → Currency: ${detected}`);
+          })
+          .catch(() => {
+            setCurrencyState('EGP');
+            // Cache the failure so a dead/rate-limited endpoint backs off
+            // for GEO_FAIL_TTL instead of retrying on every page load.
+            localStorage.setItem(GEO_CACHE_KEY, JSON.stringify({
+              failed: true,
+              timestamp: Date.now(),
+            }));
+          })
+          .finally(() => {
+            w.__geoFetchInFlight = false;
+          });
+      }
+    }
+
+    // ── Exchange rates — same caching + backoff pattern ──
+    const RATES_CACHE_KEY = 'exchangeRatesCache';
+    const RATES_CACHE_TTL = 24 * 60 * 60 * 1000;
+    const RATES_FAIL_TTL = 60 * 60 * 1000;
+
+    const cachedRatesRaw = localStorage.getItem(RATES_CACHE_KEY);
+    let usedRatesCache = false;
+    if (cachedRatesRaw) {
+      try {
+        const cached = JSON.parse(cachedRatesRaw);
+        const ttl = cached.failed ? RATES_FAIL_TTL : RATES_CACHE_TTL;
+        if (Date.now() - cached.timestamp < ttl) {
+          if (cached.rates) setRates(cached.rates);
+          usedRatesCache = true;
+        }
+      } catch {
+        // ignore corrupt cache
+      }
+    }
+
+    if (!usedRatesCache) {
+      const w = window as any;
+      if (!w.__ratesFetchInFlight) {
+        w.__ratesFetchInFlight = true;
+
+        fetch('https://api.exchangerate-api.com/v4/latest/USD')
+          .then(res => {
+            if (!res.ok) throw new Error(`exchangerate-api returned ${res.status}`);
+            return res.json();
+          })
+          .then(data => {
+            if (data.rates) {
+              setRates(data.rates);
+              localStorage.setItem(RATES_CACHE_KEY, JSON.stringify({
+                rates: data.rates,
+                timestamp: Date.now(),
+              }));
+            }
+          })
+          .catch(() => {
+            localStorage.setItem(RATES_CACHE_KEY, JSON.stringify({
+              failed: true,
+              timestamp: Date.now(),
+            }));
+          })
+          .finally(() => {
+            w.__ratesFetchInFlight = false;
+          });
+      }
+    }
   }, []);
 
   // Safe Wishlist Fetch

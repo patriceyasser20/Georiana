@@ -45,8 +45,7 @@ export default function ShopPageClient({ initialProducts, initialOffers }: Props
       );
       setFilteredProducts(filtered);
     }
-  }, [searchTerm, products]);
-
+  }, [searchTerm, products]);  
   // Show "Top" button when scrolled down
   useEffect(() => {
     const handleScroll = () => {
