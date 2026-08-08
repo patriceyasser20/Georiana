@@ -8,6 +8,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import CustomerChatbot from './components/CustomerChatbot';
 import { Jost } from 'next/font/google';
 import FirstOrderPopup from './components/FirstOrderPopup';
+import WhatsAppWidget from './components/WhatsAppWidget'; 
 
 const jost = Jost({
   subsets: ["cyrillic"],
@@ -95,6 +96,7 @@ export default async function RootLayout({
             {children}
             <FirstOrderPopup />
             <Footer />
+            <WhatsAppWidget />
             {/* <CustomerChatbot /> */}
           </CurrencyProvider>
         </LanguageProvider>

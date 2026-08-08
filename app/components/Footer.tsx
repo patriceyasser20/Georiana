@@ -77,18 +77,6 @@ export default function Footer() {
                     {t('footer.contactEmail')}
                   </a>
                 </li>
-                <li className="flex items-center gap-2">
-                  <FaWhatsapp className="text-[#25D366] text-base flex-shrink-0" />
-                  <a
-                    href="https://wa.me/201096963387"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-white transition-colors"
-                    dir="ltr"
-                  >
-                    +20 109 696 3387
-                  </a>
-                </li>
                 <li>🕐 {t('footer.contactHoursDays')} {t('footer.contactHoursTime')}</li>
               </ul>
             </div>
@@ -157,18 +145,6 @@ export default function Footer() {
                   {t('footer.contactEmail')}
                 </a>
               </li>
-              <li className="flex items-center gap-2">
-                <FaWhatsapp className="text-[#25D366] text-xl flex-shrink-0" />
-                <a
-                  href="https://wa.me/201096963387"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-white transition-colors"
-                  dir="ltr"
-                >
-                  +20 109 696 3387
-                </a>
-              </li>
               <li className="flex items-start gap-2">
                 <span className="mt-0.5">🕐</span>
                 <span>{t('footer.contactHoursDays')}<br />{t('footer.contactHoursTime')}</span>
@@ -179,7 +155,7 @@ export default function Footer() {
         </div>
 
         {/* ── Bottom bar ── */}
-        <div className="mt-4 pt-3 border-t border-[#2a2a2a] flex flex-col items-center">
+        <div className="mt-4 pt-6 pb-6 border-t border-[#2a2a2a] flex flex-col items-center">
           <p className="text-xs text-gray-500 text-center">
             {t('footer.copyright')} • {t('footer.madeInEgypt')}
           </p>
