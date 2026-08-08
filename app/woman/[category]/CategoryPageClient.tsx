@@ -38,7 +38,7 @@ export default function CategoryPageClient({ products, categorySlug }: Props) {
                   id={p.id}
                   name={p.name}
                   price={p.price}
-                  img={p.images?.[0] || ''}
+                  img={p.thumbnail_url || p.images?.[0] || ''}
                   isOnSale={p.is_on_sale}
                   discountPercentage={p.discount_percentage}
                   hasVariantSale={p.product_variants?.some((v: any) => v.is_on_sale)}

@@ -17,7 +17,7 @@ export default async function Shop() {
   const [{ data: products }, { data: offers }] = await Promise.all([
     supabaseClient
       .from('products')
-      .select('id, name, name_ar, price, images, is_on_sale, discount_percentage, category, collection, collection_ar')
+      .select('id, name, name_ar, price, images, thumbnail_url, is_on_sale, discount_percentage, category, collection, collection_ar')
       .order('created_at', { ascending: false }),
     supabaseClient
       .from('offers')

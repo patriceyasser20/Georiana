@@ -100,7 +100,7 @@ export default function ShopPageClient({ initialProducts, initialOffers }: Props
                   id={product.id}
                   name={product.name}
                   price={product.price}
-                  img={product.images?.[0] || ''}
+                  img={product.thumbnail_url || product.images?.[0] || ''}
                   isOnSale={product.is_on_sale}
                   discountPercentage={product.discount_percentage}
                   hasVariantSale={product.product_variants?.some((v: any) => v.is_on_sale)}

@@ -43,7 +43,7 @@ export default function Home() {
         const productIds = featuredRows.map((f: any) => f.product_id);
         const { data: featuredProducts } = await supabaseClient
           .from('products')
-          .select('id, name, price, images, is_on_sale, discount_percentage, category, collection')
+          .select('id, name, price, images, thumbnail_url, is_on_sale, discount_percentage, category, collection')
           .in('id', productIds);
 
         const byId = new Map((featuredProducts || []).map((p: any) => [p.id, p]));
@@ -96,7 +96,7 @@ export default function Home() {
       const { data } = await supabaseClient
         .from('products')
         .select(`
-          id, name, price, images, is_on_sale, discount_percentage, category, collection,
+          id, name, price, images, thumbnail_url, is_on_sale, discount_percentage, category, collection,
           product_variants ( id, color, size, sku, is_on_sale, discount_percentage )
         `)
         .order('created_at', { ascending: false });
@@ -430,7 +430,7 @@ export default function Home() {
                   id={p.id}
                   name={p.name}
                   price={p.price}
-                  img={p.images?.[0] || ''}
+                  img={p.thumbnail_url || p.images?.[0] || ''}
                   isOnSale={p.is_on_sale}
                   discountPercentage={p.discount_percentage}
                   category={p.category}

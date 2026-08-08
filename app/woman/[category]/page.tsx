@@ -32,7 +32,7 @@ export default async function WomanCategoryPage({ params }: Props) {
 
   const { data } = await supabaseClient
     .from('products')
-    .select('id, name, price, images, is_on_sale, discount_percentage, category, collection, collection_ar')
+    .select('id, name, price, images, thumbnail_url, is_on_sale, discount_percentage, category, collection, collection_ar')
     .order('created_at', { ascending: false });
 
   const filtered = (data || []).filter((p: any) => slugify(p.category) === category);

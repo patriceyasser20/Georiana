@@ -551,30 +551,57 @@ const handleDragEnd = () => setDraggedIndex(null);
 
     try {
       const imageUrls: string[] = [];
+      const thumbUrls: string[] = [];
       const imagesByColor: Record<string, string[]> = {};
 
       for (const item of imageItems) {
         let url: string;
+        let thumbUrl: string;
+
         if (item.type === 'existing') {
           url = item.url;
+          // No original File to re-derive a thumb from without fetching the
+          // remote image — fall back to the full image for now. The backfill
+          // script (below) upgrades these in bulk after this ships.
+          thumbUrl = item.url;
         } else if (item.file) {
           const fileExt = item.file.name.split('.').pop();
           const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
 
           const { error: uploadError } = await supabaseClient.storage
             .from('product-images')
-            .upload(fileName, item.file);
+            .upload(fileName, item.file, {
+              cacheControl: '31536000',
+              upsert: false,
+            });
           if (uploadError) throw uploadError;
 
           const { data: urlData } = supabaseClient.storage
             .from('product-images')
             .getPublicUrl(fileName);
           url = urlData.publicUrl;
+
+          // ── Thumbnail (grid-sized) ──
+          const thumbFile = await compressImage(item.file, 400, 0.75);
+          const thumbFileName = `thumb-${fileName}`;
+          const { error: thumbUploadError } = await supabaseClient.storage
+            .from('product-images')
+            .upload(thumbFileName, thumbFile, {
+              cacheControl: '31536000',
+              upsert: false,
+            });
+          if (thumbUploadError) throw thumbUploadError;
+
+          const { data: thumbUrlData } = supabaseClient.storage
+            .from('product-images')
+            .getPublicUrl(thumbFileName);
+          thumbUrl = thumbUrlData.publicUrl;
         } else {
           continue;
         }
 
         imageUrls.push(url);
+        thumbUrls.push(thumbUrl);
         if (item.color) {
           if (!imagesByColor[item.color]) imagesByColor[item.color] = [];
           imagesByColor[item.color].push(url);
@@ -590,6 +617,7 @@ const handleDragEnd = () => setDraggedIndex(null);
         is_on_sale: form.isOnSale,
         discount_percentage: form.isOnSale ? Number(form.discountPercentage) || 0 : 0,
         images: imageUrls,           // ← thumbnail is imageUrls[0]
+        thumbnail_url: thumbUrls[0] || imageUrls[0] || null,
         images_by_color: imagesByColor,
       };
 

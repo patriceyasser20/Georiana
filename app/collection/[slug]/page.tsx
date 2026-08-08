@@ -39,7 +39,7 @@ export default async function CollectionPage({ params }: Props) {
   const { data } = await supabaseClient
     .from('products')
     .select(`
-      id, name, price, images, is_on_sale, discount_percentage, category, description, collection,
+      id, name, price, images, thumbnail_url, is_on_sale, discount_percentage, category, description, collection,
       product_variants (is_on_sale, discount_percentage)
     `)
     .order('created_at', { ascending: false });

@@ -258,6 +258,8 @@
     "continueWithGoogle": "Continue with Google",
     "emailAlreadyExists": "Email already exists",
     "and": "and",
+    "fullName": "Full name",
+    "fullNameRequired": "Please enter your full name",
     "alreadyExistsSingular": "already exists",
     "alreadyExistsPlural": "already exist",
     "phoneField": "Phone number",

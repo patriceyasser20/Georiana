@@ -10,6 +10,7 @@ import { useTranslation } from '../context/LanguageContext';
 export default function Signup() {
   const router = useRouter();
   const { t, language } = useTranslation();
+  const [fullName, setFullName] = useState('');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -62,6 +63,12 @@ export default function Signup() {
     setLoading(true);
     setError('');
     setSuccess('');
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      setError(t('signup.fullNameRequired'));
+      setLoading(false);
+      return;
+    }
     const passwordError = validatePassword(password);
 
     if (passwordError) {
@@ -107,7 +114,7 @@ export default function Signup() {
       email,
       password,
       options: {
-        data: { phone: cleanedPhone }, // saved in metadata
+        data: { phone: cleanedPhone, full_name: trimmedName },
         emailRedirectTo: `${window.location.origin}/callback`,
       },
     });
@@ -126,7 +133,8 @@ export default function Signup() {
         .upsert({
           id: data.user.id,
           email,
-          phone: cleanedPhone
+          phone: cleanedPhone,
+          full_name: trimmedName,
         });
         fetch('/api/set-user-phone', {
         method: 'POST',
@@ -163,6 +171,13 @@ export default function Signup() {
           </div>
 
           <div className="space-y-6">
+            <input
+              type="text"
+              placeholder={t('signup.fullName')}
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="border rounded-2xl px-6 py-4 w-full focus:outline-none focus:border-black"
+            />
             <input
               type="email"
               placeholder={t('signup.email')}
@@ -241,6 +256,7 @@ export default function Signup() {
               onClick={handleSignup}
               disabled={
                 loading ||
+                !fullName.trim() ||
                 !email ||
                 !phone ||
                 !isPhoneValid ||
