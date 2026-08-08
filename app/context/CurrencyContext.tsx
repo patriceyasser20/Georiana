@@ -53,9 +53,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const formatPrice = (egpPrice: number) => {
-    const egpRate = rates.EGP || 48.5;
-    const targetRate = rates[currency] || 1;
-    const converted = Math.round(egpPrice * (targetRate / egpRate));
+    const egpRate = rates.EGP;
+    const targetRate = rates[currency];
+
+    // Rates haven't loaded from the API yet — show the raw EGP amount
+    // instead of a bogus divide-by-fallback conversion. Once `rates`
+    // populates, this recomputes correctly on the next render.
+    const converted = (egpRate && targetRate)
+      ? Math.round(egpPrice * (targetRate / egpRate))
+      : Math.round(egpPrice);
+
     const symbol = currencySymbols[currency] || `${currency} `;
     return `${symbol}${converted.toLocaleString()}`;
   };
@@ -63,9 +70,9 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   // The live EGP → current-currency factor, exposed so callers (like
   // checkout) can snapshot it at a point in time and persist it.
   const currentRate = (() => {
-    const egpRate = rates.EGP || 48.5;
-    const targetRate = rates[currency] || 1;
-    return targetRate / egpRate;
+    const egpRate = rates.EGP;
+    const targetRate = rates[currency];
+    return (egpRate && targetRate) ? targetRate / egpRate : 1;
   })();
 
   // Formats using an explicit currency + rate rather than the live
