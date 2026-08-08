@@ -86,7 +86,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     // ── Geo/currency detection — cached 24h, failures cached 1h ──
     const GEO_CACHE_KEY = 'geoCurrencyCache';
     const GEO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
-    const GEO_FAIL_TTL = 60 * 60 * 1000; // 1h — short backoff so a
+    const GEO_FAIL_TTL = 2 * 60 * 1000; // 1h — short backoff so a
     // rate-limited/dead endpoint doesn't get hit on every single reload,
     // but recovers within an hour rather than being stuck all day.
 
@@ -147,7 +147,7 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     // ── Exchange rates — same caching + backoff pattern ──
     const RATES_CACHE_KEY = 'exchangeRatesCache';
     const RATES_CACHE_TTL = 24 * 60 * 60 * 1000;
-    const RATES_FAIL_TTL = 60 * 60 * 1000;
+    const RATES_FAIL_TTL = 2 * 60 * 1000;
 
     const cachedRatesRaw = localStorage.getItem(RATES_CACHE_KEY);
     let usedRatesCache = false;
