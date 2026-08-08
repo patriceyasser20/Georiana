@@ -330,5 +330,8 @@
   "text": "We're here to help 24/7.",
   "emailSupport": "Email Support",
   "phoneSupport": "Phone Support"
-}
+  },
+  "whatsapp":{
+    "needHelp":"Need Help?"
+  }
 } 

@@ -1,12 +1,15 @@
 'use client';
 
 import { FaWhatsapp } from 'react-icons/fa';
+import { useTranslation } from '../context/LanguageContext';
 
 const WHATSAPP_NUMBER = '201096963387'; // same number used in Footer.tsx
 
 
+
 export default function WhatsAppWidget() {
   const href = `https://wa.me/${WHATSAPP_NUMBER}?`;
+  const { t } = useTranslation();
 
   return (
     <>
@@ -15,11 +18,11 @@ export default function WhatsAppWidget() {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Chat with us on WhatsApp"
-        className="whatsapp-widget fixed bottom-6 right-6 z-[90] flex items-center gap-3 group"
+        className="whatsapp-widget fixed bottom-6 end-6 z-[90] flex items-center gap-3 group"
       >
         {/* "Need help?" box — hidden until hover */}
         <span className="bg-[#1a1a1a] text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg whitespace-nowrap opacity-0 translate-x-2 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
-          Need help?
+          {t('whatsapp.needHelp')}
         </span>
 
         {/* Green circular WhatsApp button — vibrates until hovered */}

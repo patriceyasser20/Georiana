@@ -328,5 +328,8 @@
     "back": "رجوع",
     "noCategories": "لا توجد فئات بعد",
     "noCollections": "لا توجد مجموعات بعد"
+  },
+  "whatsapp":{
+    "needHelp":"محتاج مساعدة؟"
   }
 }
