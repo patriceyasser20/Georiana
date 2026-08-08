@@ -83,7 +83,29 @@
     "easyReturns1": "استرجاع ",
     "easyReturns2": " واستبدال سهل",
     "secureCheckout1": "دفع",
-    "secureCheckout2": "آمن"
+    "secureCheckout2": "آمن",
+    "needHelpSize": "تحتاج مساعدة في المقاس؟",
+    "outOfStockBanner": "نفدت الكمية — تحقق قريبًا",
+    "lastStockBanner": "آخر قطعة — قطعة واحدة فقط!",
+    "ratingsReviews": "التقييمات والمراجعات",
+    "rateThisProduct": "كيف تقيّم هذا المنتج؟",
+    "alreadyReviewed": "✓ لقد قمت بتقييم هذا المنتج بالفعل",
+    "writeReviewPlaceholder": "اكتب مراجعتك (اختياري)",
+    "submitting": "جاري الإرسال...",
+    "submitReview": "إرسال التقييم والمراجعة",
+    "noReviewsYet": "لا توجد مراجعات بعد. كن أول من يقيّم!",
+    "verifiedUser": "مستخدم موثّق",
+    "anonymous": "مجهول",
+    "reviewsLabel": "مراجعات",
+    "showLess": "عرض أقل",
+    "seeAllReviews": "عرض كل {count} مراجعة",
+    "clickToZoom": "انقر على الصورة للتكبير",
+    "previousImage": "الصورة السابقة",
+    "nextImage": "الصورة التالية",
+    "selectRatingAlert": "يرجى اختيار تقييم",
+    "alreadyReviewedAlert": "لقد قمت بتقييم هذا المنتج بالفعل.",
+    "reviewSubmittedAlert": "شكرًا لك! تم إرسال مراجعتك.",
+    "reviewSubmitFailedAlert": "فشل إرسال المراجعة: "
   },
   "firstOrderPopup": {
     "welcome": "أهلاً بك",
@@ -196,7 +218,8 @@
     "contactText": "للمقابلات أو التعاون أو طلب الحقيبة الصحفية، يرجى التواصل مباشرة مع فريقنا.",
     "email": "press@georiana.com",
     "assetsTitle": "أصول العلامة التجارية",
-    "assetsText": "تتوفر شعارات عالية الدقة، وصور للمنتجات، وإرشادات العلامة التجارية عند الطلب للاستخدام الصحفي والإعلامي المعتمد."
+    "assetsText": "تتوفر شعارات عالية الدقة، وصور للمنتجات، وإرشادات العلامة التجارية عند الطلب للاستخدام الصحفي والإعلامي المعتمد.",
+    "chatWithUs": "تحدث معنا"
   },
   "sustainability": {
     "title": "الاستدامة",

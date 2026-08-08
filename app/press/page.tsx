@@ -23,7 +23,11 @@ export default function Press() {
             <section>
               <h2 className="text-2xl font-medium mb-4">{t('press.contactTitle')}</h2>
               <p className="text-gray-600 leading-relaxed mb-3">{t('press.contactText')}</p>
-              <a href='https://www.instagram.com/georiana_brand?igsh=eDFrbHM5dDliZHE=' className="inline-block text-black font-medium underline">Chat With Us</a>
+              <a href='https://www.instagram.com/georiana_brand?igsh=eDFrbHM5dDliZHE='
+                className="inline-block text-black font-medium underline"
+              >
+                {t('press.chatWithUs')}
+              </a>
             </section>
 
             <section>

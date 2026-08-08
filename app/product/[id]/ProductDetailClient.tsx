@@ -219,8 +219,9 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
   };
 
   const submitReview = async () => {
-    if (userRating === 0) { alert("Please select a rating"); return; }
-    if (userHasReviewed) { alert("You have already reviewed this product."); return; }
+    if (userRating === 0) { alert(t('product.selectRatingAlert')); return; }
+    if (userHasReviewed) { alert(t('product.alreadyReviewedAlert')); return; }
+
 
     setSubmitting(true);
     try {
@@ -237,13 +238,13 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
         .single();
       if (error) throw error;
 
-      alert("Thank you! Your review has been submitted.");
+      alert(t('product.reviewSubmittedAlert'));
       setReviews(prev => [inserted, ...prev]);
       setUserRating(0);
       setReviewText('');
       setUserHasReviewed(true);
     } catch (err: any) {
-      alert("Failed to submit review: " + (err.message || err));
+      alert(t('product.reviewSubmitFailedAlert') + (err.message || err));
     }
     setSubmitting(false);
   };
@@ -345,10 +346,10 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
 
                   {images.length > 1 && (
                     <>
-                      <button onClick={prevImage} className="absolute left-5 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm" aria-label="Previous image">
+                      <button onClick={prevImage} className="absolute left-5 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm" aria-label={t('product.previousImage')}>
                         <ChevronLeft size={20} className="text-black" />
                       </button>
-                      <button onClick={nextImage} className="absolute right-5 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm" aria-label="Next image">
+                      <button onClick={nextImage} className="absolute right-5 top-1/2 -translate-y-1/2 w-9 h-9 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition backdrop-blur-sm" aria-label={t('product.nextImage')}>
                         <ChevronRight size={20} className="text-black" />
                       </button>
                       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
@@ -395,7 +396,7 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               <div className="flex items-center gap-3 mt-5">
                 <div className="flex">{renderStars(Math.round(averageRating))}</div>
                 <span className="text-xl font-medium">{averageRating}</span>
-                <span className="text-gray-500 text-sm">({totalReviews} reviews)</span>
+                <span className="text-gray-500 text-sm">({totalReviews} {t('product.reviewsLabel')})</span>
               </div>
 
               {product.description && (
@@ -440,11 +441,8 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-3">
                     <p className="font-medium">{t('product.selectSize')}</p>
-                    <Link 
-                    href="/size-guide"
-                    className="text-l text-gray-500 underline hover:text-black transition"
-                    >
-                    Need help with size?
+                    <Link href="/size-guide" className="text-l text-gray-500 underline hover:text-black transition">
+                      {t('product.needHelpSize')}
                     </Link>
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -473,7 +471,7 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
 
               {selectedColor && selectedSize && (isOutOfStock || isLastStock) && (
                 <div className={`mt-4 flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-medium ${isOutOfStock ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-amber-50 border border-amber-300 text-amber-800'}`}>
-                  {isOutOfStock ? <span>Out Of Stock — Check Back Soon</span> : <span>Last Stock — Only 1 Left!</span>}
+                  {isOutOfStock ? <span>{t('product.outOfStockBanner')}</span> : <span>{t('product.lastStockBanner')}</span>}
                 </div>
               )}
 
@@ -510,31 +508,30 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               </div>
 
               <div className="mt-12 md:mt-16 border-t pt-10 md:pt-12">
-                <h2 className="text-xl md:text-2xl font-light mb-6 md:mb-8">Ratings & Reviews</h2>
+                <h2 className="text-xl md:text-2xl font-light mb-6 md:mb-8">{t('product.ratingsReviews')}</h2>
 
                 <div className="bg-white p-6 md:p-8 rounded-3xl border mb-8">
-                  <p className="font-medium mb-4">How would you rate this product?</p>
+                  <p className="font-medium mb-4">{t('product.rateThisProduct')}</p>
                   <div className="flex gap-2 mb-4">{renderStars(userRating, true, setUserRating)}</div>
                   {userHasReviewed ? (
-                    <p className="text-green-600 font-medium text-sm">✓ You have already reviewed this product</p>
+                    <p className="text-green-600 font-medium text-sm">{t('product.alreadyReviewed')}</p>
                   ) : userRating > 0 && (
                     <>
                       <textarea
                         value={reviewText}
                         onChange={(e) => setReviewText(e.target.value)}
-                        placeholder="Write your review (optional)"
+                        placeholder={t('product.writeReviewPlaceholder')}
                         className="w-full h-24 border rounded-2xl px-5 py-4 resize-y min-h-[100px] text-sm"
                       />
                       <button onClick={submitReview} disabled={submitting} className="mt-4 bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 disabled:opacity-70 text-sm">
-                        {submitting ? 'Submitting...' : 'Submit Rating & Review'}
+                        {submitting ? t('product.submitting') : t('product.submitReview')}
                       </button>
                     </>
                   )}
                 </div>
-
                 <div className="space-y-4 md:space-y-6">
                   {reviews.length === 0 ? (
-                    <p className="text-gray-500 text-sm">No reviews yet. Be the first to rate!</p>
+                    <p className="text-gray-500 text-sm">{t('product.noReviewsYet')}</p>
                   ) : (
                     <>
                       {visibleReviews.map((review: any) => (
@@ -543,13 +540,13 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
                             <div className="flex">{renderStars(review.rating)}</div>
                             <span className="text-xs text-gray-400">{new Date(review.created_at).toLocaleDateString()}</span>
                           </div>
-                          <p className="font-medium text-sm">{review.user_id ? 'Verified User' : 'Anonymous'}</p>
+                          <p className="font-medium text-sm">{review.user_id ? t('product.verifiedUser') : t('product.anonymous')}</p>
                           {review.review_text && <p className="mt-2 text-gray-600 text-sm leading-relaxed">{review.review_text}</p>}
                         </div>
                       ))}
                       {reviews.length > 3 && (
                         <button onClick={() => setShowAllReviews(!showAllReviews)} className="w-full py-4 border border-gray-200 rounded-2xl text-sm font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition flex items-center justify-center gap-2">
-                          {showAllReviews ? 'Show Less' : `See All ${reviews.length} Reviews`}
+                          {showAllReviews ? t('product.showLess') : t('product.seeAllReviews').replace('{count}', String(reviews.length))}
                         </button>
                       )}
                     </>
@@ -582,7 +579,7 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               style={lightboxZoomed ? { transform: `scale(${LIGHTBOX_ZOOM_SCALE})`, transformOrigin: `${lightboxZoomOrigin.x}% ${lightboxZoomOrigin.y}%` } : undefined}
             />
           </div>
-          {!lightboxZoomed && <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-xs pointer-events-none">Click image to zoom in</p>}
+          {!lightboxZoomed && <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-xs pointer-events-none">{t('product.clickToZoom')}</p>}
         </div>
       )}
     </>

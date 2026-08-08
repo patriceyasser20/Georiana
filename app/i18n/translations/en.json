@@ -87,7 +87,29 @@
     "easyReturns1": "Easy returns ",
     "easyReturns2": " & exchanges",
     "secureCheckout1": "Secure",
-    "secureCheckout2": "checkout"
+    "secureCheckout2": "checkout",
+    "needHelpSize": "Need help with size?",
+    "outOfStockBanner": "Out Of Stock — Check Back Soon",
+    "lastStockBanner": "Last Stock — Only 1 Left!",
+    "ratingsReviews": "Ratings & Reviews",
+    "rateThisProduct": "How would you rate this product?",
+    "alreadyReviewed": "✓ You have already reviewed this product",
+    "writeReviewPlaceholder": "Write your review (optional)",
+    "submitting": "Submitting...",
+    "submitReview": "Submit Rating & Review",
+    "noReviewsYet": "No reviews yet. Be the first to rate!",
+    "verifiedUser": "Verified User",
+    "anonymous": "Anonymous",
+    "reviewsLabel": "reviews",
+    "showLess": "Show Less",
+    "seeAllReviews": "See All {count} Reviews",
+    "clickToZoom": "Click image to zoom in",
+    "previousImage": "Previous image",
+    "nextImage": "Next image",
+    "selectRatingAlert": "Please select a rating",
+    "alreadyReviewedAlert": "You have already reviewed this product.",
+    "reviewSubmittedAlert": "Thank you! Your review has been submitted.",
+    "reviewSubmitFailedAlert": "Failed to submit review: "
   },
   "firstOrderPopup": {
     "welcome": "Welcome",
@@ -168,7 +190,7 @@
     "section4Row2Case": "The Customer",
 
     "section5Title": "5. How to Request a Return or Exchange",
-    "section5Step1": "Contact us by phone/WhatsApp: +201096963387 or email: support@georiana.com with your order number within the specified period.",
+    "section5Step1": "Contact us by phone/WhatsApp: +20 109 696 3387 or email: support@georiana.com with your order number within the specified period.",
     "section5Step2": "We will confirm your request and send return shipping instructions (or arrange a pickup from your address, depending on store policy).",
     "section5Step3": "Once the product is inspected and confirmed to meet the conditions, the return or exchange will be processed within a maximum of 2 business days.",
 
@@ -188,7 +210,8 @@
     "contactText": "For interviews, collaborations, or press kit requests, please reach out to our team directly.",
     "email": "press@georiana.com",
     "assetsTitle": "Brand Assets",
-    "assetsText": "High-resolution logos, product imagery, and brand guidelines are available on request for approved press and media use."
+    "assetsText": "High-resolution logos, product imagery, and brand guidelines are available on request for approved press and media use.",
+    "chatWithUs": "Chat With Us"
   },
   "sustainability": {
     "title": "Sustainability",
