@@ -6,6 +6,7 @@ import Footer from '../components/Footer';
 import ProductCard from '../components/ProductCard';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useTranslation } from '../context/LanguageContext';
+import { ProductCardSkeleton } from '../components/Skeleton';
 
 export default function SalePage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -36,7 +37,9 @@ export default function SalePage() {
           </div>
 
           {loading ? (
-            <p className="text-center py-20 text-xl">Loading sale items...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {Array.from({ length: 8 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+            </div>
           ) : products.length === 0 ? (
             <p className="text-center py-20 text-xl text-gray-500">No items on sale right now. Check back soon!</p>
           ) : (
