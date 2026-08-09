@@ -256,7 +256,7 @@ export default function Header() {
           ════════════════════════════════ */}
           <div className="hidden md:block relative group flex-shrink-0">
             <button className="hover:text-gray-500 transition flex items-center gap-1">
-              <ChevronDown size={20} />
+              <ChevronDown size={25} />
             </button>
             <div className="absolute top-full end-0 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
               <Link href="/about" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
