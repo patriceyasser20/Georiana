@@ -179,9 +179,16 @@ export default function Header() {
           PART 1 — Help dropdown + Logo + Slogan
           ════════════════════════════════ */}
           <div className="flex items-center gap-4 flex-shrink-0">
-
-            {/* Help dropdown — desktop only, to the left of the logo */}
-            {/* <div className="hidden md:block absolute right-50 top-1/2 -translate-y-1/2 group">
+            <Link href="/" className="flex items-end gap-3">
+              <img src="/images/logo.svg" alt="GEORIANA" className="h-16 md:h-18 w-auto" />
+              <span className="hidden md:block text-gray-400 text-base leading-none mb-1">·</span>
+              <span className="hidden md:block text-[12px] tracking-[0.35em] uppercase text-gray-900 font-light mb-1">
+                Wear Intuitively
+              </span>
+            </Link>
+          </div>
+          {/* Help dropdown — desktop only, to the left of the logo */}
+            <div className="hidden md:block absolute left-200 top-1/2 -translate-y-1/2 group">
               <button className="hover:text-gray-500 transition flex items-center gap-1 text-sm uppercase tracking-widest font-medium">
                 <span className="text-xl">▼</span>
               </button>
@@ -199,16 +206,7 @@ export default function Header() {
                   {t('footer.sizeGuide')}
                 </Link>
               </div>
-            </div> */}
-
-            <Link href="/" className="flex items-end gap-3">
-              <img src="/images/logo.svg" alt="GEORIANA" className="h-16 md:h-18 w-auto" />
-              <span className="hidden md:block text-gray-400 text-base leading-none mb-1">·</span>
-              <span className="hidden md:block text-[12px] tracking-[0.35em] uppercase text-gray-900 font-light mb-1">
-                Wear Intuitively
-              </span>
-            </Link>
-          </div>
+            </div>
 
           {/* ════════════════════════════════
               PART 2 — Navigation (centered)
