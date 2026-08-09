@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { User, LogOut, ShoppingBag, Heart, Menu, X } from 'lucide-react';
+import { User, LogOut, ShoppingBag, Heart, Menu, X, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
@@ -187,26 +187,6 @@ export default function Header() {
               </span>
             </Link>
           </div>
-          {/* Help dropdown — desktop only, to the left of the logo */}
-            <div className="hidden md:block absolute left-200 top-1/2 -translate-y-1/2 group">
-              <button className="hover:text-gray-500 transition flex items-center gap-1 text-sm uppercase tracking-widest font-medium">
-                <span className="text-xl">▼</span>
-              </button>
-              <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                <Link href="/about" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
-                  {t('footer.aboutUs')}
-                </Link>
-                <Link href="/our-story" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
-                  {t('footer.ourStory')}
-                </Link>
-                <Link href="/return-exchange" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
-                  {t('footer.returns')}
-                </Link>
-                <Link href="/size-guide" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
-                  {t('footer.sizeGuide')}
-                </Link>
-              </div>
-            </div>
 
           {/* ════════════════════════════════
               PART 2 — Navigation (centered)
@@ -269,6 +249,29 @@ export default function Header() {
               </Link>
 
             </nav>
+          </div>
+
+          {/* ════════════════════════════════
+              PART 2.5 — Help dropdown
+          ════════════════════════════════ */}
+          <div className="hidden md:block relative group flex-shrink-0">
+            <button className="hover:text-gray-500 transition flex items-center gap-1">
+              <ChevronDown size={20} />
+            </button>
+            <div className="absolute top-full end-0 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <Link href="/about" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                {t('footer.aboutUs')}
+              </Link>
+              <Link href="/our-story" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                {t('footer.ourStory')}
+              </Link>
+              <Link href="/return-exchange" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                {t('footer.returns')}
+              </Link>
+              <Link href="/size-guide" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                {t('footer.sizeGuide')}
+              </Link>
+            </div>
           </div>
 
           {/* ════════════════════════════════
