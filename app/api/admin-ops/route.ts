@@ -87,6 +87,15 @@ export async function POST(req: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ ok: true });
       }
+      case 'get-subscribers': {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('email, marketing_opt_out')
+          .not('email', 'is', null)
+          .order('email');
+        if (error) throw error;
+        return NextResponse.json({ data });
+      }
       case 'clear-collection': {
         const { error } = await supabase
           .from('products')

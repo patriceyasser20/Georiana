@@ -53,7 +53,7 @@ export const adminApi = {
   toggleAllShippingCities: (countryCode: string, enable: boolean) =>
                                                                   call('toggle-all-shipping-cities', { countryCode, enable }),
   clearCollection:       (collection: string)              => call('clear-collection',        { collection }),
-  
+
   sendNewsletter: async (payload: {
   subject: string;
   headline: string;
@@ -72,5 +72,16 @@ export const adminApi = {
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Failed to send');
   return data;
+},
+getSubscribers: async () => {
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch('/api/admin-ops', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': token || '' },
+    body: JSON.stringify({ action: 'get-subscribers', payload: {} }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to load subscribers');
+  return (data.data || []) as { email: string; marketing_opt_out: boolean }[];
 },
 };

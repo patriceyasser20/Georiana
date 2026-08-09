@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import { supabaseClient } from '../../lib/supabaseClient';
-import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus, Tag } from 'lucide-react';
+import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus, Tag, ChevronDown } from 'lucide-react';
 import { useCurrency } from '../context/CurrencyContext';
 import { adminApi } from '../../lib/adminApi';
 import { invalidateCache } from '../../lib/productCache';
@@ -120,7 +120,11 @@ export default function AdminPanel() {
   }>({ open: false, productId: '', productName: '', variants: [] });
   const [restockAmounts, setRestockAmounts] = useState<Record<string, number>>({});
   const [restocking, setRestocking] = useState(false);
+
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [subscribers, setSubscribers] = useState<{ email: string; marketing_opt_out: boolean }[]>([]);
+  const [subscribersOpen, setSubscribersOpen] = useState(false);
+  const [loadingSubscribers, setLoadingSubscribers] = useState(false);
 
   const [newsletterForm, setNewsletterForm] = useState({
     subject: '',
@@ -230,6 +234,20 @@ export default function AdminPanel() {
     return () => clearTimeout(timeout);
   }, [skuSearchTerm, tab]);
 
+  useEffect(() => {
+    if (tab !== 'newsletter') return;
+    const fetchSubscribers = async () => {
+      setLoadingSubscribers(true);
+      try {
+        const data = await adminApi.getSubscribers();
+        setSubscribers(data);
+      } catch (err: any) {
+        console.error('Failed to load subscribers:', err);
+      }
+      setLoadingSubscribers(false);
+    };
+    fetchSubscribers();
+  }, [tab]);
 
   useEffect(() => {
     const verifyAdmin = async () => {
@@ -1812,6 +1830,43 @@ const handleDragEnd = () => setDraggedIndex(null);
                       onChange={(e) => setNewsletterForm({ ...newsletterForm, ctaLink: e.target.value })}
                       className="border rounded-2xl px-5 py-3.5 w-full"
                     />
+                  </div>
+                  <div className="bg-white border rounded-3xl overflow-hidden">
+                    <button
+                      onClick={() => setSubscribersOpen(!subscribersOpen)}
+                      className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition"
+                    >
+                      <span className="font-medium text-sm">
+                        {loadingSubscribers
+                          ? 'Loading subscribers...'
+                          : `${subscribers.filter(s => !s.marketing_opt_out).length} subscribed users`}
+                      </span>
+                      <ChevronDown size={18} className={`text-gray-400 transition-transform ${subscribersOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {subscribersOpen && (
+                      <div className="border-t max-h-64 overflow-y-auto">
+                        {subscribers.length === 0 ? (
+                          <p className="px-6 py-4 text-sm text-gray-400">No users found.</p>
+                        ) : (
+                          subscribers.map((s, i) => (
+                            <div
+                              key={i}
+                              className={`flex items-center justify-between px-6 py-3 text-sm border-b last:border-b-0 ${
+                                s.marketing_opt_out ? 'text-gray-400' : 'text-black'
+                              }`}
+                            >
+                              <span>{s.email}</span>
+                              {s.marketing_opt_out ? (
+                                <span className="text-xs bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full">Unsubscribed</span>
+                              ) : (
+                                <span className="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full">Subscribed</span>
+                              )}
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
