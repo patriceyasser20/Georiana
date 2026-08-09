@@ -13,6 +13,7 @@ import { type Offer, isOfferLive, offerBadgeText } from '../lib/offers';
 import Image from "next/image";
 import { ProductCardSkeleton } from './components/Skeleton';
 
+
 export default function Home() {
   const { t } = useTranslation();
   const [products, setProducts] = useState<any[]>([]);
@@ -223,7 +224,7 @@ export default function Home() {
 
             <div className="relative w-full max-w-5xl">
               <Image
-                src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_8523.JPG.jpg"
+                src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_8523-v3.jpg"
                 alt="Spring 2026 Woman"
                 width={1200}
                 height={800}
@@ -270,8 +271,8 @@ export default function Home() {
                     : 'hidden sm:flex w-45 md:w-60 shadow-sm scale-95 opacity-40 pointer-events-none'
                 }`}>
                   {active && slide.image && (
-                    <div className="w-44 md:w-52 shrink-0">
-                      <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+                    <div className="relative w-44 md:w-52 shrink-0">
+                      <Image src={slide.image} alt={slide.title} fill sizes="(max-width: 768px) 176px, 208px" className="object-cover" />
                     </div>
                   )}
                   <div className={`flex flex-col justify-center gap-3 ${active ? 'p-7 md:p-9' : 'p-4 items-center text-center'}`}>
@@ -344,13 +345,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-5 md:px-6">
           <div className="flex flex-col gap-10 md:hidden">
             {[
-              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6746.PNG', title: 'Essentials', sub: 'Timeless elegance, made effortless.' },
-              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6266.PNG', title: 'The details ', sub: 'Crafted with intention.' },
-              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6093.PNG', title: 'Natural fabrics', sub: 'Natural fabrics. Elevated silhouettes.' },
-              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6343.PNG', title: 'signature pieces ', sub: 'Designed to be remembered.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6746-v3.png', title: 'Essentials', sub: 'Timeless elegance, made effortless.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6266-v3.png', title: 'The details ', sub: 'Crafted with intention.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6093-v3.png', title: 'Natural fabrics', sub: 'Natural fabrics. Elevated silhouettes.' },
+              { img: 'https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6343-v3.png', title: 'signature pieces ', sub: 'Designed to be remembered.' },
             ].map((item, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false }} transition={{ duration: 0.5, delay: 0.1 * i }} className="flex flex-row items-center gap-5">
-                <img src={item.img} alt={item.title} className="w-40 h-48 object-cover rounded-2xl shadow-lg shrink-0" />
+                <div className="relative w-40 h-48 rounded-2xl shadow-lg shrink-0 overflow-hidden">
+                  <Image src={item.img} alt={item.title} fill sizes="160px" className="object-cover" />
+                </div>
                 <div>
                   <h3 
                     className="text-xl font-light leading-snug"
@@ -367,14 +370,30 @@ export default function Home() {
           <div className="hidden md:grid grid-cols-2 gap-16 items-center">
             <div className="space-y-20">
               <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
-                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6746.PNG" alt="Model 1" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <div className="relative w-96 aspect-[4/5] rounded-3xl shadow-xl shrink-0 overflow-hidden">
+                  <Image
+                    src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6746-v3.png"
+                    alt="Model 1"
+                    fill
+                    sizes="384px"
+                    className="object-cover"
+                  />
+                </div>
                 <div className="max-w-55">
                   <h3 className="text-3xl font-light">{t('home.zigzagTitle1')}</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub1')}</p>
                 </div>
               </motion.div>
               <motion.div initial={{ opacity: 0, x: -60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-end gap-12 items-center">
-                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6266.PNG" alt="Model 2" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <div className="relative w-96 aspect-[4/5] rounded-3xl shadow-xl shrink-0 overflow-hidden">
+                  <Image
+                    src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6266-v3.png"
+                    alt="Model 2"
+                    fill
+                    sizes="384px"
+                    className="object-cover"
+                  />
+                </div>
                 <div className="max-w-55">
                   <h3 className="text-3xl font-light">{t('home.zigzagTitle3')}</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub3')}</p>
@@ -388,18 +407,34 @@ export default function Home() {
                   <h3 className="text-3xl font-light">{t('home.zigzagTitle2')}</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub2')}</p>
                 </div>
-                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6093.PNG" alt="Model 3" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <div className="relative w-96 aspect-[4/5] rounded-3xl shadow-xl shrink-0 overflow-hidden">
+                  <Image
+                    src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6093-v3.png"
+                    alt="Model 3"
+                    fill
+                    sizes="384px"
+                    className="object-cover"
+                  />
+                </div>
               </motion.div>
               <motion.div initial={{ opacity: 0, x: 60 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: false }} transition={{ duration: 0.6, delay: 0.4 }} className="flex justify-start gap-12 items-center">
                 <div className="max-w-55 text-right">
                   <h3 className="text-3xl font-light">{t('home.zigzagTitle4')}</h3>
                   <p className="text-gray-600 mt-3 text-lg leading-tight">{t('home.zigzagSub4')}</p>
                 </div>
-                <img src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6343.PNG" alt="Model 4" className="w-96 rounded-3xl shadow-xl shrink-0" />
+                <div className="relative w-96 aspect-[4/5] rounded-3xl shadow-xl shrink-0 overflow-hidden">
+                  <Image
+                    src="https://qhtselljfzsavnltrhsh.supabase.co/storage/v1/object/public/product-images/IMG_6343-v3.png"
+                    alt="Model 4"
+                    fill
+                    sizes="384px"
+                    className="object-cover"
+                  />
+                </div>
               </motion.div>
             </div>
           </div>
-        </div>
+          </div>
       </section>
 
       {/* ==================== NEW THIS WEEK ==================== */}

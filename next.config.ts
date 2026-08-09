@@ -1,4 +1,6 @@
 import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+
 
 const nextConfig: NextConfig = {
   turbopack: {
@@ -32,6 +34,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "www.thefashionlaw.com",
       },
+      {
+        protocol: 'https',
+        hostname: 'qhtselljfzsavnltrhsh.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
     ],
   },
 
@@ -44,8 +51,11 @@ const nextConfig: NextConfig = {
     "*.ngrok.io",
     "https://cosponsor-clumsy-rust.ngrok-free.dev",
   ],
+  
 
   compress: true,
+  
 };
+
 
 export default nextConfig;

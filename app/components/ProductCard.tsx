@@ -7,6 +7,7 @@ import { supabaseClient } from '../../lib/supabaseClient';
 import { useCurrency } from '../context/CurrencyContext';
 import { useEffect, useState } from 'react';
 import { findOfferForProduct, offerBadgeText, type Offer } from '../../lib/offers';
+import Image from 'next/image';
 
 interface ProductCardProps {
   id: string;
@@ -139,11 +140,19 @@ export default function ProductCard({
   return (
     <Link href={`/product/${id}`} className="group block">
       <div className="flex flex-col h-full relative overflow-hidden rounded-3xl bg-white border">
-        <img
-          src={img}
-          alt={name}
-          className="w-full aspect-[4/5] object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        <div className="relative w-full aspect-[4/5] overflow-hidden">
+          {img ? (
+            <Image
+              src={img}
+              alt={name}
+              fill
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full bg-gray-100" />
+          )}
+        </div>
 
         {(isOnSale && discount > 0) && (
           <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-10">

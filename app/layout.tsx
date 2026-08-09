@@ -97,10 +97,10 @@ export default async function RootLayout({
             <FirstOrderPopup />
             <Footer />
             <WhatsAppWidget />
-            {/* <CustomerChatbot /> */}
           </CurrencyProvider>
         </LanguageProvider>
       </body>
     </html>
   );
 }
+

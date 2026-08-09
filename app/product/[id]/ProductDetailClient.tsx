@@ -9,6 +9,7 @@ import { Star, ChevronLeft, ChevronRight, Truck, RotateCcw, Heart, ShieldCheck }
 import { useTranslation } from '../../context/LanguageContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type Props = {
   initialProduct: any;
@@ -310,16 +311,19 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               {images.length > 0 && (
                 <div className="relative">
                   <div
-                    className="relative overflow-hidden rounded-2xl md:rounded-3xl"
+                    className="relative overflow-hidden rounded-2xl md:rounded-3xl aspect-[3/4.3]"
                     onMouseEnter={() => setIsZooming(true)}
                     onMouseLeave={() => setIsZooming(false)}
                     onMouseMove={handleMouseMove}
                     onClick={() => setLightboxOpen(true)}
                   >
-                    <img
+                    <Image
                       src={images[displayIndex]}
                       alt={product.name}
-                      className={`w-full aspect-[3/4.3] object-cover transition-all duration-100 group-hover:scale-95 cursor-zoom-in ${
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className={`object-cover transition-all duration-100 group-hover:scale-95 cursor-zoom-in ${
                         imageLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.98]'
                       }`}
                     />
@@ -365,12 +369,14 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
               {images.length > 1 && (
                 <div className="flex gap-2 mt-3 px-15 overflow-x-auto pb-1">
                   {images.map((img: string, i: number) => (
-                    <button key={i} onClick={() => changeImage(i)} className={`shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === i ? 'border-black' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                      <img
+                    <button key={i} onClick={() => changeImage(i)} className={`relative shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ${currentImageIndex === i ? 'border-black' : 'border-transparent opacity-60 hover:opacity-100'}`}>
+                      <Image
                         src={img}
                         alt={product.name}
-                        className="w-full h-full object-cover"
-                        />
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                      />
                     </button>
                   ))}
                 </div>

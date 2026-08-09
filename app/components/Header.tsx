@@ -176,9 +176,31 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-4">
 
           {/* ════════════════════════════════
-              PART 1 — Logo + Slogan
+          PART 1 — Help dropdown + Logo + Slogan
           ════════════════════════════════ */}
-          <div className="flex items-center flex-shrink-0">
+          <div className="flex items-center gap-4 flex-shrink-0">
+
+            {/* Help dropdown — desktop only, to the left of the logo */}
+            {/* <div className="hidden md:block absolute right-50 top-1/2 -translate-y-1/2 group">
+              <button className="hover:text-gray-500 transition flex items-center gap-1 text-sm uppercase tracking-widest font-medium">
+                <span className="text-xl">▼</span>
+              </button>
+              <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <Link href="/about" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                  {t('footer.aboutUs')}
+                </Link>
+                <Link href="/our-story" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                  {t('footer.ourStory')}
+                </Link>
+                <Link href="/return-exchange" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                  {t('footer.returns')}
+                </Link>
+                <Link href="/size-guide" className="block px-6 py-3 hover:bg-gray-50 transition text-sm normal-case">
+                  {t('footer.sizeGuide')}
+                </Link>
+              </div>
+            </div> */}
+
             <Link href="/" className="flex items-end gap-3">
               <img src="/images/logo.svg" alt="GEORIANA" className="h-16 md:h-18 w-auto" />
               <span className="hidden md:block text-gray-400 text-base leading-none mb-1">·</span>
