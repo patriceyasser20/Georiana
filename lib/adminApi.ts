@@ -53,4 +53,24 @@ export const adminApi = {
   toggleAllShippingCities: (countryCode: string, enable: boolean) =>
                                                                   call('toggle-all-shipping-cities', { countryCode, enable }),
   clearCollection:       (collection: string)              => call('clear-collection',        { collection }),
+  
+  sendNewsletter: async (payload: {
+  subject: string;
+  headline: string;
+  bodyText: string;
+  imageUrl?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  testEmail?: string;
+}) => {
+  const token = localStorage.getItem('adminToken');
+  const res = await fetch('/api/send-newsletter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-token': token || '' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Failed to send');
+  return data;
+},
 };

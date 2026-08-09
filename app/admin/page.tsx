@@ -8,6 +8,7 @@ import { RefreshCw, X, Plus, Trash2, Check, Edit2, User, PackagePlus, Tag } from
 import { useCurrency } from '../context/CurrencyContext';
 import { adminApi } from '../../lib/adminApi';
 import { invalidateCache } from '../../lib/productCache';
+import Image from 'next/image';
 
 // ==================== SKU AUTO-GENERATION ====================
 const COLOR_CODES: Record<string, string> = {
@@ -88,7 +89,7 @@ export default function AdminPanel() {
   const router = useRouter();
   const { formatPrice, formatPriceAs } = useCurrency();
 
-  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured' | 'offers'>('featured');
+  const [tab, setTab] = useState<'products' | 'orders' | 'shipping' | 'sku-search' | 'promo-codes' | 'featured' | 'offers' | 'newsletter'>('featured');
   const [skuSearchTerm, setSkuSearchTerm] = useState('');
   const [skuSearchResult, setSkuSearchResult] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -119,6 +120,19 @@ export default function AdminPanel() {
   }>({ open: false, productId: '', productName: '', variants: [] });
   const [restockAmounts, setRestockAmounts] = useState<Record<string, number>>({});
   const [restocking, setRestocking] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  const [newsletterForm, setNewsletterForm] = useState({
+    subject: '',
+    headline: '',
+    bodyText: '',
+    imageUrl: '',
+    ctaText: '',
+    ctaLink: '',
+  });
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingNewsletter, setSendingNewsletter] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -293,6 +307,65 @@ export default function AdminPanel() {
     setCollections(uniqueCollections);
 
     setLoading(false);
+  };
+
+  //=====================NEWSLETTER===================
+  const sendTestNewsletter = async () => {
+    if (!testEmail.trim()) { alert('Enter an email to send the test to'); return; }
+    if (!newsletterForm.subject.trim() || !newsletterForm.headline.trim() || !newsletterForm.bodyText.trim()) {
+      alert('Subject, headline, and body are required'); return;
+    }
+    setSendingTest(true);
+    try {
+      await adminApi.sendNewsletter({ ...newsletterForm, testEmail: testEmail.trim() });
+      alert('✅ Test email sent to ' + testEmail);
+    } catch (err: any) {
+      alert('Failed to send test: ' + err.message);
+    }
+    setSendingTest(false);
+  };
+
+  const handleBannerUpload = async (file: File) => {
+    setUploadingBanner(true);
+    try {
+      const compressed = await compressImage(file, 1200, 0.82);
+      const fileExt = compressed.name.split('.').pop();
+      const fileName = `newsletter-${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from('product-images')
+        .upload(fileName, compressed, {
+          cacheControl: '31536000',
+          upsert: false,
+        });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabaseClient.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      setNewsletterForm(prev => ({ ...prev, imageUrl: urlData.publicUrl }));
+    } catch (err: any) {
+      alert('Failed to upload image: ' + (err?.message || err));
+    }
+    setUploadingBanner(false);
+  };
+
+  const sendNewsletterToAll = async () => {
+    if (!newsletterForm.subject.trim() || !newsletterForm.headline.trim() || !newsletterForm.bodyText.trim()) {
+      alert('Subject, headline, and body are required'); return;
+    }
+    if (!confirm('Send this email to ALL subscribed users? This cannot be undone.')) return;
+
+    setSendingNewsletter(true);
+    try {
+      const result = await adminApi.sendNewsletter(newsletterForm);
+      alert(`✅ Sent to ${result.sent} of ${result.total} users${result.failed > 0 ? ` (${result.failed} failed)` : ''}`);
+      setNewsletterForm({ subject: '', headline: '', bodyText: '', imageUrl: '', ctaText: '', ctaLink: '' });
+    } catch (err: any) {
+      alert('Failed to send: ' + err.message);
+    }
+    setSendingNewsletter(false);
   };
 
   // ==================== RESTOCK ====================
@@ -737,6 +810,7 @@ const handleDragEnd = () => setDraggedIndex(null);
           price,
           description,
           images,
+          thumbnail_url,
           category,
           collection,
           is_on_sale,
@@ -933,6 +1007,12 @@ const handleDragEnd = () => setDraggedIndex(null);
             >
               Offers
             </button>
+            <button
+              onClick={() => setTab('newsletter')}
+              className={`py-3 rounded-full text-sm md:text-base md:px-8 ${tab === 'newsletter' ? 'bg-black text-white' : 'bg-white border'}`}
+            >
+              Newsletter
+            </button>
           </div>
 
           {loading && <p className="text-center py-20">Loading...</p>}
@@ -1002,8 +1082,16 @@ const handleDragEnd = () => setDraggedIndex(null);
                               LOW STOCK
                             </div>
                           )}
-                          {p.images && p.images.length > 0 && (
-                            <img src={p.images[0]} alt={p.name} className={`w-full h-64 object-cover ${outOfStock ? 'opacity-50' : ''}`} />
+                          {(p.thumbnail_url || (p.images && p.images.length > 0)) && (
+                            <div className="relative w-full h-64">
+                              <Image
+                                src={p.thumbnail_url || p.images[0]}
+                                alt={p.name}
+                                fill
+                                sizes="(max-width: 768px) 100vw, 33vw"
+                                className={`object-cover ${outOfStock ? 'opacity-50' : ''}`}
+                              />
+                            </div>
                           )}
                           <div className="p-6">
                             <h3 className="font-medium text-lg mb-1">{p.name}</h3>
@@ -1352,12 +1440,16 @@ const handleDragEnd = () => setDraggedIndex(null);
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {skuSearchResult.map((result: any) => (
                       <div key={result.id} className="bg-white rounded-3xl p-6 border">
-                      {result.products?.images?.[0] && (
-                        <img
-                          src={result.products.images[0]}
-                          alt={result.products.name}
-                          className="w-full object-cover rounded-2xl"
-                        />
+                      {(result.products?.thumbnail_url || result.products?.images?.[0]) && (
+                        <div className="relative w-full aspect-square">
+                          <Image
+                            src={result.products.thumbnail_url || result.products.images[0]}
+                            alt={result.products.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            className="object-cover rounded-2xl"
+                          />
+                        </div>
                       )}
 
                       <div className="mt-6">
@@ -1642,6 +1734,138 @@ const handleDragEnd = () => setDraggedIndex(null);
             </div>
           )}
 
+          {/* ===================== NEWSLETTER ========================= */}
+          {tab === 'newsletter' && !loading && (
+            <div>
+              <h2 className="text-3xl font-light mb-2">Newsletter</h2>
+              <p className="text-gray-500 mb-8 text-sm">
+                Send an email announcement to every signed-up user who hasn't unsubscribed from marketing emails.
+              </p>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white border rounded-3xl p-8 space-y-5">
+                  <input
+                    type="text"
+                    placeholder="Email subject line *"
+                    value={newsletterForm.subject}
+                    onChange={(e) => setNewsletterForm({ ...newsletterForm, subject: e.target.value })}
+                    className="border rounded-2xl px-5 py-3.5 w-full"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Headline (large text in the email) *"
+                    value={newsletterForm.headline}
+                    onChange={(e) => setNewsletterForm({ ...newsletterForm, headline: e.target.value })}
+                    className="border rounded-2xl px-5 py-3.5 w-full"
+                  />
+                  <textarea
+                    placeholder="Message body *"
+                    value={newsletterForm.bodyText}
+                    onChange={(e) => setNewsletterForm({ ...newsletterForm, bodyText: e.target.value })}
+                    className="border rounded-2xl px-5 py-3.5 w-full h-32 resize-y"
+                  />
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Banner image (optional)</label>
+
+                    {newsletterForm.imageUrl ? (
+                      <div className="relative rounded-2xl overflow-hidden border">
+                        <img src={newsletterForm.imageUrl} alt="" className="w-full h-40 object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setNewsletterForm(prev => ({ ...prev, imageUrl: '' }))}
+                          className="absolute top-2 right-2 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-700 shadow"
+                          title="Remove image"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) await handleBannerUpload(file);
+                          e.target.value = '';
+                        }}
+                        disabled={uploadingBanner}
+                        className="border rounded-2xl px-5 py-3.5 w-full disabled:opacity-50"
+                      />
+                    )}
+
+                    {uploadingBanner && (
+                      <p className="text-sm text-gray-500 mt-2">Uploading image...</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Button text (optional)"
+                      value={newsletterForm.ctaText}
+                      onChange={(e) => setNewsletterForm({ ...newsletterForm, ctaText: e.target.value })}
+                      className="border rounded-2xl px-5 py-3.5 w-full"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Button link (e.g. /sale)"
+                      value={newsletterForm.ctaLink}
+                      onChange={(e) => setNewsletterForm({ ...newsletterForm, ctaLink: e.target.value })}
+                      className="border rounded-2xl px-5 py-3.5 w-full"
+                    />
+                  </div>
+
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
+                    <p className="text-sm font-medium mb-3">Send yourself a test first</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="your@email.com"
+                        value={testEmail}
+                        onChange={(e) => setTestEmail(e.target.value)}
+                        className="border rounded-xl px-4 py-2.5 flex-1 text-sm"
+                      />
+                      <button
+                        onClick={sendTestNewsletter}
+                        disabled={sendingTest}
+                        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm hover:bg-blue-700 disabled:opacity-60"
+                      >
+                        {sendingTest ? 'Sending...' : 'Send Test'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={sendNewsletterToAll}
+                    disabled={sendingNewsletter}
+                    className="w-full bg-black text-white py-4 rounded-2xl text-lg hover:bg-gray-800 disabled:opacity-70 transition"
+                  >
+                    {sendingNewsletter ? 'Sending to all users...' : 'Send to All Subscribers'}
+                  </button>
+                </div>
+
+                <div className="bg-gray-100 rounded-3xl p-6">
+                  <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Preview</p>
+                  <div className="bg-white rounded-2xl overflow-hidden">
+                    {newsletterForm.imageUrl && (
+                      <img src={newsletterForm.imageUrl} alt="" className="w-full h-40 object-cover" />
+                    )}
+                    <div className="p-8 text-center">
+                      <h3 className="text-2xl font-medium mb-3">{newsletterForm.headline || 'Headline goes here'}</h3>
+                      <p className="text-gray-600 text-sm whitespace-pre-line mb-6">
+                        {newsletterForm.bodyText || 'Your message will appear here...'}
+                      </p>
+                      {newsletterForm.ctaText && (
+                        <span className="inline-block bg-black text-white px-8 py-3 rounded-full text-sm font-bold">
+                          {newsletterForm.ctaText}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ==================== FEATURED / HOME PAGE TAB ==================== */}
           {tab === 'featured' && !loading && (
             <div>
@@ -1714,9 +1938,15 @@ const handleDragEnd = () => setDraggedIndex(null);
                       } ${featuredSaving === p.id ? 'opacity-60 pointer-events-none' : ''}`}
                     >
                       {/* Featured badge */}
-                      <div className="relative">
-                        {p.images?.[0] && (
-                          <img src={p.images[0]} alt={p.name} className="w-full h-48 object-cover" />
+                      <div className="relative h-48">
+                        {(p.thumbnail_url || p.images?.[0]) && (
+                          <Image
+                            src={p.thumbnail_url || p.images[0]}
+                            alt={p.name}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                            className="object-cover"
+                          />
                         )}
                         {isFeatured && (
                           <div className="absolute top-3 left-3 bg-black text-white text-xs font-bold px-3 py-1 rounded-full">
@@ -1747,8 +1977,6 @@ const handleDragEnd = () => setDraggedIndex(null);
         </div>
       </div>
 
-      
-      
 
       {/* ==================== RESTOCK MODAL ==================== */}
       {restockModal.open && (

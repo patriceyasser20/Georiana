@@ -50,7 +50,7 @@ export default function SalePage() {
                   id={p.id}
                   name={p.name}
                   price={p.price}
-                  img={p.images?.[0] || ''}
+                  img={p.thumbnail_url || p.images?.[0] || ''}
                   isOnSale={p.is_on_sale}
                   discountPercentage={p.discount_percentage}
                 />
