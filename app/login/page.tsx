@@ -96,13 +96,17 @@ export default function Login() {
   };
 
   const resendConfirmation = async () => {
-    if (!email) return;
-    setLoading(true);
-    const { error } = await supabaseClient.auth.resend({ type: 'signup', email });
-    if (error) setError(error.message);
-    else setSuccess(t('login.confirmationResent'));
-    setLoading(false);
-  };
+  if (!email) return;
+  setLoading(true);
+  const { error } = await supabaseClient.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: `${window.location.origin}/callback` },
+  });
+  if (error) setError(error.message);
+  else setSuccess(t('login.confirmationResent'));
+  setLoading(false);
+};
 
   return (
     <>
