@@ -5,6 +5,11 @@ const BYPASS_SECRET = process.env.MAINTENANCE_BYPASS_SECRET;
 const BYPASS_COOKIE = 'maintenance_bypass';
 const LOCALE_COOKIE = 'NEXT_LOCALE';
 
+const NOINDEX_PATHS = [
+  '/checkout', '/account', '/login', '/signup',
+  '/review-order', '/callback', '/order-success', '/coming-soon',
+];
+
 function isMaintenanceExempt(pathname: string) {
   return (
     pathname.startsWith('/coming-soon') ||
@@ -15,8 +20,6 @@ function isMaintenanceExempt(pathname: string) {
   );
 }
 
-// Admin stays English-only — no /ar/admin variant, and it's already
-// excluded from the sitemap/robots.ts, so it doesn't need hreflang either.
 function isLocaleExempt(pathname: string) {
   return (
     pathname.startsWith('/admin') ||
@@ -28,11 +31,20 @@ function isLocaleExempt(pathname: string) {
   );
 }
 
+// Checked against the LOCALE-STRIPPED path, so /ar/checkout gets flagged
+// the same as /checkout — not just the English version.
+function applyNoindexIfNeeded(canonicalPath: string, res: NextResponse) {
+  if (NOINDEX_PATHS.some((p) => canonicalPath === p || canonicalPath.startsWith(`${p}/`))) {
+    res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+  return res;
+}
+
 export function middleware(req: NextRequest) {
   const { pathname, searchParams } = req.nextUrl;
   let setBypassCookie = false;
 
-  // ── Maintenance mode gate (same behavior as before) ──
+  // ── Maintenance mode gate ──
   if (MAINTENANCE_MODE && !isMaintenanceExempt(pathname)) {
     const bypassParam = searchParams.get('bypass');
     const cookieVal = req.cookies.get(BYPASS_COOKIE)?.value;
@@ -41,38 +53,33 @@ export function middleware(req: NextRequest) {
       (BYPASS_SECRET && cookieVal === BYPASS_SECRET);
 
     if (!bypassed) {
+      // Rewrite + 503, not redirect — see note above.
       const url = req.nextUrl.clone();
       url.pathname = '/coming-soon';
       url.search = '';
-      return NextResponse.redirect(url);
+      const res = NextResponse.rewrite(url, { status: 503 });
+      res.headers.set('Retry-After', '3600');
+      res.headers.set('X-Robots-Tag', 'noindex');
+      return res;
     }
     if (bypassParam === BYPASS_SECRET) setBypassCookie = true;
   }
 
   // ── Locale routing ──
   if (isLocaleExempt(pathname)) {
-    const res = NextResponse.next();
+    const res = applyNoindexIfNeeded(pathname, NextResponse.next());
     if (setBypassCookie) {
-      res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET!, {
-        httpOnly: true,
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/',
-      });
+      res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET!, { httpOnly: true, maxAge: 60 * 60 * 24 * 30, path: '/' });
     }
     return res;
   }
 
   const isArabic = pathname === '/ar' || pathname.startsWith('/ar/');
   const locale = isArabic ? 'ar' : 'en';
-
-  // '/ar' → '/', '/ar/shop' → '/shop'. This is what actually gets
-  // rendered — same route file, no app/ar/ duplication.
   const canonicalPath = isArabic
-    ? pathname === '/ar' ? '/' : pathname.slice(3)
+    ? (pathname === '/ar' ? '/' : pathname.slice(3))
     : pathname;
 
-  // Forwarded to Server Components so layout.tsx can read the resolved
-  // locale + canonical path without re-deriving them from the URL.
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set('x-locale', locale);
   requestHeaders.set('x-pathname', canonicalPath);
@@ -86,13 +93,10 @@ export function middleware(req: NextRequest) {
     res = NextResponse.next({ request: { headers: requestHeaders } });
   }
 
+  res = applyNoindexIfNeeded(canonicalPath, res);
   res.cookies.set(LOCALE_COOKIE, locale, { maxAge: 60 * 60 * 24 * 365, path: '/' });
   if (setBypassCookie) {
-    res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET!, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 24 * 30,
-      path: '/',
-    });
+    res.cookies.set(BYPASS_COOKIE, BYPASS_SECRET!, { httpOnly: true, maxAge: 60 * 60 * 24 * 30, path: '/' });
   }
 
   return res;

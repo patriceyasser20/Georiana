@@ -2,33 +2,30 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { supabaseClient } from '../../../lib/supabaseClient';
 import ProductDetailClient from './ProductDetailClient';
+import { getLocaleMeta } from '../../../lib/seo';
 
 type Props = { params: Promise<{ id: string }> };
 
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const { data: product } = await supabaseClient
-    .from('products')
-    .select('*')
-    .eq('id', id)
-    .single();
-
+  const { data: product } = await supabaseClient.from('products').select('*').eq('id', id).single();
   if (!product) return { title: 'Product Not Found' };
 
   const description = product.description
     ? product.description.slice(0, 155)
     : `Shop ${product.name} at GEORIANA.`;
+  const { canonical, alternates } = await getLocaleMeta(`/product/${product.id}`);
 
   return {
     title: product.name,
     description,
-    alternates: { canonical: `https://georiana.com/product/${product.id}` },
+    alternates,
     openGraph: {
       title: product.name,
       description,
       images: product.images?.[0] ? [{ url: product.images[0] }] : [],
-      url: `https://georiana.com/product/${product.id}`,
+      url: canonical,
       type: 'website',
     },
   };

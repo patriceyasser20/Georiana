@@ -1265,11 +1265,15 @@ const handleDragEnd = () => setDraggedIndex(null);
                       {order.order_items?.map((item: any, i: number) => (
                         <div key={i} className="flex items-center gap-4 py-4 border-b last:border-b-0">
                           {item.image_url && (
-                            <img
-                              src={item.image_url}
-                              alt={item.product_name}
-                              className="w-16 h-16 object-cover rounded-xl shrink-0"
-                            />
+                            <div className="relative w-16 h-16 rounded-xl shrink-0 overflow-hidden">
+                              <Image
+                                src={item.image_url}
+                                alt={item.product_name}
+                                fill
+                                sizes="64px"
+                                className="object-cover"
+                              />
+                            </div>
                           )}
                           <div className="flex-1">
                             <p className="font-medium">{item.product_name}</p>
@@ -1786,8 +1790,8 @@ const handleDragEnd = () => setDraggedIndex(null);
                     <label className="block text-sm font-medium mb-2">Banner image (optional)</label>
 
                     {newsletterForm.imageUrl ? (
-                      <div className="relative rounded-2xl overflow-hidden border">
-                        <img src={newsletterForm.imageUrl} alt="" className="w-full h-40 object-cover" />
+                      <div className="relative h-40 rounded-2xl overflow-hidden border">
+                        <Image src={newsletterForm.imageUrl} alt="" fill sizes="600px" className="object-cover" />
                         <button
                           type="button"
                           onClick={() => setNewsletterForm(prev => ({ ...prev, imageUrl: '' }))}
@@ -1902,7 +1906,9 @@ const handleDragEnd = () => setDraggedIndex(null);
                   <p className="text-xs uppercase tracking-widest text-gray-500 mb-4">Preview</p>
                   <div className="bg-white rounded-2xl overflow-hidden">
                     {newsletterForm.imageUrl && (
-                      <img src={newsletterForm.imageUrl} alt="" className="w-full h-40 object-cover" />
+                      <div className="relative h-40">
+                        <Image src={newsletterForm.imageUrl} alt="" fill sizes="600px" className="object-cover" />
+                      </div>
                     )}
                     <div className="p-8 text-center">
                       <h3 className="text-2xl font-medium mb-3">{newsletterForm.headline || 'Headline goes here'}</h3>
@@ -2382,14 +2388,15 @@ const handleDragEnd = () => setDraggedIndex(null);
                         onDragOver={(e) => handleDragOver(e, i)}
                         onDrop={(e) => e.preventDefault()}
                         onDragEnd={handleDragEnd}
-                        className={`relative cursor-move select-none transition ${draggedIndex === i ? 'opacity-40 scale-95' : ''}`}
+                        className={`relative aspect-square cursor-move select-none transition ${draggedIndex === i ? 'opacity-40 scale-95' : ''}`}
                       >
-                        <img
+                        <Image
                           src={item.url}
                           alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className={`w-full aspect-square object-cover rounded-xl border-2 pointer-events-none ${
+                          fill
+                          unoptimized={item.type === 'new'}
+                          sizes="200px"
+                          className={`object-cover rounded-xl border-2 pointer-events-none ${
                             i === 0 ? 'border-black' : item.type === 'new' ? 'border-emerald-400' : 'border-gray-200'
                           }`}
                         />

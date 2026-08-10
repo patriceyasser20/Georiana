@@ -7,6 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useCurrency } from '../context/CurrencyContext';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { Skeleton } from '../components/Skeleton';
+import Image from "next/image";
 
 function AccountContent() {
   const { t } = useTranslation();
@@ -180,11 +181,15 @@ function AccountContent() {
                   order.order_items.map((item: any, i: number) => (
                     <div key={i} className="flex gap-6 py-6 border-b last:border-b-0">
                       {item.image_url && (
-                        <img
-                          src={item.image_url}
-                          alt={item.product_name}
-                          className="w-24 h-24 object-cover rounded-2xl shrink-0"
-                        />
+                        <div className="relative w-24 h-24 rounded-2xl shrink-0 overflow-hidden">
+                          <Image
+                            src={item.image_url}
+                            alt={item.product_name}
+                            fill
+                            sizes="96px"
+                            className="object-cover"
+                          />
+                        </div>
                       )}
                       <div className="flex-1">
                         <p className="font-medium">{item.product_name}</p>

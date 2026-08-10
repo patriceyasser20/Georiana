@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Heart } from 'lucide-react';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import Image from "next/image";
 
 interface QuickViewModalProps {
   id: string;
@@ -90,8 +91,8 @@ export default function QuickViewModal({
         </button>
 
         <div className="grid md:grid-cols-2 gap-10 p-10">
-          <div>
-            <img src={img} alt={name} className="w-full h-full object-cover rounded-2xl" />
+          <div className="relative w-full h-full min-h-[400px]">
+            <Image src={img} alt={name} fill sizes="(max-width: 768px) 100vw, 50vw" className="object-cover rounded-2xl" />
           </div>
 
           <div>

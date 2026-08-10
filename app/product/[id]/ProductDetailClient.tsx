@@ -570,9 +570,11 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
           <div className="relative max-h-[90vh] max-w-[90vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <img
+            <Image
               src={images[displayIndex]}
               alt={product.name}
+              fill
+              sizes="90vw"
               onClick={(e) => {
                 if (lightboxZoomed) { setLightboxZoomed(false); return; }
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -581,7 +583,7 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
                 setLightboxZoomOrigin({ x, y });
                 setLightboxZoomed(true);
               }}
-              className={`max-h-[90vh] max-w-[90vw] object-contain rounded-xl transition-transform duration-300 ${lightboxZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+              className={`object-contain rounded-xl transition-transform duration-300 ${lightboxZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
               style={lightboxZoomed ? { transform: `scale(${LIGHTBOX_ZOOM_SCALE})`, transformOrigin: `${lightboxZoomOrigin.x}% ${lightboxZoomOrigin.y}%` } : undefined}
             />
           </div>

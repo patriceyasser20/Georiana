@@ -8,6 +8,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTranslation } from '../context/LanguageContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { getCached, setCached } from '../../lib/productCache';
+import Image from "next/image";
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -182,7 +183,7 @@ export default function Header() {
           ════════════════════════════════ */}
           <div className="flex items-center gap-4 flex-shrink-0">
             <Link href="/" className="flex items-end gap-3">
-              <img src="/images/logo.svg" alt="GEORIANA" className="h-16 md:h-18 w-auto" />
+              <Image src="/images/logo.svg" alt="GEORIANA" width={180} height={72} className="h-16 md:h-18 w-auto" />
               <span className="hidden md:block text-gray-400 text-base leading-none mb-1">·</span>
               <span className="hidden md:block text-[12px] tracking-[0.35em] uppercase text-gray-900 font-light mb-1">
                 Wear Intuitively
@@ -411,7 +412,7 @@ export default function Header() {
             {/* Drawer header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <img src="/images/logo.svg" alt="GEORIANA" className="h-8 w-auto" />
+                <Image src="/images/logo.svg" alt="GEORIANA" width={90} height={32} className="h-8 w-auto" />
                 <span className="text-[9px] tracking-[0.3em] uppercase text-gray-400 font-light border-l border-gray-200 pl-2">
                   Wear Intuitively
                 </span>

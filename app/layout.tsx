@@ -16,13 +16,18 @@ const jost = Jost({
   variable: '--font-jost',
 });
 
+
+
 const SITE = 'https://georiana.com';
 
 export async function generateMetadata(): Promise<Metadata> {
   const headersList = await headers();
   const pathname = headersList.get('x-pathname') || '/';
-  const canonical = pathname === '/' ? SITE : `${SITE}${pathname}`;
+  const locale = (headersList.get('x-locale') as 'en' | 'ar') || 'en';
+
+  const enUrl = pathname === '/' ? SITE : `${SITE}${pathname}`;
   const arUrl = pathname === '/' ? `${SITE}/ar` : `${SITE}/ar${pathname}`;
+  const canonical = locale === 'ar' ? arUrl : enUrl;
 
   return {
     title: {
@@ -34,16 +39,16 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: 'GEORIANA — Modern Women\'s Fashion',
       description: 'Natural fabrics. Timeless pieces. Buy less, wear longer.',
-      url: SITE,
+      url: canonical,
       siteName: 'GEORIANA',
       images: ['/images/logo.svg'],
-      locale: 'en_US',
+      locale: locale === 'ar' ? 'ar_EG' : 'en_US',
       type: 'website',
     },
     metadataBase: new URL(SITE),
     alternates: {
       canonical,
-      languages: { en: canonical, ar: arUrl },
+      languages: { en: enUrl, ar: arUrl, 'x-default': enUrl },
     },
   };
 }

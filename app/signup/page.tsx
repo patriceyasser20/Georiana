@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useTranslation } from '../context/LanguageContext';
+import Image from "next/image";
 
 export default function Signup() {
   const router = useRouter();
@@ -85,23 +86,35 @@ export default function Signup() {
       return;
     }
 
-    // Check if phone or email already exists in profiles
-    const { data: existingPhone } = await supabaseClient
-      .from('profiles')
-      .select('phone')
-      .eq('phone', cleanedPhone)
-      .maybeSingle();
-
-    const { data: existingEmail } = await supabaseClient
-      .from('profiles')
-      .select('email')
-      .eq('email', email)
-      .maybeSingle();
+    // ── Check if phone or email already exists ──
+    // Routed through a server API (service role) instead of querying
+    // `profiles` directly from the client: an anonymous, not-yet-signed-up
+    // visitor is blocked by RLS from reading other users' rows, so the old
+    // client-side .select().maybeSingle() always returned null and this
+    // check silently never fired. The server route bypasses RLS safely
+    // since it only ever returns two booleans, never the actual data.
+    let emailExists = false;
+    let phoneExists = false;
+    try {
+      const checkRes = await fetch('/api/check-existing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone: cleanedPhone }),
+      });
+      const checkData = await checkRes.json();
+      emailExists = !!checkData.emailExists;
+      phoneExists = !!checkData.phoneExists;
+    } catch (err) {
+      console.error('Existing user check failed:', err);
+      // Fail open on a network/server error — the DB unique constraint
+      // (and the auth.signUp "already registered" branch below) still
+      // catches real duplicates even if this pre-check couldn't run.
+    }
 
     // Prepare error message
     const errors = [];
-    if (existingPhone) errors.push(t('signup.phoneField'));
-    if (existingEmail) errors.push(t('signup.emailField'));
+    if (phoneExists) errors.push(t('signup.phoneField'));
+    if (emailExists) errors.push(t('signup.emailField'));
 
     if (errors.length > 0) {
        setError(`${errors.join(` ${t('signup.and')} `)} ${errors.length > 1 ? t('signup.alreadyExistsPlural') : t('signup.alreadyExistsSingular')}`);
@@ -128,7 +141,7 @@ export default function Signup() {
       }
     } else if (data.user) {
       // Save phone to profiles table (using the returned user ID)
-      await supabaseClient
+      const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert({
           id: data.user.id,
@@ -136,37 +149,38 @@ export default function Signup() {
           phone: cleanedPhone,
           full_name: trimmedName,
         });
-        fetch('/api/set-user-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: data.user.id, phone: cleanedPhone }),
-        }).catch((err) => console.error('Failed to set auth phone:', err));
 
-        setSuccess(t('signup.success'));
-        setTimeout(() => {
-        router.push('/login');
-      }, 3500);
+      if (profileError) {
+        // Most likely a unique-constraint race (two signups for the same
+        // phone/email landing at nearly the same time) slipping past the
+        // pre-check above.
+        console.error('Profile upsert failed:', profileError);
+        setError('This email or phone is already registered.');
+        setLoading(false);
+        return;
+      }
+
+      fetch('/api/set-user-phone', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: data.user.id, phone: cleanedPhone }),
+      }).catch((err) => console.error('Failed to set auth phone:', err));
 
       setSuccess(t('signup.success'));
       setTimeout(() => {
         router.push('/login');
       }, 3500);
     }
-
     setLoading(false);
   };
 
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-25">
         <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md w-full">
           <div className="text-center mb-10">
-            <img 
-              src="/images/logo.svg" 
-              alt="GEORIANA" 
-              className="h-30 mx-auto" 
-            />
+            <Image src="/images/logo.svg" alt="GEORIANA" width={240} height={120} className="h-30 mx-auto" />
              <p className="text-xl text-gray-500 mt-4">{t('signup.createAccount')}</p>
           </div>
 
@@ -287,7 +301,7 @@ export default function Signup() {
               disabled={loading}
               className="w-full border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl flex items-center justify-center gap-3 transition"
             >
-              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-5" />
+              <Image src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" width={240} height={120} className="w-5" />
               <span className="text-sm font-medium text-gray-700">{t('signup.continueWithGoogle')}</span>
             </button>
           </div>

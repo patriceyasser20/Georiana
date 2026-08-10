@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { useTranslation } from '../context/LanguageContext';
+import Image from "next/image";
 
 async function checkAndSetAdmin(accessToken: string): Promise<boolean> {
   const res = await fetch('/api/admin-token', {
@@ -111,10 +112,10 @@ export default function Login() {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-25">
         <div className="bg-white rounded-3xl shadow-xl p-12 max-w-md w-full">
           <div className="text-center mb-10">
-            <img src="/images/logo.svg" alt="GEORIANA" className="h-30 mx-auto" />
+            <Image src="/images/logo.svg" alt="GEORIANA" width={240} height={120} className="h-30 mx-auto" />
             <p className="text-xl text-gray-500 mt-4">{t('login.title')}</p>
           </div>
 
@@ -168,7 +169,7 @@ export default function Login() {
               disabled={loading}
               className="w-full border border-gray-300 hover:bg-gray-50 py-4 rounded-2xl flex items-center justify-center gap-3 transition"
             >
-              <img src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" className="w-5" />
+              <Image src="https://www.google.com/images/branding/googleg/1x/googleg_standard_color_24dp.png" alt="Google" width={240} height={120} className="w-5" />
               <span className="text-sm font-medium text-gray-700">{t('login.continueWithGoogle')}</span>
             </button>
           </div>
