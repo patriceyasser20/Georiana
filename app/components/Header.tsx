@@ -40,6 +40,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileCatOpen, setMobileCatOpen] = useState(false);
   const [mobileColOpen, setMobileColOpen] = useState(false);
+  const [mobileHelpOpen, setMobileHelpOpen] = useState(false);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -169,6 +170,7 @@ export default function Header() {
   };
 
   useEffect(() => { setMobileMenuOpen(false); }, [pathname]);
+  useEffect(() => { setMobileHelpOpen(false); }, [pathname]);
 
   return (
     <>
@@ -352,6 +354,37 @@ export default function Header() {
               </div>
             )}
 
+            {/* Help dropdown — mobile only, click-toggled since hover doesn't work on touch */}
+            <div className="md:hidden relative">
+              <button
+                onClick={() => setMobileHelpOpen((prev) => !prev)}
+                className="p-1"
+                aria-label="Help menu"
+                suppressHydrationWarning
+              >
+                <ChevronDown size={24} className={`transition-transform ${mobileHelpOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {mobileHelpOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setMobileHelpOpen(false)} />
+                  <div className="absolute top-full end-0 mt-2 w-52 bg-white border border-gray-200 rounded-2xl shadow-xl py-3 z-50">
+                    <Link href="/about" className="block px-6 py-3 hover:bg-gray-50 transition text-sm" onClick={() => setMobileHelpOpen(false)}>
+                      {t('footer.aboutUs')}
+                    </Link>
+                    <Link href="/our-story" className="block px-6 py-3 hover:bg-gray-50 transition text-sm" onClick={() => setMobileHelpOpen(false)}>
+                      {t('footer.ourStory')}
+                    </Link>
+                    <Link href="/return-exchange" className="block px-6 py-3 hover:bg-gray-50 transition text-sm" onClick={() => setMobileHelpOpen(false)}>
+                      {t('footer.returns')}
+                    </Link>
+                    <Link href="/size-guide" className="block px-6 py-3 hover:bg-gray-50 transition text-sm" onClick={() => setMobileHelpOpen(false)}>
+                      {t('footer.sizeGuide')}
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* Hamburger — mobile only */}
             <button
               onClick={() => setMobileMenuOpen(true)}
@@ -359,7 +392,7 @@ export default function Header() {
               aria-label="Open menu"
               suppressHydrationWarning
             >
-              <Menu size={26} />
+             <Menu size={26} />
             </button>
 
           </div>
