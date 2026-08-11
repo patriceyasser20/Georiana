@@ -975,7 +975,6 @@ const handleDragEnd = () => setDraggedIndex(null);
 
   return (
     <>
-      <Header />
       <div className="min-h-screen bg-gray-50 py-20 md:py-22">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <h1 className="text-3xl md:text-5xl font-light tracking-widest mb-8">Admin Panel</h1>

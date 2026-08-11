@@ -62,7 +62,6 @@ function ConfirmContent() {
 
   return (
     <>
-      <Header />
       <div className="min-h-screen flex items-center justify-center px-6">
         <div className="text-center">
           {status === 'verifying' && (

@@ -95,7 +95,7 @@ function CheckoutSuccessContent() {
   if (status === 'loading') {
     return (
       <>
-        <Header />
+        
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin w-16 h-16 border-4 border-black border-t-transparent rounded-full mx-auto mb-6"></div>
@@ -109,7 +109,7 @@ function CheckoutSuccessContent() {
 
   return (
     <>
-      <Header />
+    
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12">
         <div className="text-center max-w-md mx-auto px-6">
           {status === 'success' ? (

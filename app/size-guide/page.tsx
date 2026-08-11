@@ -10,7 +10,7 @@ export default function SizeGuide() {
 
   return (
     <>
-      <Header />
+     
       <div className="min-h-screen bg-gray-50 py-30">
         <div className="max-w-7xl mx-auto px-2 text-center">
           <h1 className="text-5xl font-light tracking-widest mb-5">{t('sizeGuide.title')}</h1>

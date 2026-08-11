@@ -193,8 +193,7 @@ export default function Home() {
 
   return (
     <>
-      <Header />
-
+      
       {/* ==================== HERO ==================== */}
       <section className="relative min-h-svh md:h-[90vh] bg-[#f8f4f0] flex items-center overflow-hidden pt-20 md:pt-0">
         <div className="hidden md:block absolute left-0 top-0 h-full w-40 bg-[radial-gradient(circle,#f5e8d3_1px,transparent_1px)] bg-size-[12px_12px] opacity-30" />

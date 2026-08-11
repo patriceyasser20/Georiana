@@ -447,7 +447,7 @@ export default function Checkout() {
 
   return (
     <>
-      <Header />
+    
       <div className="min-h-screen bg-gray-50 py-20 overflow-x-hidden">
         <div className="max-w-6xl mx-auto px-4 md:px-4 md:grid-cols-5 gap-6 md:gap-10">
 

@@ -63,7 +63,7 @@ export default function ReviewOrder() {
 
   return (
     <>
-      <Header />
+
       <div className="min-h-screen bg-gray-50 py-19">
         <div className="max-w-6xl mx-auto px-6">
           <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-black mb-6">

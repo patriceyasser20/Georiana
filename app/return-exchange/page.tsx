@@ -9,7 +9,6 @@ export default function ReturnExchange() {
 
   return (
     <>
-      <Header />
       <div className="min-h-screen bg-gray-50 py-20 md:py-28">
         <div className="max-w-3xl mx-auto px-6">
           <h1 className="text-5xl font-light tracking-widest mb-6 text-center">

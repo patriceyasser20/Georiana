@@ -4,7 +4,7 @@ import { ProductCardSkeleton } from '../../components/Skeleton';
 export default function CategoryLoading() {
   return (
     <>
-      <Header />
+      
       <div className="min-h-screen bg-gray-50 py-22">
         <div className="max-w-7xl mx-auto px-6">
           <div className="h-11 w-72 bg-gray-200 rounded-lg animate-pulse mb-10" />

@@ -301,7 +301,6 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
     />
-      <Header />
       <div className="min-h-screen bg-gray-50 py-20 md:py-30">
         <div className="max-w-6xl mx-auto px-4 md:px-6">
           <div className="flex flex-col md:grid md:grid-cols-2 md:gap-12">
