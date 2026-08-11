@@ -569,9 +569,6 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
     <button onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); setLightboxZoomed(false); }} className="absolute top-6 right-6 text-white/80 hover:text-white z-10" aria-label="Close">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
     </button>
-    {/* was: max-h-[90vh] max-w-[90vw] — a max-only box has no real size for
-        Image fill to fill against. Give it a real size instead; object-contain
-        still letterboxes the image to fit, same as before. */}
     <div className="relative w-[90vw] h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
       <Image
         src={images[displayIndex]}
