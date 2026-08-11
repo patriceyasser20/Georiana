@@ -565,31 +565,34 @@ export default function ProductDetailClient({ initialProduct, initialVariants, i
       </div>
 
       {lightboxOpen && (
-        <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center px-4" onClick={() => { setLightboxOpen(false); setLightboxZoomed(false); }}>
-          <button onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); setLightboxZoomed(false); }} className="absolute top-6 right-6 text-white/80 hover:text-white z-10" aria-label="Close">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-          <div className="relative max-h-[90vh] max-w-[90vw] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <Image
-              src={images[displayIndex]}
-              alt={product.name}
-              fill
-              sizes="90vw"
-              onClick={(e) => {
-                if (lightboxZoomed) { setLightboxZoomed(false); return; }
-                const rect = e.currentTarget.getBoundingClientRect();
-                const x = ((e.clientX - rect.left) / rect.width) * 100;
-                const y = ((e.clientY - rect.top) / rect.height) * 100;
-                setLightboxZoomOrigin({ x, y });
-                setLightboxZoomed(true);
-              }}
-              className={`object-contain rounded-xl transition-transform duration-300 ${lightboxZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
-              style={lightboxZoomed ? { transform: `scale(${LIGHTBOX_ZOOM_SCALE})`, transformOrigin: `${lightboxZoomOrigin.x}% ${lightboxZoomOrigin.y}%` } : undefined}
-            />
-          </div>
-          {!lightboxZoomed && <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-xs pointer-events-none">{t('product.clickToZoom')}</p>}
-        </div>
-      )}
+  <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center px-4" onClick={() => { setLightboxOpen(false); setLightboxZoomed(false); }}>
+    <button onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); setLightboxZoomed(false); }} className="absolute top-6 right-6 text-white/80 hover:text-white z-10" aria-label="Close">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12" /></svg>
+    </button>
+    {/* was: max-h-[90vh] max-w-[90vw] — a max-only box has no real size for
+        Image fill to fill against. Give it a real size instead; object-contain
+        still letterboxes the image to fit, same as before. */}
+    <div className="relative w-[90vw] h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <Image
+        src={images[displayIndex]}
+        alt={product.name}
+        fill
+        sizes="90vw"
+        onClick={(e) => {
+          if (lightboxZoomed) { setLightboxZoomed(false); return; }
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          setLightboxZoomOrigin({ x, y });
+          setLightboxZoomed(true);
+        }}
+        className={`object-contain rounded-xl transition-transform duration-300 ${lightboxZoomed ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
+        style={lightboxZoomed ? { transform: `scale(${LIGHTBOX_ZOOM_SCALE})`, transformOrigin: `${lightboxZoomOrigin.x}% ${lightboxZoomOrigin.y}%` } : undefined}
+      />
+    </div>
+    {!lightboxZoomed && <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/60 text-xs pointer-events-none">{t('product.clickToZoom')}</p>}
+  </div>
+)}
     </>
   );
 }
