@@ -8,8 +8,10 @@ import { supabaseClient } from '../../lib/supabaseClient';
 import { Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCurrency } from '../context/CurrencyContext';   // ← Added
+import { useRequireAuth } from '../../lib/useRequireAuth';
 
 export default function WishlistPage() {
+  useRequireAuth();
   const [wishlistItems, setWishlistItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

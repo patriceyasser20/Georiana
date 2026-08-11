@@ -9,6 +9,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { adminApi } from '../../lib/adminApi';
 import { invalidateCache } from '../../lib/productCache';
 import Image from 'next/image';
+import { useRequireAuth } from '../../lib/useRequireAuth';
 
 // ==================== SKU AUTO-GENERATION ====================
 const COLOR_CODES: Record<string, string> = {
@@ -86,6 +87,7 @@ async function compressImage(file: File, maxWidth = 1600, quality = 0.82): Promi
 }
 
 export default function AdminPanel() {
+  useRequireAuth();
   const router = useRouter();
   const { formatPrice, formatPriceAs } = useCurrency();
 

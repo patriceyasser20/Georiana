@@ -8,6 +8,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import { supabaseClient } from '../../lib/supabaseClient';
 import { Skeleton } from '../components/Skeleton';
 import Image from "next/image";
+import { useRequireAuth } from '../../lib/useRequireAuth';
 
 function AccountContent() {
   const { t } = useTranslation();
@@ -18,6 +19,8 @@ function AccountContent() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  useRequireAuth();
 
   useEffect(() => {
     fetchOrders();
