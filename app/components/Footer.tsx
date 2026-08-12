@@ -30,7 +30,7 @@ export default function Footer() {
             <a href="https://www.facebook.com/profile.php?id=61552738303653&mibextid=wwXIfr&rdid=uXmFuclixl3u7NSF&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1DwuGFejMy%2F%3Fmibextid%3DwwXIfr#" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
               <Image src="/images/facebook.webp" alt="Facebook" width={36} height={36} className="h-9 w-9 rounded-lg" />
             </a>
-            <a href="https://www.instagram.com/georiana_brand?igsh=eDFrbHM5dDliZHE=" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+            <a href="https://www.instagram.com/georiana_brand/" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
               <Image src="/images/instgram.webp" alt="Instagram" width={36} height={36} className="h-9 w-9 rounded-lg" />
             </a>
             <a href="https://www.tiktok.com/@georiana_?_r=1&_t=ZS-95MxDFRR0QH" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
@@ -99,7 +99,7 @@ export default function Footer() {
               <a href="https://www.facebook.com/profile.php?id=61552738303653" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
                 <Image src="/images/facebook.webp" alt="Facebook" width={36} height={36} className="h-9 w-9 rounded-lg" />
               </a>
-              <a href="https://www.instagram.com/georiana1?igsh=bXJ2ZjA2ODk1cWcw&utm_source=qr" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
+              <a href="https://www.instagram.com/georiana_brand/" target="_blank" rel="noopener noreferrer" className="hover:scale-110 transition-transform">
                 <Image src="/images/instgram.webp" alt="Instagram" width={36} height={36} className="h-9 w-9 rounded-lg" />
               </a>
               <a
