@@ -232,16 +232,12 @@ export default function Checkout() {
   };
 
   // ==================== CREATE OR UPDATE ORDER ====================
-  const createOrUpdateOrder = async () => {
+    const createOrUpdateOrder = async () => {
     let orderId = localStorage.getItem('pendingOrderId');
 
     const paymentLabel = paymentMethod === 'cod' ? 'Cash on Delivery' : 'Credit / Debit Card';
     const { data: { user } } = await supabaseClient.auth.getUser();
 
-    // Re-verify first-order eligibility right before charging, rather than
-    // trusting the isFirstOrder flag computed on page load — guards against
-    // a customer placing an order in one tab and finishing a stale checkout
-    // session in another, or simply leaving this tab open for a long time.
     let verifiedFirstOrderDiscount = 0;
     if (user?.id) {
       const { count: existingOrderCount } = await supabaseClient
@@ -254,18 +250,9 @@ export default function Checkout() {
       }
     }
 
-    // Cap the stored discount at what the customer actually owed (subtotal +
-    // delivery), so the order record can never imply a negative total even
-    // if a promo code and several "Buy X Get Y" offers stack past 100% off.
     const rawDiscountAmount = (discountAmount + offersDiscount + verifiedFirstOrderDiscount) || 0;
     const totalDiscountAmount = Math.min(rawDiscountAmount, subtotal + deliveryFee);
 
-    // Record which offers applied and how much each contributed, so the
-    // account page and admin order tab can show "🏷️ Summer -EGP 3000" etc.
-    // instead of just a single combined discount number. If the combined
-    // discount had to be capped above, scale each contribution down
-    // proportionally so the breakdown still sums to the capped total. The
-    // welcome discount is folded in here too, labeled like any other offer.
     const offerScale = rawDiscountAmount > 0 ? totalDiscountAmount / rawDiscountAmount : 1;
     const appliedOffers = offerResults
       .filter((r) => r.offerApplied)
@@ -283,17 +270,21 @@ export default function Checkout() {
 
     if (!orderId) {
       const initialStatus = paymentMethod === 'cod' ? 'succeeded' : 'pending';
-
-      // For logged-in users, the authoritative email is the one on their
-      // Supabase session — never the typed field, which the customer could
-      // set to any address and thereby inject orders into another account.
-      // For guests (user === null) we use the typed email so they can still
-      // look up their order via the confirmation email link.
       const orderEmail = user?.email || email || 'guest@georgiana.com';
 
-      const { data: newOrder, error } = await supabaseClient
+      // Generate the ID client-side instead of relying on `.select()`
+      // after the insert. Postgres RLS applies the table's SELECT policy
+      // to RETURNING rows, and a guest (auth.uid() = null, user_id = null)
+      // never satisfies "auth.uid() = user_id" — so `.select().single()`
+      // was throwing an RLS error and aborting the whole insert for every
+      // guest order. Supplying the id ourselves means we never need it
+      // read back.
+      const newOrderId = crypto.randomUUID();
+
+      const { error } = await supabaseClient
         .from('orders')
         .insert({
+          id: newOrderId,
           user_id: user?.id || null,
           user_email: orderEmail,
           contact_email: email || orderEmail,
@@ -311,16 +302,14 @@ export default function Checkout() {
           applied_offers: appliedOffers,
           currency: currency,
           currency_rate: currentRate
-        })
-        .select()
-        .single();
+        });
 
-      if (error || !newOrder) {
+      if (error) {
         console.error('Failed to create order:', error);
         throw new Error('Failed to create order');
       }
 
-      orderId = newOrder.id as string;
+      orderId = newOrderId;
       localStorage.setItem('pendingOrderId', orderId);
 
       const orderItemsData = items.map(item => ({
@@ -341,8 +330,6 @@ export default function Checkout() {
         console.error('Failed to insert order items:', itemsError);
       }
     } else {
-      // Update existing order
-      // Update existing order
       const updateOrderEmail = user?.email || email || 'guest@georgiana.com';
       const { error: updateError } = await supabaseClient
         .from('orders')

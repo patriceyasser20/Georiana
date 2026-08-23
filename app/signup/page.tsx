@@ -52,10 +52,19 @@ export default function Signup() {
   const signInWithProvider = async (provider: 'google') => {
     setLoading(true);
     setError('');
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider:'google',
-      options: { redirectTo: `${window.location.origin}/callback` },
-    });
+    const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
+    const isAnonymous = existingSession?.user?.is_anonymous === true;
+
+    const { error } = isAnonymous
+      ? await supabaseClient.auth.linkIdentity({
+          provider: 'google',
+          options: { redirectTo: `${window.location.origin}/callback` },
+        })
+      : await supabaseClient.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: `${window.location.origin}/callback` },
+        });
+
     if (error) setError(error.message);
     setLoading(false);
   };
@@ -78,7 +87,6 @@ export default function Signup() {
       return;
     }
 
-    // Validate phone number (11 digits)
     const cleanedPhone = phone.replace(/\D/g, '');
     if (cleanedPhone.length !== 11) {
       setError(t('signup.phoneRequired'));
@@ -86,13 +94,6 @@ export default function Signup() {
       return;
     }
 
-    // ── Check if phone or email already exists ──
-    // Routed through a server API (service role) instead of querying
-    // `profiles` directly from the client: an anonymous, not-yet-signed-up
-    // visitor is blocked by RLS from reading other users' rows, so the old
-    // client-side .select().maybeSingle() always returned null and this
-    // check silently never fired. The server route bypasses RLS safely
-    // since it only ever returns two booleans, never the actual data.
     let emailExists = false;
     let phoneExists = false;
     try {
@@ -106,12 +107,8 @@ export default function Signup() {
       phoneExists = !!checkData.phoneExists;
     } catch (err) {
       console.error('Existing user check failed:', err);
-      // Fail open on a network/server error — the DB unique constraint
-      // (and the auth.signUp "already registered" branch below) still
-      // catches real duplicates even if this pre-check couldn't run.
     }
 
-    // Prepare error message
     const errors = [];
     if (phoneExists) errors.push(t('signup.phoneField'));
     if (emailExists) errors.push(t('signup.emailField'));
@@ -122,15 +119,35 @@ export default function Signup() {
       return;
     }
 
-    // Sign up the user (phone saved in auth.users metadata)
-    const { data, error: authError } = await supabaseClient.auth.signUp({
-      email,
-      password,
-      options: {
+    // NEW: if this browser already has an anonymous session (from the cart),
+    // upgrade it in place instead of creating a brand-new user — this keeps
+    // the same auth.uid(), so existing cart_items rows carry over untouched.
+    const { data: { session: existingSession } } = await supabaseClient.auth.getSession();
+    const isAnonymous = existingSession?.user?.is_anonymous === true;
+
+    let userId: string | undefined;
+    let authError;
+
+    if (isAnonymous) {
+      const { data, error: updateError } = await supabaseClient.auth.updateUser({
+        email,
+        password,
         data: { phone: cleanedPhone, full_name: trimmedName },
-        emailRedirectTo: `${window.location.origin}/callback`,
-      },
-    });
+      });
+      authError = updateError;
+      userId = data?.user?.id;
+    } else {
+      const { data, error: signUpError } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { phone: cleanedPhone, full_name: trimmedName },
+          emailRedirectTo: `${window.location.origin}/callback`,
+        },
+      });
+      authError = signUpError;
+      userId = data?.user?.id;
+    }
 
     if (authError) {
       if (authError.message.toLowerCase().includes('already registered') ||
@@ -139,21 +156,17 @@ export default function Signup() {
       } else {
         setError(authError.message);
       }
-    } else if (data.user) {
-      // Save phone to profiles table (using the returned user ID)
+    } else if (userId) {
       const { error: profileError } = await supabaseClient
         .from('profiles')
         .upsert({
-          id: data.user.id,
+          id: userId,
           email,
           phone: cleanedPhone,
           full_name: trimmedName,
         });
 
       if (profileError) {
-        // Most likely a unique-constraint race (two signups for the same
-        // phone/email landing at nearly the same time) slipping past the
-        // pre-check above.
         console.error('Profile upsert failed:', profileError);
         setError('This email or phone is already registered.');
         setLoading(false);
@@ -161,9 +174,9 @@ export default function Signup() {
       }
 
       fetch('/api/set-user-phone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: data.user.id, phone: cleanedPhone }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, phone: cleanedPhone }),
       }).catch((err) => console.error('Failed to set auth phone:', err));
 
       setSuccess(t('signup.success'));
