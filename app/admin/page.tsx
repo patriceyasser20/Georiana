@@ -279,41 +279,32 @@ export default function AdminPanel() {
     verifyAdmin();
   }, [router]);
 
-  const loadData = async () => {
+    const loadData = async () => {
     setLoading(true);
 
     const [
-      [productsRes, ordersRes, countriesRes, promoRes, variantsRes, offersRes],
+      [productsRes, countriesRes, promoRes, variantsRes, offersRes],
       featuredProductIds,
+      ordersData,
     ] = await Promise.all([
       Promise.all([
         supabaseClient.from('products').select('*'),
-        supabaseClient.from('orders').select(`
-          *,
-          order_items (
-            product_name,
-            size,
-            color,
-            quantity,
-            price,
-            image_url
-          )
-        `).order('created_at', { ascending: false }),
         supabaseClient.from('supported_countries').select('*').order('name'),
         supabaseClient.from('promo_codes').select('*').order('created_at', { ascending: false }),
         supabaseClient.from('product_variants').select('*'),
         supabaseClient.from('offers').select('*').order('created_at', { ascending: false }),
       ]),
-      // Routed through the service role (like every write on this tab)
-      // instead of the anon-key client directly — a missing SELECT policy
-      // on featured_products silently returns an empty array rather than
-      // an error, which is what made this tab show "0 selected" even when
-      // rows existed, and then try to re-insert a row that already existed.
       adminApi.getFeatured('new_this_week').catch(() => [] as string[]),
+      // Routed through the service role — orders' SELECT policy was
+      // tightened to stop leaking customer PII to anonymous requests,
+      // which also means the anon-key client here (correctly) can no
+      // longer see any orders at all. Same pattern as every other
+      // admin read/write on this page.
+      adminApi.getOrders().catch(() => [] as any[]),
     ]);
 
     setProducts(productsRes.data || []);
-    setOrders(ordersRes.data || []);
+    setOrders(ordersData);
     setSupportedCountries(countriesRes.data || []);
     setPromoCodes(promoRes.data || []);
     setAllVariants(variantsRes.data || []);

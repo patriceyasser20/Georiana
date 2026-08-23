@@ -84,4 +84,8 @@ getSubscribers: async () => {
   if (!res.ok) throw new Error(data.error || 'Failed to load subscribers');
   return (data.data || []) as { email: string; marketing_opt_out: boolean }[];
 },
+  getOrders:              async (): Promise<any[]> => {
+                             const res = await call('get-orders', {});
+                             return res.data || [];
+                           },
 };

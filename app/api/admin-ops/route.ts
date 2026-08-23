@@ -173,6 +173,24 @@ export async function POST(req: NextRequest) {
         if (error) throw error;
         return NextResponse.json({ data });
       }
+            case 'get-orders': {
+        const { data, error } = await supabase
+          .from('orders')
+          .select(`
+            *,
+            order_items (
+              product_name,
+              size,
+              color,
+              quantity,
+              price,
+              image_url
+            )
+          `)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        return NextResponse.json({ data });
+      }
 
       // ── Featured products (Home Page tab) ───────────────────────────────
       // These previously went straight through the browser's anon-key
