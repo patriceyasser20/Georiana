@@ -454,10 +454,13 @@ export default function Checkout() {
                 <input type="text" placeholder={t('checkout.lastName')} value={lastName} onChange={e => setLastName(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
               </div>
               <input type="email" placeholder={t('checkout.email')} value={email} onChange={e => setEmail(e.target.value)} className="border rounded-2xl px-5 py-4 w-full mt-4" />
-              <input type="tel" placeholder={t('checkout.phone')} value={phone} onChange={e => setPhone(e.target.value)} className="border rounded-2xl px-5 py-4 w-full mt-4" />
+              <input type="tel" placeholder={t('checkout.phone')} value={phone} onChange={e => setPhone(e.target.value)} className="border rounded-2xl text-right px-5 py-4 w-full mt-4" />
 
               <h2 className="text-2xl font-medium mt-12 mb-6">{t('checkout.shippingAddress')}</h2>
               <input type="text" placeholder={t('checkout.street')} value={street} onChange={e => setStreet(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
+              <p className="text-xs text-gray-500 mt-2 px-1">
+                {t('checkout.streetHint')}
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                 <input type="text" placeholder={t('checkout.apartment')} value={apartment} onChange={e => setApartment(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
                 <input type="text" placeholder={t('checkout.postalCode')} value={postalCode} onChange={e => setPostalCode(e.target.value)} className="border rounded-2xl px-5 py-4 w-full" />
@@ -483,7 +486,7 @@ export default function Checkout() {
               {/* Governorate / City Selector */}
               <div className="mt-6">
                 <label className="block text-sm font-medium mb-2">
-                  {country === 'EG' ? 'Governorate' : 'City'}
+                  {country === 'EG' ? t('checkout.selectGovernorate') : t('checkout.selectCity')}
                 </label>
                 <select
                   value={governorate}
@@ -493,12 +496,12 @@ export default function Checkout() {
                 >
                   <option value="">
                     {!country
-                      ? 'Select a country first'
+                      ? t('checkout.selectCountryFirst')
                       : cityLoading
-                        ? 'Loading cities...'
+                        ? t('checkout.loadingCities')
                         : availableCities.length === 0
-                          ? 'No cities available'
-                          : country === 'EG' ? 'Select Governorate' : 'Select City'
+                          ? t('checkout.noCitiesAvailable')
+                          : country === 'EG' ? t('checkout.selectGovernorate') : t('checkout.selectCity')
                     }
                   </option>
                   {availableCities.map(city => (
@@ -574,7 +577,7 @@ export default function Checkout() {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    placeholder="Promo Code"
+                    placeholder={t('checkout.promoCodePlaceholder')}
                     value={promoCodeInput}
                     onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
                     className="border rounded-2xl px-4 py-4 flex-1 min-w-0 text-base font-mono tracking-widest uppercase"
@@ -583,7 +586,7 @@ export default function Checkout() {
                     onClick={applyPromoCode}
                     className="bg-black text-white px-6 py-4 rounded-2xl hover:bg-gray-800 transition shrink-0 text-sm font-medium"
                   >
-                    Apply
+                    {t('checkout.applyPromo')}
                   </button>
                 </div>
                 {promoError && <p className="text-red-600 text-sm mt-2">{promoError}</p>}
@@ -597,21 +600,21 @@ export default function Checkout() {
               {/* Price Breakdown */}
               <div className="mt-10 space-y-3 text-lg">
                 {items.some(i => i.isOnSale) && (
-                  <div className="flex justify-between text-gray-400 line-through text-base">
-                    <span>Original</span>
-                    <span>{formatPrice(items.reduce((sum, i) => sum + Number(i.originalPrice || i.price) * Number(i.quantity), 0))}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                <div className="flex justify-between text-gray-400 line-through text-base">
+                  <span>{t('checkout.original')}</span>
+                  <span>{formatPrice(items.reduce((sum, i) => sum + Number(i.originalPrice || i.price) * Number(i.quantity), 0))}</span>
                 </div>
-                {items.some(i => i.isOnSale) && (
-                  <div className="flex justify-between text-red-600 text-sm">
-                    <span>Item Savings</span>
-                    <span>-{formatPrice(items.reduce((sum, i) => sum + (Number(i.originalPrice || i.price) - Number(i.price)) * Number(i.quantity), 0))}</span>
-                  </div>
-                )}
+              )}
+              <div className="flex justify-between">
+                <span>{t('checkout.subtotal')}</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              {items.some(i => i.isOnSale) && (
+                <div className="flex justify-between text-red-600 text-sm">
+                  <span>{t('checkout.itemSavings')}</span>
+                  <span>-{formatPrice(items.reduce((sum, i) => sum + (Number(i.originalPrice || i.price) - Number(i.price)) * Number(i.quantity), 0))}</span>
+                </div>
+              )}
 
                 {/* Buy X Get Y offers */}
                 {offerResults.length > 0 && offerResults.map((r, i) => (
@@ -631,27 +634,27 @@ export default function Checkout() {
 
                 {/* Delivery Fee Row — shows Free or amount */}
                 {governorate && (
-                  <div className="flex justify-between">
-                    <span>Delivery Fee ({governorate})</span>
-                    {isFreeShipping ? (
-                      <span className="text-green-600 font-semibold flex items-center gap-1">
-                        Free
-                      </span>
-                    ) : (
-                      <span>{formatPrice(deliveryFee)}</span>
-                    )}
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span>{t('checkout.deliveryFee')} ({governorate})</span>
+                  {isFreeShipping ? (
+                    <span className="text-green-600 font-semibold flex items-center gap-1">
+                      {t('checkout.free')}
+                    </span>
+                  ) : (
+                    <span>{formatPrice(deliveryFee)}</span>
+                  )}
+                </div>
+              )}
 
                 {appliedPromo && (
                   <div className="flex justify-between items-start gap-4 text-red-600">
-                    <span className="min-w-0">Discount ({appliedPromo.discount_percentage}%)</span>
+                    <span className="min-w-0">{t('checkout.discount')} ({appliedPromo.discount_percentage}%)</span>
                     <span className="shrink-0 whitespace-nowrap">-{formatPrice(discountAmount)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between text-2xl font-medium border-t pt-6">
-                  <span>Total</span>
+                  <span>{t('checkout.total')}</span>
                   <span>{formatPrice(finalTotal)}</span>
                 </div>
               </div>
