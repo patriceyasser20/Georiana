@@ -1192,6 +1192,11 @@ const handleDragEnd = () => setDraggedIndex(null);
                       <div className="flex flex-wrap justify-between gap-4 mb-6">
                         <div>
                           <p className="text-sm text-gray-500 mb-1">Order #{order.id.slice(0, 8)}...</p>
+                          {(order.first_name || order.last_name) && (
+                            <p className="font-medium">
+                              Name: {[order.first_name, order.last_name].filter(Boolean).join(' ')}
+                            </p>
+                          )}
                           <p className="font-medium">Account Email: {order.user_email}</p>
                           {order.contact_email && order.contact_email !== order.user_email && (
                             <p className="font-medium text-blue-600">Confirmation sent to: {order.contact_email}</p>

@@ -281,14 +281,15 @@ export default function Checkout() {
       // read back.
       const newOrderId = crypto.randomUUID();
 
-      const { error } = await supabaseClient
+      const { data: newOrder, error } = await supabaseClient
         .from('orders')
         .insert({
-          id: newOrderId,
           user_id: user?.id || null,
           user_email: orderEmail,
           contact_email: email || orderEmail,
           phone: phone || null,
+          first_name: firstName || null,
+          last_name: lastName || null,
           total: subtotal,
           payment_method: paymentLabel,
           street: street || null,
@@ -302,7 +303,9 @@ export default function Checkout() {
           applied_offers: appliedOffers,
           currency: currency,
           currency_rate: currentRate
-        });
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Failed to create order:', error);
@@ -331,13 +334,15 @@ export default function Checkout() {
       }
     } else {
       const updateOrderEmail = user?.email || email || 'guest@georgiana.com';
-      const { error: updateError } = await supabaseClient
+            const { error: updateError } = await supabaseClient
         .from('orders')
         .update({
           user_id: user?.id || null,
           user_email: updateOrderEmail,
           contact_email: email || updateOrderEmail,
           phone: phone || null,
+          first_name: firstName || null,
+          last_name: lastName || null,
           street: street || null,
           apartment: apartment || null,
           city: city || 'Cairo',
